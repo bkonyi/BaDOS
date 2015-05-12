@@ -20,7 +20,7 @@
  * 	-1 – if the priority is invalid.
  * 	-2 – if the kernel is out of task descriptors.
  */
-int Create( int priority, void (*code) ();
+int Create( int priority, void (*code) () );
 
 /**
  * @brief find my task id.
