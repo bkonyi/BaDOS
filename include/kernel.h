@@ -1,5 +1,45 @@
 #ifndef _KERNEL_H_
 #define _KERNEL_H_
+
+#include <common.h>
+
+#define MAX_NUMBER_OF_TASKS 1000 //TODO Arbitrary number for now
+
+typedef int16_t tid_t;
+
+typedef enum {
+    TASK_RUNNING_STATE_ACTIVE = 0,
+    TASK_RUNNING_STATE_READY  = 1,
+    TASK_RUNNING_STATE_ZOMBIE = 2
+} task_running_state_t;
+
+typedef struct {
+    task_running_state_t state;
+    tid_t parent;
+
+    void* stack;
+
+    //Registers
+    uint32_t r0;
+    uint32_t r1;
+    uint32_t r2;
+    uint32_t r3;
+    uint32_t r4;
+    uint32_t r5;
+    uint32_t r6;
+    uint32_t r7;
+    uint32_t r8;
+    uint32_t r9;
+    uint32_t r10;
+    uint32_t r11;
+    uint32_t r12;
+    uint32_t sp; //Stack pointer
+    uint32_t lr; //Link register
+    uint32_t pc; //Program counter
+
+    uint32_t cpsr; //Program status register
+} task_descriptor_t;
+
 /**
  * @brief instantiate a task
  * @details Create allocates and initializes a task descriptor, using the

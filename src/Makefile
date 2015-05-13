@@ -24,7 +24,7 @@ EXEC = bados.elf
 LDFLAGS = -init main -Map $(EXEC:.elf=.map) -T orex.ld 
 
 #define the source files
-SRCS = $(wildcard *.c) $(wildcard ./io/*.c)
+SRCS = $(wildcard *.c) $(wildcard ./io/*.c) $(wildcard ./common/*.c)
 
 # define any directories containing header files
 #
@@ -61,7 +61,7 @@ $(EXEC): $(ASSM) $(OBJS)
 
 # To obtain assembly files
 %.s: %.c
-	$(CC) -S $(CFLAGS) $(INCLUDES) $<
+	$(CC) -S $(CFLAGS) $(INCLUDES) -o $@ $<
 
 # To obtain object files
 %.o: %.s
