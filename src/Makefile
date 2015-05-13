@@ -54,7 +54,8 @@ OBJS = $(SRCS:.c=.o)
 ASSM = $(SRCS:.c=.s)
 
 all: $(EXEC)
-
+	cp $(EXEC) /u/cs452/tftp/ARM/$(EXEC)
+	chmod 777 /u/cs452/tftp/ARM/$(EXEC)
 # Main target
 $(EXEC): $(ASSM) $(OBJS)
 	$(LD) $(LDFLAGS) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
