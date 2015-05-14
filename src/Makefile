@@ -54,6 +54,7 @@ OBJS = $(SRCS:.c=.o)
 ASSM = $(SRCS:.c=.s)
 
 all: $(EXEC)
+	rm -f /u/cs452/tftp/ARM/$(EXEC) 
 	cp $(EXEC) /u/cs452/tftp/ARM/$(EXEC)
 	chmod 777 /u/cs452/tftp/ARM/$(EXEC)
 # Main target
