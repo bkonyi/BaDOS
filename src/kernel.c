@@ -23,6 +23,8 @@ int Create( int priority, void (*code) () ) {
     next_descriptor->sp      = (uint32_t) kmalloc(STACK_SIZE) + (sizeof(uint32_t)*13);
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
+
+    bwprintf(COM2, "Code*: %x PC: %x\r\n", code, next_descriptor->pc);
     
     //TODO schedule
 
