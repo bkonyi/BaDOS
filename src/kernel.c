@@ -1,5 +1,6 @@
 #include "common.h"
 #include "kernel.h"
+#include "bwio.h"
 
 #define STACK_SIZE 1024 * 16 //16KiB
 
@@ -17,13 +18,19 @@ int Create( int priority, void (*code) () ) {
     //TODO check priority here
 
     task_descriptor_t* next_descriptor = &tasks[next_tid++];
-    next_descriptor->state = TASK_RUNNING_STATE_READY;
-    next_descriptor->parent = MyTid();
-    next_descriptor->stack = kmalloc(STACK_SIZE);
-
+    next_descriptor->state   = TASK_RUNNING_STATE_READY;
+    next_descriptor->parent  = MyTid();
+    next_descriptor->sp      = (uint32_t) kmalloc(STACK_SIZE) + (sizeof(uint32_t)*13);
+    next_descriptor->spsr    = USER_TASK_MODE;
+    next_descriptor->pc      = (uint32_t) code;
+    
     //TODO schedule
 
     return next_tid - 1;
+}
+
+task_descriptor_t* GetTD(tid_t id) {
+    return &tasks[id];
 }
 
 int MyTid() {
@@ -42,3 +49,4 @@ void Pass() {
 void Exit() {
     //TODO
 }
+
