@@ -48,10 +48,10 @@ LIBS = -lgcc
 # Below we are replacing the suffix .c of all words in the macro SRCS
 # with the .o suffix
 #
-OBJS = $(SRCS:.c=.o)
+OBJS = $(SRCS:.c=.o) context_switch.o
 
 # define the assembly files
-ASSM = $(SRCS:.c=.s)
+ASSM = $(SRCS:.c=.s) context_switch.s
 
 all: $(EXEC)
 	rm -f /u/cs452/tftp/ARM/$(EXEC) 
@@ -71,4 +71,4 @@ $(EXEC): $(ASSM) $(OBJS)
 
 # To remove generated files
 clean:
-	rm -f $(EXEC) $(EXEC:.elf=.map) $(OBJS) $(ASSM)
+	rm -f $(EXEC) $(EXEC:.elf=.map) $(OBJS) $(SRCS:.c=.s)
