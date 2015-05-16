@@ -1,33 +1,5 @@
-#ifndef _KERNEL_H_
-#define _KERNEL_H_
-
-#include <common.h>
-
-#define MAX_NUMBER_OF_TASKS 1000 //TODO Arbitrary number for now
-#define USER_TASK_MODE      0xD0
-typedef int16_t tid_t;
-
-typedef uint8_t priority_t;
-
-typedef enum {
-    TASK_RUNNING_STATE_ACTIVE = 0,
-    TASK_RUNNING_STATE_READY  = 1,
-    TASK_RUNNING_STATE_ZOMBIE = 2
-} task_running_state_t;
-
-typedef struct {
-    //Registers
-    uint32_t sp;   //Stack pointer
-    uint32_t spsr; //Program status register
-    uint32_t pc;
-
-    task_running_state_t state;
-    tid_t parent;
-    priority_t priority;
-
-} task_descriptor_t;
-
-task_descriptor_t* GetTD(tid_t id);
+#ifndef __SYS_CALL_H__
+#define __SYS_CALL_H__
 
 /**
  * @brief instantiate a task
@@ -43,11 +15,11 @@ task_descriptor_t* GetTD(tid_t id);
  * @param code [description]
  * 
  * @return
- * 	id – the positive integer task id of the newly created task. The task id 
- * 		must be unique, in the sense that no task has, will have or has had the
- * 		same task id.
- * 	-1 – if the priority is invalid.
- * 	-2 – if the kernel is out of task descriptors.
+ *  id – the positive integer task id of the newly created task. The task id 
+ *      must be unique, in the sense that no task has, will have or has had the
+ *      same task id.
+ *  -1 – if the priority is invalid.
+ *  -2 – if the kernel is out of task descriptors.
  */
 int Create( int priority, void (*code) () );
 
@@ -70,7 +42,7 @@ task.
  * @return 
  * tid – the task id of the task that created the calling task.
  * The return value is implementation-dependent if the parent has
- * 		exited, has been destroyed, or is in the process of being destroyed.
+ *      exited, has been destroyed, or is in the process of being destroyed.
  */
 int MyParentTid();
 
@@ -90,5 +62,5 @@ void Pass();
  */
 void Exit();
 
-#endif//_KERNEL_H_
+#endif//__SYS_CALL_H__
 

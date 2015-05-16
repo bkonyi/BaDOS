@@ -1,7 +1,7 @@
 #ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
 
-#include <kernel.h>
+#include <task_handler.h>
 
 #define SCHEDULER_NUM_QUEUES            32
 #define SCHEDULER_HIGHEST_PRIORITY      0

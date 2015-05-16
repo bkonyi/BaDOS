@@ -2,7 +2,9 @@
 #include <bwio.h>
 #include <context_switch.h>
 #include <scheduler.h>
-#include "kernel.h"
+#include <syscalls.h>
+#include <task_handler.h>
+
 #define FOREVER for(;;)
 #define SOFTWARE_INTERRUPT_HANDLER ((uint32_t*)0x28)
 
@@ -16,13 +18,7 @@ void initialize(void) {
     init_scheduler();
 
     //TODO set this to our first user task
-    task_descriptor_t* first_task = GetTD(Create(1, NULL));
-
-    if(first_task == NULL) {
-        //TODO handle error
-    }
-
-    schedule(first_task);
+    create_task(1, NULL);
 }
 
 void switch_context(task_descriptor_t* td) {
