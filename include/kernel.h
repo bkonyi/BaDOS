@@ -4,8 +4,10 @@
 #include <common.h>
 
 #define MAX_NUMBER_OF_TASKS 1000 //TODO Arbitrary number for now
-#define USER_TASK_MODE      0x10
+#define USER_TASK_MODE      0xD0
 typedef int16_t tid_t;
+
+typedef uint8_t priority_t;
 
 typedef enum {
     TASK_RUNNING_STATE_ACTIVE = 0,
@@ -14,15 +16,15 @@ typedef enum {
 } task_running_state_t;
 
 typedef struct {
-    task_running_state_t state;
-    tid_t parent;
-
-    void* stack;
-
     //Registers
     uint32_t sp;   //Stack pointer
     uint32_t spsr; //Program status register
     uint32_t pc;
+
+    task_running_state_t state;
+    tid_t parent;
+    priority_t priority;
+
 } task_descriptor_t;
 
 task_descriptor_t* GetTD(tid_t id);
