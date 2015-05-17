@@ -20,10 +20,11 @@ int Create( int priority, void (*code) () ) {
     task_descriptor_t* next_descriptor = &tasks[next_tid++];
     next_descriptor->state   = TASK_RUNNING_STATE_READY;
     next_descriptor->parent  = MyTid();
-    next_descriptor->sp      = sp ;
+    next_descriptor->sp      = sp +(sizeof(uint32_t)*20);
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
     int i =0;
+    
     for(i=0;i<20;i++){
         ((uint32_t*)sp)[i]  = (uint32_t) code; // last element sp is the "lr"
     }

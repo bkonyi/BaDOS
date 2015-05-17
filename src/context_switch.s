@@ -34,11 +34,15 @@ context_switch:
 
 	@ Start our code
     @ 1. Push kernel registers onto stack
-	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip,lr}
 	
 	@ 3 save spsr
 	ldr r1, [r0, #4]
 	msr spsr_c, r1
+
+	ldr r1, [r0,#0] @sp
+
+	ldr lr, [r1,#-4]
 
 	@ 2. Go into system state
 	msr cpsr_c, #0x1F
@@ -55,8 +59,8 @@ context_switch:
 
 
 	@ 4. Pop the registers off of the user stack
-	ldmfd   sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
-
+	ldmfd   sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	
 	@ 5. Set the return code from system call
 	@ TODO
 
@@ -66,7 +70,7 @@ context_switch:
 	ORR r1,r1,#0x13*/
 	MSR CPSR_c,#0x13
 
-
+	
 	
 
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -74,18 +78,18 @@ context_switch:
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 	@ 7. Install spsr of the active task. Puts us in user mode.
-	stmfd sp!,{r1}
+/*	stmfd sp!,{r1}
 	MRS r1, spsr
 	MSR CPSR_c, r1
 	ldmfd sp!,{r1}
+	*/
 	
-
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   USER MODE (r0-r15 cpsr)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 	@ 8. Set the pc to the user task
-	mov pc, lr
+	movs pc, lr
 
 
 

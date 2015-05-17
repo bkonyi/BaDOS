@@ -40,7 +40,7 @@ int main(void)
 {
     init_memory();
     //TODO initialize
-    task_descriptor_t* test = GetTD(Create(1, Test));
+    task_descriptor_t* test = GetTD(Create(1, Test+0x218000));
 
     FOREVER {
         switch_context(test);
