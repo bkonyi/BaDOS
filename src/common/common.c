@@ -14,7 +14,7 @@ void* kmalloc(size_t bytes) {
         return NULL; //Out of memory
     }
 
-    void* allocated = &HEAP[heap_location];
+    void* allocated = &(HEAP[heap_location]);
     heap_location += bytes;
 
     return allocated;

@@ -14,18 +14,22 @@ int Create( int priority, void (*code) () ) {
         //We're out of task descriptors!
         return -2;
     }
-
+    uint32_t sp = (uint32_t) kmalloc(STACK_SIZE);
     //TODO check priority here
 
     task_descriptor_t* next_descriptor = &tasks[next_tid++];
     next_descriptor->state   = TASK_RUNNING_STATE_READY;
     next_descriptor->parent  = MyTid();
-    next_descriptor->sp      = (uint32_t) kmalloc(STACK_SIZE) + (sizeof(uint32_t)*20);
+    next_descriptor->sp      = sp ;
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
-    ((uint32_t*)next_descriptor->sp)[19]  = (uint32_t) code; // last element sp is the "lr"
+    int i =0;
+    for(i=0;i<20;i++){
+        ((uint32_t*)sp)[i]  = (uint32_t) code; // last element sp is the "lr"
+    }
+    
 
-    bwprintf(COM2, "Code*: %x PC: %x\r\n", code, next_descriptor->pc);
+    bwprintf(COM2, "Code*: %x sp: %x, spval[19]: %x\r\n", next_descriptor->pc, sp,((uint32_t*)sp)[19]);
     
     //TODO schedule
 

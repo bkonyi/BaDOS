@@ -10,7 +10,7 @@ void switch_context(task_descriptor_t* td) {
     bwprintf(COM2, "Context switch successful!\r\n");
 }
 
-void Test(void) {
+static void Test(void) {
     __asm__("nop\n\t");
     __asm__("nop\n\t");
     __asm__("nop\n\t");
@@ -38,6 +38,7 @@ void Test(void) {
 
 int main(void)
 {
+    init_memory();
     //TODO initialize
     task_descriptor_t* test = GetTD(Create(1, Test));
 
