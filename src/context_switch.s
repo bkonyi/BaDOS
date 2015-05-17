@@ -40,9 +40,7 @@ context_switch:
 	ldr r1, [r0, #4]
 	msr spsr_c, r1
 
-	ldr r1, [r0,#0] @sp
-
-	ldr lr, [r1,#-4]
+	ldr lr, [r0,#8] @load the pc 
 
 	@ 2. Go into system state
 	msr cpsr_c, #0x1F

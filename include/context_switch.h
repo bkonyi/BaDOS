@@ -3,6 +3,6 @@
 
 #include <task_handler.h>
 
-void context_switch(task_descriptor_t* td);
+extern void context_switch(task_descriptor_t* td);
 
 #endif

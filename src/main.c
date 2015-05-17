@@ -7,7 +7,7 @@
 
 #define FOREVER for(;;)
 #define SOFTWARE_INTERRUPT_HANDLER ((uint32_t*)0x28)
-
+int main(void);
 void initialize(void) {
 
     //Set the software interrupt handler to jump to our
@@ -19,7 +19,7 @@ void initialize(void) {
     init_scheduler();
 
     //TODO set this to our first user task
-    create_task(1, NULL);
+    create_task(1, main);
 }
 
 void switch_context(task_descriptor_t* td) {

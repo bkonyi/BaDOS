@@ -19,7 +19,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 ARFLAGS = rcs
 
 #define the executable
-EXEC = bados_ben.elf
+EXEC = bados.elf
 
 LDFLAGS = -init main -N -Map $(EXEC:.elf=.map) -T orex.ld 
 
@@ -48,10 +48,10 @@ LIBS = -lgcc
 # Below we are replacing the suffix .c of all words in the macro SRCS
 # with the .o suffix
 #
-OBJS = $(SRCS:.c=.o)
+OBJS = $(SRCS:.c=.o) context_switch.o
 
 # define the assembly files
-ASSM = $(SRCS:.c=.s)
+ASSM = $(SRCS:.c=.s) context_switch.s
 
 all: $(EXEC)
 	rm -f /u/cs452/tftp/ARM/$(EXEC) 

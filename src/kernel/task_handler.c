@@ -1,5 +1,6 @@
 #include <task_handler.h>
 #include <scheduler.h>
+#include "common.h"
 
 #define STACK_SIZE 1024 * 16 //16KiB
 
@@ -32,11 +33,13 @@ int create_task(priority_t priority, void (*code) ()) {
         next_descriptor->parent = -1; //The kernel is our parent
     }
 
+    uint32_t fp = (uint32_t) kmalloc(STACK_SIZE);
     //The stack grows downward, so change the offset
-    next_descriptor->sp      = (uint32_t) kmalloc(STACK_SIZE) + (STACK_SIZE);
+    //TODO: change 20 to the number of eleemnts we are going to save on the stack
+    next_descriptor->sp      = fp + (20*sizeof(uint32_t)) ;
 
     next_descriptor->spsr    = USER_TASK_MODE;
-    next_descriptor->pc      = (uint32_t) code;
+    next_descriptor->pc      = (uint32_t) code + HARDCODED_LOAD_OFFSET ;
     
     int result = schedule(next_descriptor);
 
