@@ -102,7 +102,7 @@ int bwputr( int channel, unsigned int reg ) {
 	char *ch = (char *) &reg;
 
 	for( byte = 3; byte >= 0; byte-- ) bwputx( channel, ch[byte] );
-	return bwputc( channel, ' ' );
+	return bwputc( channel, '\n' );
 }
 
 int bwputstr( int channel, char *str ) {

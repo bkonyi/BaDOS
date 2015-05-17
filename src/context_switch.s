@@ -6,18 +6,30 @@
 context_switch:
 	@ args = 0, pretend = 0, frame = 4
 	@ frame_needed = 1, uses_anonymous_args = 0
-	mov	ip, sp
-	stmfd	sp!, {fp, ip, lr, pc}
-	sub	fp, ip, #4
-	sub	sp, sp, #4
-	str	r0, [fp, #-16]
-	ldr	r3, [fp, #-16]
-	ldr	r1, [r3, #16]
-	ldr	r3, [fp, #-16]
-	ldr	r2, [r3, #20]
-	ldr	r3, [fp, #-16]
-	ldr	r3, [r3, #12]
 
+	/*
+	typedef struct {
+	    //Registers
+	    uint32_t sp;   //Stack pointer
+	    uint32_t spsr; //Program status register
+	    uint32_t pc;
+	    
+	    task_running_state_t state;
+	    tid_t parent;
+
+	    void* stack;
+
+
+	} task_descriptor_t;
+	*/
+	
+
+	mov	fp, sp
+	str	r0, [fp,#0] @ first element will hold the pointer to our structure
+	add sp,sp, #4
+	stmfd	sp!, {fp, ip, lr, pc}
+	
+	
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -25,49 +37,82 @@ context_switch:
 	@ Start our code
     @ 1. Push kernel registers onto stack
 	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip}
-
 	@ 2. Go into system state
 	@ 2.1 Get the CPSR register
-	MRS R0, CPSR
-
+	MRS R1, CPSR
+	BIC R1,R1, #0x1F
 	@ 2.2 Sets the system mode bits
-	ORR R0, R0, #0x1F
-
+	ORR R1, R1, #0x1F
 	@ 2.3 Sets the bits
-	MSR CPSR_c, R0
-
+	
+	MSR CPSR_c, R1
+	
+	
 	@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SYS MODE (r0-r15 cpsr)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	@ 3 Install the TD's stack pointer
-	ADD sp, r3, #0
+	@ 3 save spsr
+	ldr r1, [r0, #4]
+	msr spsr, r1
 
-	@ 4. Pop the non-scratch registers off of the user stack
-	ldmfd   sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	@ 4. Pop the registers off of the user stack
+	ldmfd   sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
 
 	@ 5. Set the return code from system call
 	@ TODO
 
 	@ 6. Return to supervisor mode
-	MRS [sp,#4],CPSR
-	BIC [sp,#4],[sp,#4],#0x1F
-	ORR [sp,#4],[sp,#4],#0x13
-	MSR CPSR_c,[sp,#4]
+	/*MRS r1,CPSR
+	BIC r1,r1,#0x1F
+	ORR r1,r1,#0x13*/
+	MSR CPSR_c,#0x13
+	
+
+	
 
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 	@ 7. Install spsr of the active task. Puts us in user mode.
-	MSR SPSR, r1
+	stmfd sp!,{r1}
+	MRS r1, spsr
+	MSR CPSR, r1
+	ldmfd sp!,{r1}
+	
+
 
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   USER MODE (r0-r15 cpsr)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
 	@ 8. Set the pc to the user task
-	@ TODO
+	mov pc, lr
+
+	mov r0, #1
+	mov r1, #0xFFFFFFFF
+	bl bwputr
+
+	@ Pop the registers of the kernel from the stack
+	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	
+	@ End our code
+
+	@ ???????????????
+
+	.size	context_switch, .-context_switch
+	.ident	"GCC: (GNU) 4.0.2"
+
+
+/*
+
+
+
+	
+
+	
+
+	
 
 	@ And here is where we come back from the user task...
 
@@ -104,19 +149,4 @@ context_switch:
 
 	@ Acquire the spsr of the active task
 	MRS r0, SPSR
-
-	@ Pop the registers of the kernel from the stack
-	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip}
-	
-	@ End our code
-
-	@ ???????????????
-	ldr	r3, [fp, #-16]
-	str	r2, [r3, #20]
-	ldr	r3, [fp, #-16]
-	str	r1, [r3, #12]
-	ldr	r3, [fp, #-16]
-	str	r0, [r3, #16]
-	ldmfd	sp, {r3, fp, sp, pc}
-	.size	context_switch, .-context_switch
-	.ident	"GCC: (GNU) 4.0.2"
+*/

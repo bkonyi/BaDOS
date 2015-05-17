@@ -20,9 +20,10 @@ int Create( int priority, void (*code) () ) {
     task_descriptor_t* next_descriptor = &tasks[next_tid++];
     next_descriptor->state   = TASK_RUNNING_STATE_READY;
     next_descriptor->parent  = MyTid();
-    next_descriptor->sp      = (uint32_t) kmalloc(STACK_SIZE) + (sizeof(uint32_t)*13);
+    next_descriptor->sp      = (uint32_t) kmalloc(STACK_SIZE) + (sizeof(uint32_t)*20);
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
+    ((uint32_t*)next_descriptor->sp)[19]  = (uint32_t) code; // last element sp is the "lr"
 
     bwprintf(COM2, "Code*: %x PC: %x\r\n", code, next_descriptor->pc);
     

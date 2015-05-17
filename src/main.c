@@ -5,7 +5,7 @@
 #define FOREVER for(;;)
 
 void switch_context(task_descriptor_t* td) {
-    bwprintf(COM2, "Going to context switch...\r\n");
+    bwprintf(COM2, "Going to context switch... %d\r\n", (unsigned int) td);
     context_switch(td);
     bwprintf(COM2, "Context switch successful!\r\n");
 }

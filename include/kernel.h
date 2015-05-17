@@ -14,15 +14,17 @@ typedef enum {
 } task_running_state_t;
 
 typedef struct {
+    //Registers
+    uint32_t sp;   //Stack pointer
+    uint32_t spsr; //Program status register
+    uint32_t pc;
+    
     task_running_state_t state;
     tid_t parent;
 
     void* stack;
 
-    //Registers
-    uint32_t sp;   //Stack pointer
-    uint32_t spsr; //Program status register
-    uint32_t pc;
+
 } task_descriptor_t;
 
 task_descriptor_t* GetTD(tid_t id);
