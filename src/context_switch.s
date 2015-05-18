@@ -30,8 +30,8 @@ kerexit:
 	@ Start our code
     @ 1. Push kernel registers onto stack
 
-	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr,r0,r1}
-
+	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
+	stmfd	sp!, {r0, r1}
 	
 	@ 3 save spsr
 	ldr r1, [r0, #4]
