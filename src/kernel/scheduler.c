@@ -53,7 +53,7 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
 
     if(active_task != NULL && active_task->state == TASK_RUNNING_STATE_ACTIVE) {
         //TODO add this back in
-        //schedule(global_data, scheduler_data->active_task);
+        schedule(global_data, scheduler_data->active_task);
     }
 
     //Finds the log2 of the occupied queues

@@ -255,3 +255,29 @@ void bwprintf( int channel, char *fmt, ... ) {
         va_end(va);
 }
 
+void bwdumpregs()
+{
+	unsigned int r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14;
+
+	__asm__(
+		"MOV %0,r0\n\t"
+		"MOV %1,r1\n\t"
+		"MOV %2,r2\n\t"
+		"MOV %3,r3\n\t"
+		"MOV %4,r4\n\t"
+		"MOV %5,r5\n\t"
+		"MOV %6,r6\n\t"
+		"MOV %7,r7\n\t"
+		"MOV %8,r8\n\t"
+		"MOV %9,r9\n\t"
+		"MOV %10,r10\n\t"
+		:"=r"(r0),"=r"(r1),"=r"(r2),"=r"(r3),"=r"(r4),"=r"(r5),"=r"(r6),"=r"(r7),"=r"(r8),"=r"(r9),"=r"(r10));
+	__asm__(
+		"MOV %0,r11\n\t"
+		"MOV %1,r12\n\t"
+		"MOV %2,r13\n\t"
+		"MOV %3,r14\n\t"
+		
+		:"=r"(r11),"=r"(r12),"=r"(r13),"=r"(r14));
+	bwprintf(COM2,"r0:0x%x\r\n r1:0x%x\r\n r2:0x%x\r\nr3:0x%x\r\n r4:0x%x\r\n r5:0x%x\r\n r6:0x%x\r\n r7:0x%x\r\n r8:0x%x\r\nr9:0x%x\r\n r10:0x%x\r\n r11:0x%x\r\n r12:0x%x\r\n r13:0x%x\r\n r14:0x%x\r\n",r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14);
+}

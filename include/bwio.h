@@ -37,3 +37,7 @@ int bwputr( int channel, unsigned int reg );
 void bwputw( int channel, int n, char fc, char *bf );
 
 void bwprintf( int channel, char *format, ... );
+
+//Our functions
+
+void bwdumpregs();

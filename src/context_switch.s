@@ -13,7 +13,7 @@ kerexit:
 	    uint32_t sp;   //Stack pointer
 	    uint32_t spsr; //Program status register
 	    uint32_t pc;
-	    
+	    uint32_t return_code;
 	    task_running_state_t state;
 	    tid_t parent;
 
@@ -21,11 +21,6 @@ kerexit:
 
 
 	} task_descriptor_t;
-	*/
-	/*mov	fp, sp
-	str	r0, [fp,#0] @ first element will hold the pointer to the TD
-	str	r1, [fp,#4] @ second element will hold the pointer to the request
-	add sp,sp, #8
 	*/
 	
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -62,12 +57,13 @@ kerexit:
 	@load the stack pointer 
 	ldr sp, [r0,#0]
 
+	@ Set the return code from system call
+	ldr r0, [r0,#12]
 
 	@ 4. Pop the registers off of the user stack
-	ldmfd   sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	ldmfd   sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
 	
-	@ 5. Set the return code from system call
-	@ TODO
+	
 
 	@ 6. Return to supervisor mode
 	/*MRS r1,CPSR
@@ -99,7 +95,7 @@ kerenter:
 
 
 	@store all of the user registers on the user stack
-	stmfd sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	stmfd sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
 	@save the stack pointer for future reference
 	mov r3, sp
 
@@ -131,7 +127,7 @@ kerenter:
 
 	@reload the kernel's register
 	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
-	
+
 	mov pc, lr
 	@fill in the request with its args
 	.size	kerenter, .-kerenter
