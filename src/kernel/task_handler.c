@@ -15,7 +15,7 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
         return -2;
     }
 
-    if(priority > SCHEDULER_LOWEST_PRIORITY) {
+    if(priority > SCHEDULER_HIGHEST_PRIORITY) {
         //Invalid priority
         return -1;
     }

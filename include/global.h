@@ -45,8 +45,8 @@ typedef struct {
  */
 
 #define SCHEDULER_NUM_QUEUES            32
-#define SCHEDULER_HIGHEST_PRIORITY      0
-#define SCHEDULER_LOWEST_PRIORITY       31
+#define SCHEDULER_HIGHEST_PRIORITY      31
+#define SCHEDULER_LOWEST_PRIORITY       0
 
 typedef struct {                
     int size;                   

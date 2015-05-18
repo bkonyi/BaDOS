@@ -35,4 +35,11 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data);
  */
 task_descriptor_t* get_active_task(global_data_t* global_data);
 
+/**
+ * @brief Turns the current task into a zombie that won't be scheduled again.
+ * @details Turns the current task into a zombie that won't be scheduled again. Does not
+ *          release task descriptor to be reused.
+ */
+void zombify_active_task(global_data_t* global_data);
+
 #endif
