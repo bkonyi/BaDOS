@@ -4,17 +4,17 @@
 #include <common.h>
 
 typedef enum {
-    sys_call_create        = 0,
-    sys_call_my_tid        = 1,
-    sys_call_my_parent_tid = 2,
-    sys_call_pass          = 3,
-    sys_call_exit          = 4
+    SYS_CALL_CREATE        = 0,
+    SYS_CALL_MY_TID        = 1,
+    SYS_CALL_MY_PARENT_TID = 2,
+    SYS_CALL_PASS          = 3,
+    SYS_CALL_EXIT          = 4
 } sys_call_code_t;
 
 typedef struct {
     sys_call_code_t sys_code;
     uint32_t priority;
-    void (*func) ();   
+    void (*func) ();
 } request_t;
 
 #endif // __REQUEST_H__

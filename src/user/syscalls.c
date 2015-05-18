@@ -1,44 +1,45 @@
 #include <syscalls.h>
 #include <request.h>
+#include <send_sys_call.h>
 
 int Create( int priority, void (*code) () ) {
     request_t request;
 
-    request.sys_code = sys_call_create;
+    request.sys_code = SYS_CALL_CREATE;
     request.priority = priority;
     request.func     = code;
 
-    return send_sys_call(request);
+    return send_sys_call(&request);
 }
 
 int MyTid() {
     request_t request;
 
-    request.sys_code = sys_call_my_tid;
+    request.sys_code = SYS_CALL_MY_TID;
 
-    return send_sys_call(request);
+    return send_sys_call(&request);
 }
 
 int MyParentTid() {
     request_t request;
 
-    request.sys_code = sys_call_my_parent_tid;
+    request.sys_code = SYS_CALL_MY_PARENT_TID;
 
-    return send_sys_call(request);
+    return send_sys_call(&request);
 }
 
 void Pass() {
     request_t request;
 
-    request.sys_code = sys_call_pass;
+    request.sys_code = SYS_CALL_PASS;
 
-    send_sys_call(request);
+    send_sys_call(&request);
 }
 
 void Exit() {
     request_t request;
 
-    request.sys_code = sys_call_exit;
+    request.sys_code = SYS_CALL_EXIT;
 
-    send_sys_call(request);
+    send_sys_call(&request);
 }
