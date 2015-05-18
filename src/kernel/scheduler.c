@@ -1,22 +1,21 @@
 #include <scheduler.h>
 #include <ring_buffer.h>
+#include <bwio.h>
 
-//This defines a special ring buffer structure for task_descriptor_t structs
-CREATE_RING_BUFFER_TYPE(schedule_ring_buffer_t, task_descriptor_t, MAX_NUMBER_OF_TASKS)
+void init_scheduler(global_data_t* global_data) {
+    scheduler_data_t* scheduler_data = &global_data->scheduler_data;
 
-static uint32_t occupied_queues = 0;
-static schedule_ring_buffer_t queues[SCHEDULER_NUM_QUEUES];
-static task_descriptor_t* active_task = NULL;
+    scheduler_data->occupied_queues = 0;
+    scheduler_data->active_task = NULL;
 
-void init_scheduler(void) {
     int i;
     for(i = 0; i < SCHEDULER_NUM_QUEUES; ++i) {
         //Because C is stupid and we can't set default values for structs...
-        queues[i].size = MAX_NUMBER_OF_TASKS;
+        scheduler_data->queues[i].size = MAX_NUMBER_OF_TASKS;
     }
 }
 
-int schedule(task_descriptor_t* task) {
+int schedule(global_data_t* global_data, task_descriptor_t* task) {
     if(task == NULL) {
         //Invalid task
         return -1;
@@ -27,28 +26,33 @@ int schedule(task_descriptor_t* task) {
         return -2;
     }
 
+    scheduler_data_t* scheduler_data = &global_data->scheduler_data;
+
     //Add the task to the queue with defined priority
-    int result = push_back(&queues[task->priority], task);
+    int result;
+    PUSH_BACK((scheduler_data->queues[task->priority]), task, result);
 
     if(result != 0) {
         //TODO 
     }
 
-    occupied_queues |= 0x1 << task->priority;
+    scheduler_data->occupied_queues |= 0x1 << task->priority;
 
     return 0;
 }
 
-task_descriptor_t* schedule_next_task(void) {
-    if(active_task != NULL) {
-        schedule(active_task);
+task_descriptor_t* schedule_next_task(global_data_t* global_data) {
+    scheduler_data_t* scheduler_data = &global_data->scheduler_data;
+
+    if(scheduler_data->active_task != NULL) {
+        schedule(global_data, scheduler_data->active_task);
     }
 
     //Finds the log2 of the occupied queues
     //Don't ask me how this works, I found it online
     const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
     const unsigned int S[] = {1, 2, 4, 8, 16};
-    uint32_t v = occupied_queues;
+    uint32_t v = scheduler_data->occupied_queues;
     int i;
 
     register unsigned int r = 0; // result
@@ -62,17 +66,16 @@ task_descriptor_t* schedule_next_task(void) {
     }
     //End log2 finding
 
-    schedule_ring_buffer_t* queue = &queues[r];
 
-    active_task = pop_front(queue);
+    POP_FRONT(scheduler_data->queues[r], scheduler_data->active_task);
 
-    if(IS_BUFFER_EMPTY(queue)) {
-        occupied_queues &= ~(0x1 << r);
+    if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
+        scheduler_data->occupied_queues &= ~(0x1 << r);
     }
 
-    return active_task;
+    return scheduler_data->active_task;
 }
 
-task_descriptor_t* get_active_task(void) {
-    return active_task;
+task_descriptor_t* get_active_task(global_data_t* global_data) {
+    return global_data->scheduler_data.active_task;
 }

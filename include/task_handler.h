@@ -2,37 +2,13 @@
 #define __TASK_HANDLER_H__
 
 #include <common.h>
-
-#define MAX_NUMBER_OF_TASKS 1000 //TODO Arbitrary number for now
-#define USER_TASK_MODE      0xD0
-typedef int16_t tid_t;
-
-typedef uint8_t priority_t;
-
-typedef enum {
-    TASK_RUNNING_STATE_ACTIVE = 0,
-    TASK_RUNNING_STATE_READY  = 1,
-    TASK_RUNNING_STATE_ZOMBIE = 2
-} task_running_state_t;
-
-typedef struct {
-    //Registers
-    uint32_t sp;   //Stack pointer
-    uint32_t spsr; //Program status register
-    uint32_t pc;
-
-    task_running_state_t state;
-    tid_t tid;
-    tid_t parent;
-    priority_t priority;
-
-} task_descriptor_t;
+#include <global.h>
 
 /**
  * @brief Initializes the task descriptor handler
  * @details Initializes the task descriptor handler
  */
-void init_task_handler(void);
+void init_task_handler(global_data_t* global_data);
 
 /**
  * @brief instantiate a task
@@ -54,7 +30,7 @@ void init_task_handler(void);
  *  -1 – if the priority is invalid.
  *  -2 – if the kernel is out of task descriptors.
  */
-int create_task(priority_t priority, void (*code)());
+int create_task(global_data_t* global_data, priority_t priority, void (*code)());
 
 /**
  * @brief Get a task descriptor for a given tid.
@@ -63,6 +39,6 @@ int create_task(priority_t priority, void (*code)());
  * @param tid The tid of the task to return.
  * @return The task descriptor associated with tid.
  */
-task_descriptor_t* get_task(tid_t tid);
+task_descriptor_t* get_task(global_data_t* global_data, tid_t tid);
 
 #endif //__TASK_HANDLER_H__
