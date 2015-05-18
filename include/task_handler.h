@@ -29,6 +29,12 @@ typedef struct {
 } task_descriptor_t;
 
 /**
+ * @brief Initializes the task descriptor handler
+ * @details Initializes the task descriptor handler
+ */
+void init_task_handler(void);
+
+/**
  * @brief instantiate a task
  * @details Create allocates and initializes a task descriptor, using the
  * given priority, and the given function pointer as a pointer to the entry
@@ -49,5 +55,14 @@ typedef struct {
  *  -2 – if the kernel is out of task descriptors.
  */
 int create_task(priority_t priority, void (*code)());
+
+/**
+ * @brief Get a task descriptor for a given tid.
+ * @details Get a task descriptor for a given tid.
+ * 
+ * @param tid The tid of the task to return.
+ * @return The task descriptor associated with tid.
+ */
+task_descriptor_t* get_task(tid_t tid);
 
 #endif //__TASK_HANDLER_H__

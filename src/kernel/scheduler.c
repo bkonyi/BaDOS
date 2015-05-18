@@ -22,8 +22,7 @@ int schedule(task_descriptor_t* task) {
         return -1;
     }
 
-    if(task->priority < SCHEDULER_LOWEST_PRIORITY || 
-        task->priority > SCHEDULER_HIGHEST_PRIORITY) {
+    if(task->priority > SCHEDULER_LOWEST_PRIORITY) {
         //Invalid priority
         return -2;
     }

@@ -34,11 +34,16 @@ context_switch:
 
 	@ Start our code
     @ 1. Push kernel registers onto stack
-	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip,lr}
+	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
 	
 	@ 3 save spsr
 	ldr r1, [r0, #4]
 	msr spsr_c, r1
+
+	/*mrs r1, spsr
+	mov r0, #1
+	bl bwputr*/
+
 
 	ldr lr, [r0,#8] @load the pc 
 
@@ -70,6 +75,7 @@ context_switch:
 
 	
 	
+	
 
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
@@ -85,6 +91,10 @@ context_switch:
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   USER MODE (r0-r15 cpsr)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+	/*mov r0, #1
+	mov r1, lr
+	bl bwputr*/
 
 	@ 8. Set the pc to the user task
 	movs pc, lr
