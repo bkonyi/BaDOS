@@ -1,9 +1,9 @@
 	.file	"context_switch.c"
 	.text
 	.align	2
-	.global	context_switch
-	.type	context_switch, %function
-context_switch:
+	.global	kerexit
+	.type	kerexit, %function
+kerexit:
 	@ args = 0, pretend = 0, frame = 4
 	@ frame_needed = 1, uses_anonymous_args = 0
 
@@ -22,11 +22,11 @@ context_switch:
 
 	} task_descriptor_t;
 	*/
-	mov	fp, sp
-	str	r0, [fp,#0] @ first element will hold the pointer to our structure
-	add sp,sp, #4
-	stmfd	sp!, {fp, ip, lr, pc}
-	
+	/*mov	fp, sp
+	str	r0, [fp,#0] @ first element will hold the pointer to the TD
+	str	r1, [fp,#4] @ second element will hold the pointer to the request
+	add sp,sp, #8
+	*/
 	
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
@@ -34,7 +34,9 @@ context_switch:
 
 	@ Start our code
     @ 1. Push kernel registers onto stack
-	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
+
+	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr,r0,r1}
+
 	
 	@ 3 save spsr
 	ldr r1, [r0, #4]
@@ -73,88 +75,64 @@ context_switch:
 	ORR r1,r1,#0x13*/
 	MSR CPSR_c,#0x13
 
-	
-	
-	
-
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-	@ 7. Install spsr of the active task. Puts us in user mode.
-/*	stmfd sp!,{r1}
-	MRS r1, spsr
-	MSR CPSR_c, r1
-	ldmfd sp!,{r1}
-	*/
-	
-	@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	@   USER MODE (r0-r15 cpsr)
-	@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-	/*mov r0, #1
-	mov r1, lr
-	bl bwputr*/
 
 	@ 8. Set the pc to the user task
 	movs pc, lr
 
-
-
-	@ Pop the registers of the kernel from the stack
-	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip}
-	
 	@ End our code
 
 	@ ???????????????
 
-	.size	context_switch, .-context_switch
+	.size	kerexit, .-kerexit
 	.ident	"GCC: (GNU) 4.0.2"
 
-
-/*
-
-
-
-	
-
-	
-
-	
-
-	@ And here is where we come back from the user task...
-
-	@ Acquire the lr, which is the pc of the active task
-	ADD r2, lr, #0
+	.global	kerenter
+	.type	kerenter, %function
+kerenter:
 
 	@ Go into system state
-	MRS R0, CPSR
-	ORR R0, R0, #0x1F
-	MSR CPSR_c, R0
+	msr cpsr_c, #0x1F
 
-	@@@@@@@@@@@@@@@@@@@@@@@@@@
-	@   SYS MODE (r0-r15 cpsr)
-	@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	@ Overwrite lr with value obtained from before
-	ADD lr, r2, #0
 
-	@ Save the user registers onto its stack
-	stmfd   sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	@store all of the user registers on the user stack
+	stmfd sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	@save the stack pointer for future reference
+	mov r3, sp
 
-	@ Acquire the sp of the active task
-	ADD r1, sp, #0
+	@save the request pointer to r4
+	mov r4, r0
+	@return in supervisor mode
+	msr cpsr_c, #0x13
+	@load the TD and request pointers off of the kernel stack.
+	ldmfd sp!, {r0,r1}
+	
+	
 
-	@ Change to supervisor state
-	MRS R0,CPSR
-	BIC R0,R0,#0x1F
-	ORR R0,R0,#0x13
-	MSR CPSR_c,R0
+	@save the lr as the pc of TD
+	str lr, [r0, #8] 
+	@save the sp, obtained above to the sp of TD
+	str r3, [r0, #0]
 
-	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
-	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	@ Acquire the spsr of the active task
-	MRS r0, SPSR
-*/
+
+	@load the spsr of the active task
+	mrs r3, spsr
+	@save the spsr to the spsr of TD
+	str r3, [r0, #4]
+
+
+	
+	@save the request data
+	str r4, [r1,#0] @this line is broken
+
+	@reload the kernel's register
+	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
+	
+	mov pc, lr
+	@fill in the request with its args
+	.size	kerenter, .-kerenter
+	.ident	"GCC: (GNU) 4.0.2"

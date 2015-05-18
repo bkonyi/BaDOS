@@ -2,7 +2,9 @@
 #define __CONTEXT_SWITCH_H__
 
 #include <task_handler.h>
+#include "request.h"
 
-extern void context_switch(task_descriptor_t* td);
+extern void kerexit(task_descriptor_t* td,request_t* rq);
+extern void kerenter();
 
 #endif

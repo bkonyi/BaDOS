@@ -32,12 +32,12 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
         next_descriptor->parent = -1; //The kernel is our parent
     }
 
-    uint32_t fp = (uint32_t) next_descriptor->stack;
+    uint32_t fp = (uint32_t) next_descriptor->stack + STACK_SIZE;
 
     //The stack grows downward, so change the offset
     //TODO: change 20 to the number of eleemnts we are going to save on the stack
-    next_descriptor->sp      = fp + (20*sizeof(uint32_t)) ;
-
+    next_descriptor->sp      = fp - (20*sizeof(uint32_t)) ;
+    bwprintf(COM2,"SP: 0x%x\r\n",next_descriptor->sp);
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
     next_descriptor->priority = priority;
