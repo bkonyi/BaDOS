@@ -26,9 +26,9 @@ void initialize(void) {
 }
 
 void switch_context(task_descriptor_t* td) {
-
+    request_t rq;
     bwprintf(COM2, "Going to context switch...\r\n");
-    context_switch(td);
+    kerexit(td,&rq);
     bwprintf(COM2, "Context switch successful!\r\n");
 }
 
