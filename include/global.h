@@ -26,6 +26,7 @@ typedef struct {
     uint32_t sp;   //Stack pointer
     uint32_t spsr; //Program status register
     uint32_t pc;
+    uint32_t return_code;
 
     char stack[STACK_SIZE];
     task_running_state_t state;

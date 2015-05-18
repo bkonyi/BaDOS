@@ -48,10 +48,10 @@ LIBS = -lgcc
 # Below we are replacing the suffix .c of all words in the macro SRCS
 # with the .o suffix
 #
-OBJS = $(SRCS:.c=.o) context_switch.o
+OBJS = $(SRCS:.c=.o) context_switch.o user/send_sys_call.o
 
 # define the assembly files
-ASSM = $(SRCS:.c=.s) context_switch.s
+ASSM = $(SRCS:.c=.s) context_switch.s user/send_sys_call.s
 
 all: $(EXEC)
 	rm -f /u/cs452/tftp/ARM/$(EXEC) 
