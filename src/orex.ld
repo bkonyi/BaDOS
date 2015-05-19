@@ -22,6 +22,13 @@ _LocalStart = . ;
 _LocalEnd = . ;
 } >ram
 
+rodata.str1.4 :
+{
+_Str14Start = . ;
+*(.rodata.str1.4)
+_Str14Start = . ;
+} >ram
+
 bss : /* Uninitialized data. */
 {
 _BssStart = . ;

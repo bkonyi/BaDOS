@@ -38,11 +38,7 @@ int schedule(global_data_t* global_data, task_descriptor_t* task) {
         //TODO 
     }
 
-    bwprintf(COM2, "Priority: %d\r\n", task->priority);
-
     scheduler_data->occupied_queues |= 0x1 << task->priority;
-
-    bwprintf(COM2, "Occupied Queues: 0x%x\r\n", scheduler_data->occupied_queues);
 
     return 0;
 }
@@ -51,8 +47,7 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     scheduler_data_t* scheduler_data = &global_data->scheduler_data;
     task_descriptor_t* active_task = scheduler_data->active_task;
 
-    if(active_task != NULL && active_task->state == TASK_RUNNING_STATE_ACTIVE) {
-        //TODO add this back in
+    if(active_task != NULL && active_task->state == TASK_RUNNING_STATE_READY) {
         schedule(global_data, scheduler_data->active_task);
     }
 
@@ -75,6 +70,11 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
       }
     }
     //End log2 finding
+
+    //If this queue is empty, that means there's nothing left!
+    if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
+        return NULL;
+    }
 
     POP_FRONT(scheduler_data->queues[r], scheduler_data->active_task);
 

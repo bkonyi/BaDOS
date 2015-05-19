@@ -11,9 +11,7 @@ send_sys_call:
 	sub	fp, ip, #4
 	sub	sp, sp, #4
 	str	r0, [fp, #-16]
-	mov	r3, #0
-	mov	r0, r3
-	ldmfd	sp, {r3, fp, sp, pc}
 	swi
+	ldmfd	sp, {r3, fp, sp, pc}
 	.size	send_sys_call, .-send_sys_call
 	.ident	"GCC: (GNU) 4.0.2"

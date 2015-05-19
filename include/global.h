@@ -12,7 +12,6 @@
 #define STACK_SIZE 1024 * 16 //16KiB
 
 typedef int16_t tid_t;
-
 typedef uint8_t priority_t;
 
 typedef enum {

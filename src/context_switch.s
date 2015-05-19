@@ -96,11 +96,13 @@ kerenter:
 
 	@store all of the user registers on the user stack
 	stmfd sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+
 	@save the stack pointer for future reference
 	mov r3, sp
 
 	@save the request pointer to r4
 	mov r4, r0
+
 	@return in supervisor mode
 	msr cpsr_c, #0x13
 	@load the TD and request pointers off of the kernel stack.
@@ -123,7 +125,9 @@ kerenter:
 
 	
 	@save the request data
-	str r4, [r1,#0] @this line is broken
+	@str r4, [r1,#0] @this line is broken
+	mov r0, r4
+
 
 	@reload the kernel's register
 	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
