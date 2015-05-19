@@ -38,18 +38,14 @@ int schedule(global_data_t* global_data, task_descriptor_t* task) {
         //TODO 
     }
 
-    scheduler_data->occupied_queues |= 0x1 << task->priority;
+    scheduler_data->occupied_queues |= (0x1 << task->priority);
 
     return 0;
 }
 
 task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     scheduler_data_t* scheduler_data = &global_data->scheduler_data;
-    task_descriptor_t* active_task = scheduler_data->active_task;
-
-    if(active_task != NULL && active_task->state == TASK_RUNNING_STATE_READY) {
-        schedule(global_data, scheduler_data->active_task);
-    }
+    task_descriptor_t* previous_active_task = scheduler_data->active_task;
 
     //Finds the log2 of the occupied queues
     //Don't ask me how this works, I found it online
@@ -71,13 +67,34 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     }
     //End log2 finding
 
-    //If this queue is empty, that means there's nothing left!
-    if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
-        return NULL;
+    //Check to see if our previous active task is still eligable to run.
+    //If it is, and its priority is greater than the next highest priority queue, re-run it.
+    if(previous_active_task != NULL && 
+        previous_active_task->state == TASK_RUNNING_STATE_READY &&
+        previous_active_task->priority > r) {
+        return scheduler_data->active_task;
     }
 
-    POP_FRONT(scheduler_data->queues[r], scheduler_data->active_task);
+    //If this queue is empty, that means there's nothing left!
+    if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
+        //No more tasks to run!
+        scheduler_data->active_task = NULL;
 
+        //If our last task can run still, re-run it since there's nothing else to run.
+        if(previous_active_task != NULL && previous_active_task->state == TASK_RUNNING_STATE_READY) {
+            scheduler_data->active_task = previous_active_task;
+        }
+    } else {
+        //Get the task on the front of the priority queue
+        POP_FRONT(scheduler_data->queues[r], scheduler_data->active_task);
+        
+        //If the previous task isn't a zombie, reschedule it.
+        if(previous_active_task != NULL && previous_active_task->state == TASK_RUNNING_STATE_READY) {
+            schedule(global_data, previous_active_task);
+        }
+    }
+
+    //Clear the queue bit field if the priority queue is empty
     if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
         scheduler_data->occupied_queues &= ~(0x1 << r);
     }
