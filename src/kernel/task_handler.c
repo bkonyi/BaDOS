@@ -34,10 +34,11 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
         next_descriptor->parent = -1; //The kernel is our parent
     }
 
-    uint32_t fp = (uint32_t) next_descriptor->stack + STACK_SIZE;
+    //Calculate the value of the top of the stack. We subtract 4 so we don't invade memory of another TD.
+    uint32_t fp = (uint32_t) next_descriptor->stack + STACK_SIZE - 4;
 
     //The stack grows downward, so change the offset
-    next_descriptor->sp      = fp - (NUMBER_USER_REGS_ON_STACK*sizeof(uint32_t)) ;
+    next_descriptor->sp      = fp - (NUMBER_USER_REGS_ON_STACK*sizeof(uint32_t));
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
     next_descriptor->priority = priority;

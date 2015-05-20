@@ -24,7 +24,8 @@ int schedule(global_data_t* global_data, task_descriptor_t* task);
 /**
  * @brief Determines the next task to be run.
  * @details Determines the next task to be run. Reschedules the current active task.
- * @return The new active task to be run.
+ * @return The new active task to be run. Returns NULL if there are no more tasks to be 
+ * scheduled.
  */
 task_descriptor_t* schedule_next_task(global_data_t* global_data);
 

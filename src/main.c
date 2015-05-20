@@ -38,7 +38,6 @@ int main(void)
 
     request_t* request = NULL;
 
-
     FOREVER {
         task_descriptor_t* next_task = schedule_next_task(&global_data);
 
