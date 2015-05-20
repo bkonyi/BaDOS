@@ -28,23 +28,21 @@ kerexit:
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 	@ Start our code
-    @ 1. Push kernel registers onto stack
+    @ Push kernel registers onto stack
 
 	stmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
+
+	@ Save the pointer of the Task Descriptor to the kernel stack
 	stmfd	sp!, {r0, r1}
 	
-	@ 3 save spsr
+	@ Set the SPSR register to the spsr saved in the Task Descriptor
 	ldr r1, [r0, #4]
 	msr spsr_c, r1
 
-	/*mrs r1, spsr
-	mov r0, #1
-	bl bwputr*/
+	@ Set the link register to the PC saved in the Task Descriptor
+	ldr lr, [r0,#8]  
 
-
-	ldr lr, [r0,#8] @load the pc 
-
-	@ 2. Go into system state
+	@ Go into system state
 	msr cpsr_c, #0x1F
 	
 	
@@ -54,28 +52,23 @@ kerexit:
 	@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
-	@load the stack pointer 
+	@ Set the user Stack Pointer to the SP save in the Task Descriptor
 	ldr sp, [r0,#0]
 
-	@ Set the return code from system call
+	@ Set R0 to a return value that a Syscall might have set in the Task Descriptor
 	ldr r0, [r0,#12]
 
-	@ 4. Pop the registers off of the user stack
+	@ Pop the registers off of the user stack
 	ldmfd   sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
-	
-	
 
-	@ 6. Return to supervisor mode
-	/*MRS r1,CPSR
-	BIC r1,r1,#0x1F
-	ORR r1,r1,#0x13*/
+	@ Return to supervisor mode
 	MSR CPSR_c,#0x13
 
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-	@ 8. Set the pc to the user task
+	@ Use movs to set the PC to the LR we saved above and move the SPSR to CPSR
 	movs pc, lr
 
 	@ End our code
@@ -92,46 +85,39 @@ kerenter:
 	@ Go into system state
 	msr cpsr_c, #0x1F
 
-
-
-	@store all of the user registers on the user stack
+	@ Store all of the user registers on the user stack
 	stmfd sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
 
-	@save the stack pointer for future reference
+	@ Save the stack pointer to R3 for future reference
 	mov r3, sp
 
-	@save the request pointer to r4
+	@ Save the Request pointer to R4 for future reference
 	mov r4, r0
 
-	@return in supervisor mode
+	@ Return in supervisor mode
 	msr cpsr_c, #0x13
-	@load the TD and request pointers off of the kernel stack.
-	ldmfd sp!, {r0,r1}
-	
-	
 
-	@save the lr as the pc of TD
+	@ Load the Task Descriptor pointer off of the kernel stack.
+	ldmfd sp!, {r0,r1}	
+
+	@ Save the link register to the PC in the Task Descriptor
 	str lr, [r0, #8] 
-	@save the sp, obtained above to the sp of TD
+
+	@ Save the stack pointer, obtained above to the sp of the Task Descriptor
 	str r3, [r0, #0]
 
-
-
-	@load the spsr of the active task
+	@ Load the spsr of the active task
 	mrs r3, spsr
-	@save the spsr to the spsr of TD
+
+	@ Save the spsr to the spsr of the Task Descriptor
 	str r3, [r0, #4]
-
-
 	
-	@save the request data
-	@str r4, [r1,#0] @this line is broken
+	@ Save the Request pointer (saved to R4 above) to R0 (the return value)
 	mov r0, r4
 
-
-	@reload the kernel's register
+	@ Reload the kernel's register
 	ldmfd   sp!, {r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
-
+	@ Move the kernel's link register to the PC so we return from the original call to kerexit
 	mov pc, lr
 	@fill in the request with its args
 	.size	kerenter, .-kerenter
