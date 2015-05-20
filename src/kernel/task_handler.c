@@ -3,6 +3,8 @@
 #include "common.h"
 #include <bwio.h>
 
+#define NUMBER_USER_REGS_ON_STACK 12
+
 void init_task_handler(global_data_t* global_data) {
     global_data->task_handler_data.next_tid = 0;
 }
@@ -35,8 +37,7 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
     uint32_t fp = (uint32_t) next_descriptor->stack + STACK_SIZE;
 
     //The stack grows downward, so change the offset
-    //TODO: change 20 to the number of eleemnts we are going to save on the stack
-    next_descriptor->sp      = fp - (20*sizeof(uint32_t)) ;
+    next_descriptor->sp      = fp - (NUMBER_USER_REGS_ON_STACK*sizeof(uint32_t)) ;
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
     next_descriptor->priority = priority;
@@ -48,7 +49,8 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
         return result;
     }
 
-    return task_handler_data->next_tid++;
+    //Return our TID and and then increment next_tid
+    return task_handler_data->next_tid++; 
 }
 
 task_descriptor_t* get_task(global_data_t* global_data, tid_t tid) {

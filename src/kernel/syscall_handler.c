@@ -10,7 +10,7 @@ int handle_Create(global_data_t* global_data, priority_t priority, void (*code)(
 int handle_MyTid(global_data_t* global_data) {
     task_descriptor_t* td = get_active_task(global_data);
     return td->tid;
-}
+} 
 
 int handle_MyParentTid(global_data_t* global_data) {
     task_descriptor_t* td = get_active_task(global_data);

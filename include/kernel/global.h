@@ -2,6 +2,7 @@
 #define __GLOBAL_H__
 
 #include <common.h>
+#include <ring_buffer.h>
 
 /**
  *  TASKS DATA STRUCTURES
@@ -48,12 +49,7 @@ typedef struct {
 #define SCHEDULER_HIGHEST_PRIORITY      31
 #define SCHEDULER_LOWEST_PRIORITY       0
 
-typedef struct {                
-    int size;                   
-    int start;                  
-    int end;                    
-    task_descriptor_t* buffer[MAX_NUMBER_OF_TASKS];       
-} schedule_ring_buffer_t;
+CREATE_RING_BUFFER_TYPE(schedule_ring_buffer_t, task_descriptor_t, MAX_NUMBER_OF_TASKS);
 
 typedef struct scheduler_data_t {
     uint32_t occupied_queues;
