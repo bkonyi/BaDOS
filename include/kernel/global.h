@@ -3,6 +3,7 @@
 
 #include <common.h>
 #include <ring_buffer.h>
+#include <queue.h>
 
 /**
  *  TASKS DATA STRUCTURES
@@ -21,13 +22,14 @@ typedef enum {
     TASK_RUNNING_STATE_ZOMBIE = 2
 } task_running_state_t;
 
-typedef struct {
+typedef struct task_descriptor_t {
     //Registers
     uint32_t sp;   //Stack pointer
     uint32_t spsr; //Program status register
     uint32_t pc;
     uint32_t return_code;
 
+    struct task_descriptor_t* next;
     char stack[STACK_SIZE];
     task_running_state_t state;
     tid_t tid;
@@ -49,11 +51,15 @@ typedef struct {
 #define SCHEDULER_HIGHEST_PRIORITY      31
 #define SCHEDULER_LOWEST_PRIORITY       0
 
-CREATE_RING_BUFFER_TYPE(schedule_ring_buffer_t, task_descriptor_t, MAX_NUMBER_OF_TASKS);
+CREATE_QUEUE_TYPE(schedule_queue_t, task_descriptor_t);
+
+/**
+ * Structure necessary to represent a queue of task descriptors.
+ */
 
 typedef struct scheduler_data_t {
     uint32_t occupied_queues;
-    schedule_ring_buffer_t queues[SCHEDULER_NUM_QUEUES];
+    schedule_queue_t queues[SCHEDULER_NUM_QUEUES];
     task_descriptor_t* active_task;
 } scheduler_data_t;
 

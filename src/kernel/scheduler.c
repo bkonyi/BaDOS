@@ -1,7 +1,7 @@
 #include <scheduler.h>
 #include <ring_buffer.h>
 #include <bwio.h>
-
+#include <queue.h>
 void init_scheduler(global_data_t* global_data) {
     scheduler_data_t* scheduler_data = &global_data->scheduler_data;
 
@@ -11,9 +11,7 @@ void init_scheduler(global_data_t* global_data) {
     int i;
     for(i = 0; i < SCHEDULER_NUM_QUEUES; ++i) {
         //Because C is stupid and we can't set default values for structs...
-        scheduler_data->queues[i].size  = MAX_NUMBER_OF_TASKS;
-        scheduler_data->queues[i].start = 0;
-        scheduler_data->queues[i].end   = 0;
+        QUEUE_INIT(scheduler_data->queues[i]);
     }
 }
 
@@ -32,11 +30,8 @@ int schedule(global_data_t* global_data, task_descriptor_t* task) {
 
     //Add the task to the queue with defined priority
     int result;
-    PUSH_BACK((scheduler_data->queues[task->priority]), task, result);
+    QUEUE_PUSH_BACK((scheduler_data->queues[task->priority]), task);
 
-    if(result != 0) {
-        //TODO 
-    }
 
     scheduler_data->occupied_queues |= (0x1 << task->priority);
 
@@ -76,7 +71,7 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     }
 
     //If this queue is empty, that means there's nothing left!
-    if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
+    if(IS_QUEUE_EMPTY(scheduler_data->queues[r])) {
         //No more tasks to run!
         scheduler_data->active_task = NULL;
 
@@ -86,7 +81,7 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
         }
     } else {
         //Get the task on the front of the priority queue
-        POP_FRONT(scheduler_data->queues[r], scheduler_data->active_task);
+        QUEUE_POP_FRONT(scheduler_data->queues[r], scheduler_data->active_task);
         
         //If the previous task isn't a zombie, reschedule it.
         if(previous_active_task != NULL && previous_active_task->state == TASK_RUNNING_STATE_READY) {
@@ -95,7 +90,7 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     }
 
     //Clear the queue bit field if the priority queue is empty
-    if(IS_BUFFER_EMPTY(scheduler_data->queues[r])) {
+    if(IS_QUEUE_EMPTY(scheduler_data->queues[r])) {
         scheduler_data->occupied_queues &= ~(0x1 << r);
     }
 
