@@ -69,9 +69,6 @@
                 (INPUT)->next= NULL;            \
                 if(Q.count == 0){               \
                     Q.head = INPUT;             \
-                    Q.tail = NULL;              \
-                }else if(Q.count == 1){         \
-                     Q.head->next = INPUT;      \
                     Q.tail = INPUT;             \
                 }else{                          \
                     Q.tail->next = INPUT;       \
