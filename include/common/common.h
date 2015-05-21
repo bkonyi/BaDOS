@@ -18,19 +18,5 @@ typedef short int16_t;
 typedef int int32_t;
 typedef long long int64_t;
 
-/**
- * @brief Initializes memory management system
- * @details Initializes memory management system.
- */
-void init_memory(void);
-
-/**
- * @brief Allocate memory on the heap.
- * @details Allocates a specific amount of memory from the heap and returns the address.
- * 
- * @param bytes Number of bytes to allocate
- * @return NULL if the heap is out of memory, a pointer to the valid memory on the heap otherwise.
- */
-void* kmalloc(size_t bytes);
 
 #endif
