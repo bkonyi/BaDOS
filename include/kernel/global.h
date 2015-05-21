@@ -2,7 +2,6 @@
 #define __GLOBAL_H__
 
 #include <common.h>
-#include <ring_buffer.h>
 #include <queue.h>
 
 /**

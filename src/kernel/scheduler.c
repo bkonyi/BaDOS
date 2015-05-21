@@ -1,5 +1,4 @@
 #include <scheduler.h>
-#include <ring_buffer.h>
 #include <bwio.h>
 #include <queue.h>
 void init_scheduler(global_data_t* global_data) {

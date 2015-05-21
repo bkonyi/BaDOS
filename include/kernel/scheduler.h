@@ -1,7 +1,6 @@
 #ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
 
-#include <ring_buffer.h>
 #include <task_handler.h>
 #include <global.h>
 
