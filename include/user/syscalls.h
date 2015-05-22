@@ -62,5 +62,106 @@ void Pass();
  */
 void Exit();
 
+/**
+ * @brief sends a message to another task and receives a reply
+ * @details sends a message to another task and receives a reply. The
+ * message, in a buffer in the sending task’s address space is copied to the
+ * address space of the task to which it is sent by the kernel.
+ * Send supplies a buffer into which the reply is to be copied, and the size of the buffer so that
+ * the kernel can detect overflow. When Send returns without error it is
+ * guaranteed that the message has been received, and that a reply has been
+ * sent, not necessarily by the same task. If either the message or the reply is a
+ * string it is necessary that the length should include the terminating null.
+ * 
+ * The kernel will not overflow the reply buffer. The caller is expected to
+ * compare the return value to the size of the reply buffer. If part of the reply
+ * is missing the return value will exceed the size of the supplied reply buffer.
+ * There is no guarantee that Send will return. If, for example, the task to
+ * which the message is directed never calls Receive, Send never returns and
+ * the sending task remains blocked forever.
+ * 
+ * @param tid The tid of the task the message is to be sent to.
+ * @param msg The message to be sent to the task.
+ * @param msglen The length of the message to be sent to the task
+ * @param reply A buffer in which the reply message will be placed.
+ * @param replylen The length of the reply message buffer.
+ * @return the size of the message supplied by the replying task.
+ *   •-1 – if the task id is impossible.
+ *   •-2 – if the task id is not an existing task.
+ *   •-3 – if the send-receive-reply transaction is incomplete.
+ */
+int Send( int tid, char *msg, int msglen, char *reply, int replylen );
+
+/**
+ * @brief Wait to receive a message from another task.
+ * @details Receive blocks until a message is sent to the caller, then
+ * returns with the message in its message buffer and tid set to the task id of
+ * the task that sent the message. Messages sent before Receive is called are
+ * retained in a send queue, from which they are received in first-come, first-served order.
+ * The argument msg must point to a buffer at least as large as msglen. If the size of the message received exceeds
+ * msglen, no overflow occurs and the buffer will contain the first msglen characters of the message sent.
+ * The caller is expected to compare the return value, which contains the size of the message that was sent, 
+ * to determine whether or not the message is complete, and to act accordingly
+ * 
+ * @param tid The tid of the task which sent the message.
+ * @param msg A buffer in which the message will be placed.
+ * @param msglen The length of the message buffer.
+ * @return The size of the message sent
+ */
+int Receive( int *tid, char *msg, int msglen );
+
+/**
+ * @brief Reply sends a reply to a task that previously sent a message.
+ * @details Reply sends a reply to a task that previously sent a message.
+ * When it returns without error, the reply has been copied into the sender’s
+ * address space. The calling task and the sender return at the same logical
+ * time, so whichever is of higher priority runs first. If they are of the same
+ * priority the sender runs first.
+ * 
+ * @param tid The tid of the task which sent the original message.
+ * @param reply The reply message to be sent to the task.
+ * @param replylen The length of the reply message.
+ * @return 
+ * • 0 – if the reply succeeds.
+ * •-1 – if the task id is not a possible task id.
+ * •-2 – if the task id is not an existing task.
+ * •-3 – if the task is not reply blocked.
+ * •-4 – if there was insufficient space for the entire reply in the sender’s
+ * reply buffer.
+ */
+int Reply( int tid, char *reply, int replylen );
+
+/**
+ * @brief Registers the task id of the caller under a given name.
+ * @details RegisterAs registers the task id of the caller under the given name.
+ * On return without error it is guaranteed that all WhoIs calls by any task
+ * will return the task id of the caller until the registration is overwritten.
+ * If another task has already registered with the given name its registration is overwritten.
+ * A single task may register under several different names, but each name is assigned to a single task.
+ * RegisterAs is actually a wrapper covering a send to the name server.
+ * 
+ * @param name The name to register with the active task's tid
+ * @return 
+ * • 0 – success.
+ * •-1 – if the nameserver task id inside the wrapper is invalid.
+ */
+int RegisterAs( char *name );
+
+/**
+ * @brief Returns the tid associated with a specific task name.
+ * @details WhoIs asks the nameserver for the task id of the task that is
+ * registered under the given name. Whether WhoIs blocks waiting for a registration or returns with an
+ * error if no task is registered under the given name is implementation-dependent.
+ * There is guaranteed to be a unique task id associated with each registered name, 
+ * but the registered task may change at any time after a call to WhoIs.
+ * WhoIs is actually a wrapper covering a send to the nameserver.
+ * 
+ * @param name The name to lookup.
+ * @return 
+ *  •tid – the task id of the registered task.
+ *  •-1 – if the nameserver task id inside the wrapper is invalid.
+ */
+int WhoIs( char *name );
+
 #endif//__SYS_CALL_H__
 
