@@ -53,7 +53,7 @@
             Q.head = Q.head->next;              \
             Q.count--;                          \
             if(Q.head==NULL){                   \
-                Q.tail == NULL;                 \
+                Q.tail = NULL;                 \
             }                                   \
         }                                       \
     } while(0)

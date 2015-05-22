@@ -28,7 +28,6 @@ int schedule(global_data_t* global_data, task_descriptor_t* task) {
     scheduler_data_t* scheduler_data = &global_data->scheduler_data;
 
     //Add the task to the queue with defined priority
-    int result;
     QUEUE_PUSH_BACK((scheduler_data->queues[task->priority]), task);
 
 
