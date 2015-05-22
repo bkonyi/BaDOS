@@ -59,6 +59,7 @@ kerexit:
 	ldr r0, [r0,#12]
 
 	@ Pop the registers off of the user stack
+	@ NOTE: if the number of these registers ever change, change the NUMBER_USER_REGS_ON_STACK macro in task_handler.c
 	ldmfd   sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
 
 	@ Return to supervisor mode
@@ -86,6 +87,7 @@ kerenter:
 	msr cpsr_c, #0x1F
 
 	@ Store all of the user registers on the user stack
+	@ NOTE: if the number of these registers ever change, change the NUMBER_USER_REGS_ON_STACK macro in task_handler.c
 	stmfd sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
 
 	@ Save the stack pointer to R3 for future reference

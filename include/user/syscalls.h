@@ -12,8 +12,8 @@
  * the task has been entered into its ready queue so that it will run the next
  * time it is scheduled.
  * 
- * @param priority [description]
- * @param code [description]
+ * @param priority The priority to assign to the newly created task. should be a value in the range [0,31]
+ * @param code Pointer to the location in memory where the tasks code is located. This is the address that the Task will start executing at when it runs for the first time.
  * 
  * @return
  *  id – the positive integer task id of the newly created task. The task id 
@@ -26,7 +26,6 @@ int Create( int priority, void (*code) () );
 
 /**
  * @brief find my task id.
- * @details MyTid returns the task id of the calling task
  * @return 
  * tid – the positive integer task id of the task that calls it.
  * Errors should be impossible!
@@ -36,14 +35,14 @@ int MyTid();
 /**
  * @brief find the task id of the task that created the running
 task.
- * @details MyParentTid returns the task id of the task that created the
- * calling task.
- * This will be problematic only if the task has exited or been destroyed, in
- * which case the return value is implementation-dependent.
+ * @details
+ * The parent id is stored as an interger in the TD of the calling task. There is no guarantee 
+ * that the parent task is still running or is in fact the same task
  * @return 
  * tid – the task id of the task that created the calling task.
- * The return value is implementation-dependent if the parent has
- *      exited, has been destroyed, or is in the process of being destroyed.
+ * The original parent id is returned, whether or not that task has finished running or not.
+ * Since resource recycling hasn't been implemented yet, then this is guaranteed NOT to be 
+ * associated to any new task that is created
  */
 int MyParentTid();
 

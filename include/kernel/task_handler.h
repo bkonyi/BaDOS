@@ -20,8 +20,8 @@ void init_task_handler(global_data_t* global_data);
  * the task has been entered into its ready queue so that it will run the next
  * time it is scheduled.
  * 
- * @param priority [description]
- * @param code [description]
+ * @param priority The priority to assign to the newly created task. should be a value in the range [0,31]
+ * @param code Pointer to the location in memory where the tasks code is located. This is the address that the Task will start executing at when it runs for the first time.
  * 
  * @return
  *  id – the positive integer task id of the newly created task. The task id 

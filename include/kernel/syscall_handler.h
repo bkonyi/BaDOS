@@ -9,7 +9,7 @@
  * @details Performs system calls requested by the currently active task and returns results in the
  * current task's task descriptor.
  * 
- * @param global_data [description]
+ * @param global_data Pointer to the global data structure that is used to keep the state of the kernel
  * @param request The system call request sent by the active task.
  */
 void handle(global_data_t* global_data, request_t* request);
