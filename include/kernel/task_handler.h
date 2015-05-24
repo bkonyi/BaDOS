@@ -41,4 +41,15 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code)())
  */
 task_descriptor_t* get_task(global_data_t* global_data, tid_t tid);
 
+/**
+ * @brief Check to see if this task ID is valid.
+ * @details Checks to see if the task ID is valid. Does this by checking if tid is within the
+ * valid range of tids, and if this task has even been allocated yet.
+ * 
+ * @param tid The tid to check
+ * 
+ * @return -1 if the task id is out of range, -2 if the task id has not been allocated, 0 otherwise
+ */
+int is_valid_task(global_data_t* global_data, tid_t tid);
+
 #endif //__TASK_HANDLER_H__

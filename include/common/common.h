@@ -18,5 +18,8 @@ typedef short int16_t;
 typedef int int32_t;
 typedef long long int64_t;
 
+void* memcpy(void* dest, void* src, size_t len);
+int max(int val1, int val2);
+int min(int val1, int val2);
 
 #endif

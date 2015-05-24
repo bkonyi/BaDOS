@@ -38,7 +38,7 @@
     Q.head = NULL;                              \
     Q.tail = NULL;                              \
     Q.count= 0;                                 \
-}while(0)
+} while(0)
 
 /**
  * @brief removes the head of the queue and stores it's pointer in VALUE
@@ -46,16 +46,16 @@
  * @param Q     An instance of a queue type (defined by CREATE_QUEUE_TYPE)
  * @param VALUE a TYPE pointer to store the resulting address that is popped from the queue
  */
-#define QUEUE_POP_FRONT(Q, VALUE) {             \
-        if(Q.count == 0) VALUE = NULL;          \
-        else{                                   \
-            VALUE = Q.head;                     \
-            Q.head = Q.head->next;              \
-            Q.count--;                          \
-            if(Q.head==NULL){                   \
-                Q.tail = NULL;                 \
-            }                                   \
-        }                                       \
+#define QUEUE_POP_FRONT_GENERIC(Q, VALUE, NEXT) {       \
+        if(Q.count == 0) VALUE = NULL;                  \
+        else{                                           \
+            VALUE = Q.head;                             \
+            Q.head = Q.head->NEXT;                      \
+            Q.count--;                                  \
+            if(Q.head==NULL){                           \
+                Q.tail = NULL;                          \
+            }                                           \
+        }                                               \
     } while(0)
 
 /**
@@ -64,18 +64,28 @@
  * @param Q     An instance of a queue type (defined by CREATE_QUEUE_TYPE)
  * @param INPUT the TYPE pointer to push onto the end of Q
  */
-#define QUEUE_PUSH_BACK(Q, INPUT) {             \
-            if(INPUT!=NULL){                    \
-                (INPUT)->next= NULL;            \
-                if(Q.count == 0){               \
-                    Q.head = INPUT;             \
-                    Q.tail = INPUT;             \
-                }else{                          \
-                    Q.tail->next = INPUT;       \
-                    Q.tail = INPUT;             \
-                }                               \
-                Q.count++;                      \
-            }                                   \
+#define QUEUE_PUSH_BACK_GENERIC(Q, INPUT, NEXT) {       \
+            if(INPUT!=NULL){                            \
+                (INPUT)->NEXT= NULL;                    \
+                if(Q.count == 0){                       \
+                    Q.head = INPUT;                     \
+                    Q.tail = INPUT;                     \
+                }else{                                  \
+                    Q.tail->NEXT = INPUT;               \
+                    Q.tail = INPUT;                     \
+                }                                       \
+                Q.count++;                              \
+            }                                           \
     } while(0)
+
+
+
+#define QUEUE_POP_FRONT(Q, VALUE) {             \
+    QUEUE_POP_FRONT_GENERIC(Q, VALUE, next);    \
+} while(0)
+
+#define QUEUE_PUSH_BACK(Q, VALUE) {             \
+    QUEUE_PUSH_BACK_GENERIC(Q, VALUE, next);    \
+} while(0)
 
 #endif//__QUEUE_H__

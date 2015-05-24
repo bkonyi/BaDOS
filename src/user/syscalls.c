@@ -44,3 +44,38 @@ void Exit() {
 
     send_sys_call(&request);
 }
+
+int Send( int tid, char* msg, int msglen, char* reply, int replylen ) {
+    request_t request;
+
+    request.sys_code        = SYS_CALL_SEND;
+    request.receiving_tid   = tid;
+    request.msg_buffer      = msg;
+    request.msg_size        = msglen;
+    request.reply_buffer    = reply;
+    request.reply_size      = replylen;
+
+    return send_sys_call(&request);
+}
+
+int Receive( int* tid, char *msg, int msglen ) {
+    request_t request;
+
+    request.sys_code        = SYS_CALL_RECEIVE;
+    request.sending_tid     = tid;
+    request.msg_buffer      = msg;
+    request.msg_size        = msglen;
+
+    return send_sys_call(&request);
+}
+
+int Reply( int tid, char* reply, int replylen ) {
+    request_t request;
+
+    request.sys_code        = SYS_CALL_REPLY;
+    request.receiving_tid   = tid;
+    request.reply_buffer    = reply;
+    request.reply_size      = replylen;
+
+    return send_sys_call(&request);
+}

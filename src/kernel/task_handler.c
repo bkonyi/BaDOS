@@ -43,6 +43,9 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
     next_descriptor->pc      = (uint32_t) code;
     next_descriptor->priority = priority;
 
+    //Initialize the message queue
+    QUEUE_INIT(next_descriptor->message_queue);
+
     int result = schedule(global_data, next_descriptor);
 
     if(result != 0) {
@@ -56,4 +59,20 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
 
 task_descriptor_t* get_task(global_data_t* global_data, tid_t tid) {
     return &(global_data->task_handler_data.tasks[tid]);
+}
+
+int is_valid_task(global_data_t* global_data, tid_t tid) {
+    task_handler_data_t* task_handler_data = &global_data->task_handler_data;
+
+    //Check to see if the tid is within the valid range of tids
+    if(tid >= MAX_NUMBER_OF_TASKS) {
+        return -1;
+    }
+
+    //Check to see if the tid has been allocated to a task yet
+    if(tid >= task_handler_data->next_tid) {
+        return -2;
+    }
+
+    return 0;
 }

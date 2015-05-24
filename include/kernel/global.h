@@ -3,6 +3,7 @@
 
 #include <common.h>
 #include <queue.h>
+#include <request.h>
 
 /**
  *  TASKS DATA STRUCTURES
@@ -16,10 +17,28 @@ typedef int16_t tid_t;
 typedef uint8_t priority_t;
 
 typedef enum {
-    TASK_RUNNING_STATE_ACTIVE = 0,
-    TASK_RUNNING_STATE_READY  = 1,
-    TASK_RUNNING_STATE_ZOMBIE = 2
+    TASK_RUNNING_STATE_ACTIVE           = 0,
+    TASK_RUNNING_STATE_READY            = 1,
+    TASK_RUNNING_STATE_ZOMBIE           = 2,
+    TASK_RUNNING_STATE_REPLY_BLOCKED    = 3,
+    TASK_RUNNING_STATE_RECEIVE_BLOCKED  = 4
 } task_running_state_t;
+
+struct task_descriptor_t;
+
+#define MESSAGE_WAITING_NEXT next_message
+
+CREATE_QUEUE_TYPE(message_waiting_queue_t, struct task_descriptor_t);
+
+#define GET_NEXT_MESSAGE(Q, VALUE) {                            \
+    QUEUE_POP_FRONT_GENERIC(Q, VALUE, MESSAGE_WAITING_NEXT);    \
+} while(0)
+
+#define QUEUE_MESSAGE(Q, VALUE) {                               \
+    QUEUE_PUSH_BACK_GENERIC(Q, VALUE, MESSAGE_WAITING_NEXT);    \
+} while(0)
+
+#define IS_MESSAGE_WAITING(Q) (!IS_QUEUE_EMPTY(Q))
 
 typedef struct task_descriptor_t {
     //Registers
@@ -29,11 +48,16 @@ typedef struct task_descriptor_t {
     uint32_t return_code;
 
     struct task_descriptor_t* next;
+    struct task_descriptor_t* MESSAGE_WAITING_NEXT;
+
     char stack[STACK_SIZE];
     task_running_state_t state;
     tid_t tid;
     tid_t parent;
     priority_t priority;
+
+    request_t* last_request;
+    message_waiting_queue_t message_queue;
 
 } task_descriptor_t;
 
