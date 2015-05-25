@@ -9,6 +9,8 @@
 #include <a1_user_prog.h>
 #include <msg_sending_tests.h>
 
+#include <nameserver.h>
+
 #define FOREVER for(;;)
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 
@@ -21,6 +23,8 @@ void initialize(global_data_t* global_data) {
     init_task_handler(global_data);
 
     init_scheduler(global_data);
+
+    nameserver_initialize(global_data);
 
     //Creates the first user task.
     //NOTE: Priority chosen is arbitrary.

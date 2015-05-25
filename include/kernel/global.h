@@ -87,6 +87,23 @@ typedef struct scheduler_data_t {
 } scheduler_data_t;
 
 
+
+
+/**
+ *  NAMESERVER
+ */
+
+ #define MAX_TASK_NAME_LENGTH  20
+ #define MAX_NAME_SERVER_NAMES 200
+
+
+
+ typedef struct { /* table entry: */
+    char name[MAX_TASK_NAME_LENGTH]; /* defined name */
+    tid_t tid;
+    bool filled; /* replacement text */
+} nameserver_list_t;
+
 /**
  *  GLOBAL DATA STRUCTURE
  */
@@ -94,6 +111,8 @@ typedef struct scheduler_data_t {
 typedef struct global_data_t {
     task_handler_data_t task_handler_data;
     scheduler_data_t scheduler_data;
+    nameserver_list_t hashtab[MAX_NAME_SERVER_NAMES];
 } global_data_t;
+
 
 #endif //__GLOBAL_H__
