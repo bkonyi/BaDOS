@@ -13,7 +13,7 @@ int Create( int priority, void (*code) () ) {
     return send_sys_call(&request);
 }
 
-int MyTid() {
+int MyTid( void ) {
     request_t request;
 
     request.sys_code = SYS_CALL_MY_TID;
@@ -21,7 +21,7 @@ int MyTid() {
     return send_sys_call(&request);
 }
 
-int MyParentTid() {
+int MyParentTid( void ) {
     request_t request;
 
     request.sys_code = SYS_CALL_MY_PARENT_TID;
@@ -29,7 +29,7 @@ int MyParentTid() {
     return send_sys_call(&request);
 }
 
-void Pass() {
+void Pass( void ) {
     request_t request;
 
     request.sys_code = SYS_CALL_PASS;
@@ -37,7 +37,7 @@ void Pass() {
     send_sys_call(&request);
 }
 
-void Exit() {
+void Exit( void ) {
     request_t request;
 
     request.sys_code = SYS_CALL_EXIT;
@@ -78,4 +78,12 @@ int Reply( int tid, char* reply, int replylen ) {
     request.reply_size      = replylen;
 
     return send_sys_call(&request);
+}
+
+int RegisterAs( char *name ) {
+    return 0; //TODO
+}
+
+int WhoIs( char *name ) {
+    return 0; //TODO
 }

@@ -30,7 +30,7 @@ int Create( int priority, void (*code) () );
  * tid – the positive integer task id of the task that calls it.
  * Errors should be impossible!
  */
-int MyTid();
+int MyTid( void );
 
 /**
  * @brief find the task id of the task that created the running
@@ -44,14 +44,14 @@ task.
  * Since resource recycling hasn't been implemented yet, then this is guaranteed NOT to be 
  * associated to any new task that is created
  */
-int MyParentTid();
+int MyParentTid( void );
 
 /**
  * @brief cease execution, remaining ready to run.
  * @details Pass causes a task to stop executing. The task is moved to the
  * end of its priority queue, and will resume executing when next scheduled.
  */
-void Pass();
+void Pass( void );
 
 /**
  * @brief terminate execution forever.
@@ -60,7 +60,7 @@ void Pass();
  * awaitEvent queues. Resources owned by the task, primarily its memory
  * and task descriptor are not reclaimed.
  */
-void Exit();
+void Exit( void );
 
 /**
  * @brief sends a message to another task and receives a reply
