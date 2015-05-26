@@ -13,9 +13,6 @@
 #define USER_TASK_MODE      0xD0
 #define STACK_SIZE 1024 * 80 //80KiB
 
-typedef int16_t tid_t;
-typedef uint8_t priority_t;
-
 typedef enum {
     TASK_RUNNING_STATE_ACTIVE           = 0,
     TASK_RUNNING_STATE_READY            = 1,
@@ -86,24 +83,6 @@ typedef struct scheduler_data_t {
     task_descriptor_t* active_task;
 } scheduler_data_t;
 
-
-
-
-/**
- *  NAMESERVER
- */
-
- #define MAX_TASK_NAME_LENGTH  20
- #define MAX_NAME_SERVER_NAMES 200
-
-
-
- typedef struct { /* table entry: */
-    char name[MAX_TASK_NAME_LENGTH]; /* defined name */
-    tid_t tid;
-    bool filled; /* replacement text */
-} nameserver_list_t;
-
 /**
  *  GLOBAL DATA STRUCTURE
  */
@@ -111,7 +90,6 @@ typedef struct scheduler_data_t {
 typedef struct global_data_t {
     task_handler_data_t task_handler_data;
     scheduler_data_t scheduler_data;
-    nameserver_list_t hashtab[MAX_NAME_SERVER_NAMES];
 } global_data_t;
 
 

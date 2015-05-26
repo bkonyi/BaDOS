@@ -11,7 +11,6 @@
 
 #include <nameserver.h>
 
-#define FOREVER for(;;)
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 
 void initialize(global_data_t* global_data) {
@@ -24,11 +23,10 @@ void initialize(global_data_t* global_data) {
 
     init_scheduler(global_data);
 
-    nameserver_initialize(global_data);
-
     //Creates the first user task.
     //NOTE: Priority chosen is arbitrary.
     create_task(global_data, (SCHEDULER_HIGHEST_PRIORITY - SCHEDULER_LOWEST_PRIORITY) / 2, first_msg_sending_user_task);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, nameserver_task);
 }
 
 request_t* switch_context(task_descriptor_t* td) {
