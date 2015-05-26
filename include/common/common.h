@@ -1,12 +1,10 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <bwio.h>
+#include <syscalls.h>
+
 #define NULL 0
-
-#define TRUE  1
-#define FALSE 0
-
-#define HARDCODED_LOAD_OFFSET 0x218000
 
 typedef unsigned int size_t;
 typedef unsigned char uint8_t;
@@ -18,6 +16,9 @@ typedef short int16_t;
 typedef int int32_t;
 typedef long long int64_t;
 typedef enum { false, true } bool;
+
+#define ASSERT(cond)  if(!cond) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Exit(); } while(0)
+#define KASSERT(cond) if(!cond) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)
 
 void* memcpy(void* dest, void* src, size_t len);
 int max(int val1, int val2);

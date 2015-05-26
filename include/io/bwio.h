@@ -1,3 +1,5 @@
+#ifndef __BWIO_H__
+#define __BWIO_H__
 /*
  * bwio.h
  */
@@ -41,3 +43,5 @@ void bwprintf( int channel, char *format, ... );
 //Our functions
 
 void bwdumpregs();
+
+#endif //__BWIO_H__

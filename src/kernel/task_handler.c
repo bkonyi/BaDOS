@@ -48,10 +48,7 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
 
     int result = schedule(global_data, next_descriptor);
 
-    if(result != 0) {
-        //TODO handle scheduling error here, even though this shouldn't happen...
-        return result;
-    }
+    KASSERT(result);
 
     //Return our TID and and then increment next_tid
     return task_handler_data->next_tid++; 

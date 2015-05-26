@@ -9,9 +9,9 @@
  *  TASKS DATA STRUCTURES
  */
 
-#define MAX_NUMBER_OF_TASKS 1000 //TODO Arbitrary number for now
+#define MAX_NUMBER_OF_TASKS 200 //TODO Arbitrary number for now
 #define USER_TASK_MODE      0xD0
-#define STACK_SIZE 1024 * 16 //16KiB
+#define STACK_SIZE 1024 * 80 //80KiB
 
 typedef int16_t tid_t;
 typedef uint8_t priority_t;
