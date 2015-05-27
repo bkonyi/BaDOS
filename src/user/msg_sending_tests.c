@@ -13,7 +13,6 @@ void first_msg_sending_user_task(void) {
 void sender(void) {
     int receiver = WhoIs("RECEIVER");
     tid_t my_tid = MyTid();
-    my_tid = my_tid;
    
     char* send_buffer = "Hello!";
     size_t send_size = 7;
