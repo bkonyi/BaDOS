@@ -3,6 +3,7 @@
 
 #define IS_BUFFER_EMPTY(BUFFER) ((BUFFER).start == (BUFFER).end)
 #define IS_BUFFER_FULL(BUFFER) ((((BUFFER).end + 1) % (BUFFER).size) == (BUFFER).start)
+#define BUFFER_LENGTH(BUFFER) ((BUFFER).end - (BUFFER).start)
 
 #define CREATE_RING_BUFFER_TYPE(NAME, TYPE, SIZE) \
     typedef struct {                \
@@ -11,6 +12,11 @@
         int end;                    \
         TYPE* buffer[(SIZE)];       \
     } NAME
+
+#define RING_BUFFER_INIT(BUFFER, SIZE) \
+    (BUFFER).start = 0;                \
+    (BUFFER).end   = 0;                \
+    (BUFFER).size  = (SIZE)
 
 #define POP_FRONT(BUFFER, VALUE) {                       \
         VALUE = BUFFER.buffer[BUFFER.start];             \
