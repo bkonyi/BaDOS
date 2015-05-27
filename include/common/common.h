@@ -45,6 +45,6 @@ typedef struct {
     char send_id;
     tid_t tid;
     char* name;
-}nameserver_msg_t;
+} nameserver_msg_t;
 
 #endif
