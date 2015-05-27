@@ -1,4 +1,7 @@
 #include <common.h>
+#include <syscalls.h>
+#include <servers.h>
+#include <bwio.h>
 
 void* memcpy(void* dest, void* src, size_t len) {
         char* dst_c = (char*)dest;
@@ -74,3 +77,17 @@ int min(int val1, int val2) {
 
     return val1;
 }
+
+uint32_t rand(void) {
+    uint32_t rand_val;
+    tid_t tid;
+
+    do {
+        tid = WhoIs(RAND_SERVER);
+    } while(tid == -2);
+
+    Send(tid, NULL, 0, (void*)(&rand_val), sizeof(uint32_t));
+
+    return rand_val;
+}
+

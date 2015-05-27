@@ -35,6 +35,9 @@ size_t strlen(char* str);
 int32_t strcmp(char* a, char* b);
 void to_upper(char* a);
 
+//TODO: this common file needs to be split into kcommon, common, and ucommon since rand uses a syscall
+uint32_t rand(void);
+
 /**
  * Structure necessary to represent a queue of task descriptors.
  */
