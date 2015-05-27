@@ -80,7 +80,7 @@ static int32_t nameserver_insert(nameserver_list_t* hashtab, char* name, tid_t t
 void nameserver_task(void) {
 
     int sender_tid;
-    volatile nameserver_msg_t msg;
+    nameserver_msg_t msg;
     nameserver_list_t hashtab[MAX_NAME_SERVER_NAMES];
     int result;
     nameserver_initialize(hashtab, MAX_NAME_SERVER_NAMES);
