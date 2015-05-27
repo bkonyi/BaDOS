@@ -2,7 +2,6 @@
 #include <request.h>
 #include <send_sys_call.h>
 #include <bwio.h>
-
 int Create( int priority, void (*code) () ) {
     request_t request;
 
@@ -81,9 +80,20 @@ int Reply( int tid, char* reply, int replylen ) {
 }
 
 int RegisterAs( char *name ) {
-    return 0; //TODO
+    nameserver_msg_t t;
+    t.tid = MyTid();
+    t.name = name;
+    t.send_id = REGISTERAS_ID;
+    int32_t res;
+    Send( NAMESERVER_TID, (char*)&t, sizeof(nameserver_msg_t), (char*)&res, sizeof(int32_t));
+    return res; //TODO
 }
 
 int WhoIs( char *name ) {
-    return 0; //TODO
+    nameserver_msg_t t;
+    t.name = name;
+    t.send_id = WHOIS_ID;
+    tid_t tid;
+    Send(NAMESERVER_TID, (char*)&t, sizeof(nameserver_msg_t),(char*) &tid, sizeof(tid_t));
+    return tid; //TODO
 }

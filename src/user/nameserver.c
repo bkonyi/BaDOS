@@ -1,5 +1,6 @@
 #include <nameserver.h>
 #include <common.h>
+#include <global.h>
 #include "bwio.h"
 
 #define MAX_TASK_NAME_LENGTH  20
@@ -16,8 +17,8 @@ typedef struct { /* table entry: */
 static uint32_t hash(char *s);
 static void nameserver_initialize(nameserver_list_t* hashtab, size_t hashtab_size);
 static tid_t nameserver_lookup(nameserver_list_t* hashtab, char *s);
-static uint32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name);
-static void nameserver_insert(nameserver_list_t* hashtab, char* name, tid_t tid);
+static int32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name);
+static int32_t nameserver_insert(nameserver_list_t* hashtab, char* name, tid_t tid);
 
 
 /***************************************/
@@ -25,14 +26,31 @@ static void nameserver_insert(nameserver_list_t* hashtab, char* name, tid_t tid)
 /***************************************/
 
 void nameserver_task(void) {
-    nameserver_list_t hashtab[MAX_NAME_SERVER_NAMES];
 
+    int sender_tid;
+    volatile nameserver_msg_t msg;
+    nameserver_list_t hashtab[MAX_NAME_SERVER_NAMES];
+    int result;
     nameserver_initialize(hashtab, MAX_NAME_SERVER_NAMES);
 
-    FOREVER {
-        //TODO put request handling code here
+   FOREVER {
+        MyTid();
+       // bwprintf(COM2,"IN herER\r\n");
+        Receive( &sender_tid, (char*)&msg, sizeof(nameserver_msg_t));
+        //bwprintf(COM2,"RECEIVED %s\r\n",msg);
+        switch(msg.send_id){
+            case WHOIS_ID:
+                result = nameserver_lookup(hashtab,msg.name);
+                Reply( sender_tid, 
+                    (char*)&result, 
+                    sizeof(tid_t));
+                break;
+            case REGISTERAS_ID:
+                result = nameserver_insert(hashtab,msg.name,msg.tid);
+                Reply(sender_tid,(char*)&result,sizeof(int));
+                break;
+        }
     }
-
     //We shouldn't ever get here
     ASSERT(0);
 }
@@ -61,8 +79,7 @@ void nameserver_initialize(nameserver_list_t* hashtab, size_t hashtab_size) {
 /* lookup: look for s in hashtab */
 tid_t nameserver_lookup(nameserver_list_t* hashtab, char *s) {
     uint32_t i = nameserver_find_slot(hashtab, s);
-
-    bwprintf(COM2,"LOOKUP %s\r\n",hashtab[i].name);
+    if(i==-2) return -2;
 
     if(hashtab[i].filled == true) {
         return hashtab[i].tid;
@@ -71,31 +88,29 @@ tid_t nameserver_lookup(nameserver_list_t* hashtab, char *s) {
     return -1;
 }
 
-uint32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name) {
+int32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name) {
     uint32_t i = hash(name);
-
+    uint32_t orig_i = i;
     while(hashtab[i].filled == true && strcmp(name, hashtab[i].name) != 0) {
         i = (i+1) % MAX_NAME_SERVER_NAMES;
+        if(i == orig_i)return -2;
     }
-
-    bwprintf(COM2,"INDEX %d\r\n",i);
     return i;
 }
 
-void nameserver_insert(nameserver_list_t* hashtab, char * name, tid_t tid) {
+int32_t nameserver_insert(nameserver_list_t* hashtab, char * name, tid_t tid) {
     uint32_t i = nameserver_find_slot(hashtab, name);
-
+    if(i==-2) return -2;
     if(hashtab[i].filled) {
         //overwrites the old tid for this name
         hashtab[i].tid = tid;
-        return;
+        return 0;
     }
 
     strlcpy(hashtab[i].name, name, MAX_TASK_NAME_LENGTH - 1);
     
     hashtab[i].name[MAX_TASK_NAME_LENGTH-1] = '\0';
-    
-    bwprintf(COM2,"STINSERT %s\r\n", hashtab[i].name);
     hashtab[i].tid = tid;
     hashtab[i].filled = true;
+    return 0;
 }

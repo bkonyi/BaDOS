@@ -5,15 +5,16 @@
 #include <global.h>
 
 void first_msg_sending_user_task(void) {
-Create(SCHEDULER_LOWEST_PRIORITY, receiver);
-
+    Create(SCHEDULER_LOWEST_PRIORITY+1, receiver);
     Create(SCHEDULER_LOWEST_PRIORITY, sender);
     Exit();
 }
 
 void sender(void) {
+    int receiver = WhoIs("RECEIVER");
     tid_t my_tid = MyTid();
-    int receiver = 1; //TODO CHANGE THIS WHEN CHANGING ORDER OF TASK CREATION!!!
+    my_tid = my_tid;
+   
     char* send_buffer = "Hello!";
     size_t send_size = 7;
     char reply_buffer[20];
@@ -28,11 +29,16 @@ void sender(void) {
 }
 
 void receiver(void) {
+    
+    RegisterAs("RECEIVER");
+    
     tid_t my_tid = MyTid();
     char receive_buffer[20];
     size_t receive_buffer_size = 20;
     int incoming_tid = -1;
     int result;
+    
+    
 
     bwprintf(COM2, "Waiting for message on TID %u...\r\n", my_tid);
     result = Receive(&incoming_tid, receive_buffer, receive_buffer_size);

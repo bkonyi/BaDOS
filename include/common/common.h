@@ -34,4 +34,16 @@ char* strlcpy(char* dest, char* src, uint32_t maxlen);
 size_t strlen(char* str);
 int32_t strcmp(char* a, char* b);
 
+/**
+ * Structure necessary to represent a queue of task descriptors.
+ */
+#define WHOIS_ID        ((char)0x20)
+#define REGISTERAS_ID   ((char)0x40)
+#define NAMESERVER_TID  0x0
+typedef struct {
+    char send_id;
+    tid_t tid;
+    char* name;
+}nameserver_msg_t;
+
 #endif
