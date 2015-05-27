@@ -15,6 +15,9 @@
 
 void initialize(global_data_t* global_data) {
 
+    //COM2 initialization
+    bwsetfifo(COM2,OFF); // ensure that fifo is off
+    
     //Set the software interrupt handler to jump to our
     //kernel entry point in the context switch
     *SOFTWARE_INTERRUPT_HANDLER = (uint32_t) kerenter;
