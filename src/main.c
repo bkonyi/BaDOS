@@ -10,6 +10,7 @@
 #include <msg_sending_tests.h>
 
 #include <nameserver.h>
+#include <rand_server.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 
@@ -30,6 +31,10 @@ void initialize(global_data_t* global_data) {
     //The nameserver need to be the first task created so that is has TID of NAMESERVER_TID
     tid_t tid = create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, nameserver_task);
     ASSERT(tid == NAMESERVER_TID);
+
+    //Create the random number generation server
+    //TODO change this priority maybe
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 1, rand_server);
 
     //Creates the first user task.
     //NOTE: Priority chosen is arbitrary.
