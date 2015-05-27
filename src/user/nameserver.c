@@ -34,10 +34,7 @@ void nameserver_task(void) {
     nameserver_initialize(hashtab, MAX_NAME_SERVER_NAMES);
 
    FOREVER {
-        MyTid();
-       // bwprintf(COM2,"IN herER\r\n");
         Receive( &sender_tid, (char*)&msg, sizeof(nameserver_msg_t));
-        //bwprintf(COM2,"RECEIVED %s\r\n",msg);
         switch(msg.send_id){
             case WHOIS_ID:
                 result = nameserver_lookup(hashtab,msg.name);

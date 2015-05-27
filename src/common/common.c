@@ -28,6 +28,19 @@ size_t strlen(char* str){
     while(*s != '\0')count++;
     return count;
 }
+void to_upper(char* a)
+{
+    //TODO: untested
+    #if 0
+    char* A = a;
+    while(*A != '\0' ){
+        if('a'<= *A && *A <= 'z'){
+            *A = *A +('a'-'A');
+        }
+        A++;
+    }
+    #endif
+}
 int32_t strcmp(char* a, char* b)
 {
     char* A = a;

@@ -33,6 +33,7 @@ char* strcpy(char* dest, char* src);
 char* strlcpy(char* dest, char* src, uint32_t maxlen);
 size_t strlen(char* str);
 int32_t strcmp(char* a, char* b);
+void to_upper(char* a);
 
 /**
  * Structure necessary to represent a queue of task descriptors.
