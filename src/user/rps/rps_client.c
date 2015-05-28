@@ -1,6 +1,6 @@
-#include <rps_client.h>
+#include <rps/rps_client.h>
 #include <syscalls.h>
-#include <rps_common.h>
+#include <rps/rps_common.h>
 #include <common.h>
 #include <servers.h>
 
@@ -10,8 +10,8 @@ static void quit_rps(int rps_server);
 
 void rps_client_task(void) {
     //TODO return -2 when we can't find a name so we don't have to Pass()
-    Pass();
-    Pass();
+    //Pass();
+    //Pass();
 
     int rps_server_tid;
     do {
@@ -21,7 +21,7 @@ void rps_client_task(void) {
     join_rps(rps_server_tid);
 
     int i;
-    for(i = 0; i < 5; ++i) {
+    for(i = 0; i < 3; ++i) {
         play_rps(rps_server_tid);
     }
     quit_rps(rps_server_tid);
@@ -46,10 +46,13 @@ void play_rps(int rps_server) {
     message.selection = rand() % 3;
 
     int result;
+
+    //Send our move
     Send((int)rps_server, (char*)&message, sizeof(rps_msg), (char*)&result, sizeof(int));
 
     //Since we played, we need to wait to start the next game to let the server know if we quit or not
-    Send((int)rps_server, NULL, 0, (char*)&result, sizeof(int));
+    message.type = RPS_WAITING;
+    Send((int)rps_server, (char*)&message, sizeof(rps_msg), (char*)&result, sizeof(int));
 }
 
 void quit_rps(int rps_server) {

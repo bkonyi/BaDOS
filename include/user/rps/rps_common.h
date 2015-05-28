@@ -1,13 +1,16 @@
 #ifndef __RPS_COMMON_H__
 #define __RPS_COMMON_H__
 
-typedef enum{
-    RPS_SIGNUP = 0,
-    RPS_PLAY   = 1,
-    RPS_QUIT   = 2
+#define GAME_TIE_CODE -4
+
+typedef enum {
+    RPS_SIGNUP  = 0,
+    RPS_PLAY    = 1,
+    RPS_QUIT    = 2,
+    RPS_WAITING = 3
 } rps_msg_type;
 
-typedef enum{
+typedef enum {
     ROCK       = 0,
     PAPER      = 1,
     SCISSORS   = 2,

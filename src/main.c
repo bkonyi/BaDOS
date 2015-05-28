@@ -11,8 +11,8 @@
 
 #include <nameserver.h>
 #include <rand_server.h>
-#include <rps_server.h>
-#include <rps_client.h>
+#include <rps/rps_server.h>
+#include <rps/rps_client.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 
@@ -43,6 +43,9 @@ void initialize(global_data_t* global_data) {
     create_task(global_data, (SCHEDULER_HIGHEST_PRIORITY - SCHEDULER_LOWEST_PRIORITY) / 2, first_msg_sending_user_task);
    
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 2, rps_server_task);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
 

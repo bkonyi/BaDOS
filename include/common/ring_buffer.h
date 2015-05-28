@@ -13,6 +13,14 @@
         TYPE* buffer[(SIZE)];       \
     } NAME
 
+#define CREATE_NON_POINTER_BUFFER_TYPE(NAME, TYPE, SIZE) \
+    typedef struct {                \
+        int size;                   \
+        int start;                  \
+        int end;                    \
+        TYPE buffer[(SIZE)];        \
+    } NAME
+
 #define RING_BUFFER_INIT(BUFFER, SIZE) \
     (BUFFER).start = 0;                \
     (BUFFER).end   = 0;                \
