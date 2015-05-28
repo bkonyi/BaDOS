@@ -9,7 +9,7 @@
 #include <a1_user_prog.h>
 #include <msg_sending_tests.h>
 
-#include <nameserver.h>
+#include <user_prog.h>
 #include <rand_server.h>
 #include <rps/rps_server.h>
 #include <rps/rps_client.h>
@@ -50,10 +50,9 @@ void initialize(global_data_t* global_data) {
 
     init_scheduler(global_data);
 
-    //IMPORTANT:
-    //The nameserver need to be the first task created so that is has TID of NAMESERVER_TID
-    tid_t tid = create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, nameserver_task);
-    ASSERT(tid == NAMESERVER_TID);
+    //First User Task
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
+    
 
     //Create the random number generation server
     //TODO change this priority maybe
