@@ -17,6 +17,27 @@
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 
 void initialize(global_data_t* global_data) {
+    /**
+     * Performance options
+     */
+    //For information on the bits being set here see the  ep93xx documentation
+    //page 43
+    uint32_t val;
+    bool data_cache = false;
+    bool instruction_cache = false;
+     
+    __asm__(   "MRC p15, 0,%0, c1, c0, 0\n\t":"=r"(val));   
+    
+    //Data cache   
+    if(data_cache) val |= (1<<2); // BEN!: these if statements are for you ;)
+    else   val &=~ (1<<2);
+         
+    //Instruction cache    
+    if(instruction_cache) val |= (1<<12); 
+    else val &=~ (1<<12);
+    
+    __asm__("MCR p15, 0, %0, c1, c0, 0"::"r"(val)); 
+     
 
     //COM2 initialization
     bwsetfifo(COM2,OFF); // ensure that fifo is off
@@ -41,6 +62,7 @@ void initialize(global_data_t* global_data) {
     //Creates the first user task.
     //NOTE: Priority chosen is arbitrary.
     create_task(global_data, (SCHEDULER_HIGHEST_PRIORITY - SCHEDULER_LOWEST_PRIORITY) / 2, first_msg_sending_user_task);
+
    
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 2, rps_server_task);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
@@ -48,6 +70,7 @@ void initialize(global_data_t* global_data) {
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
+
 
 }
 
