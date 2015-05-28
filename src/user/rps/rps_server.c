@@ -34,6 +34,9 @@ void rps_server_task(void){
 	int result;
 	int sender_tid;
 
+	bwsetfifo(COM2, ON);
+	bwsetspeed(COM2, 115200);
+
 	rps_msg msg;
 
 	//Queue for waiting players
@@ -115,7 +118,6 @@ void rps_server_task(void){
 						Reply(current_players[1], (char*)&game_result, sizeof(int));
 
 					} else if(game_result >= 0) { //Check to see if a player has won
-						
 						//Return 1 if a player won, 0 otherwise
 						int p1_result =  (game_result == current_players[0]);
 						int p2_result = !(game_result == current_players[0]);
@@ -168,6 +170,8 @@ void rps_server_task(void){
 
 					//Reset the moves received counter
 					moves_received = 0;
+
+					//bwgetc(COM2);
 				}
 				break;
 			default:
@@ -202,7 +206,7 @@ int play_rps(int* players, rps_msg* moves) {
 		quitting -= 1;
 	}
 
-	if(moves[0].type == RPS_QUIT) {
+	if(moves[1].type == RPS_QUIT) {
 		quitting -= 2;
 	}
 
@@ -231,7 +235,7 @@ int play_rps(int* players, rps_msg* moves) {
 	}
 
 	//Player 2 won
-	bwprintf(COM2, "Player %d won!\r\n", players[0]);
+	bwprintf(COM2, "Player %d won!\r\n", players[1]);
 	return players[1];
 }
 

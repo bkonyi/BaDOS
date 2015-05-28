@@ -8,10 +8,7 @@ static void join_rps(int rps_server);
 static void play_rps(int rps_server);
 static void quit_rps(int rps_server);
 
-void rps_client_task(void) {
-    //TODO return -2 when we can't find a name so we don't have to Pass()
-    //Pass();
-    //Pass();
+void rps_client_task_3_plays(void) {
 
     int rps_server_tid;
     do {
@@ -24,10 +21,31 @@ void rps_client_task(void) {
     for(i = 0; i < 3; ++i) {
         play_rps(rps_server_tid);
     }
+
     quit_rps(rps_server_tid);
 
     Exit();
 }
+
+void rps_client_task_5_plays(void) {
+
+    int rps_server_tid;
+    do {
+        rps_server_tid = WhoIs(RPS_SERVER);
+    } while(rps_server_tid == -2);
+
+    join_rps(rps_server_tid);
+
+    int i;
+    for(i = 0; i < 5; ++i) {
+        play_rps(rps_server_tid);
+    }
+
+    quit_rps(rps_server_tid);
+
+    Exit();
+}
+
 
 void join_rps(int rps_server) {
     rps_msg message;

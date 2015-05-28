@@ -61,17 +61,15 @@ void initialize(global_data_t* global_data) {
 
     //Creates the first user task.
     //NOTE: Priority chosen is arbitrary.
-    create_task(global_data, (SCHEDULER_HIGHEST_PRIORITY - SCHEDULER_LOWEST_PRIORITY) / 2, first_msg_sending_user_task);
+    //create_task(global_data, (SCHEDULER_HIGHEST_PRIORITY - SCHEDULER_LOWEST_PRIORITY) / 2, first_msg_sending_user_task);
 
-   
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 2, rps_server_task);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task);
 
-
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_5_plays);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays));
 }
 
 request_t* switch_context(task_descriptor_t* td) {
