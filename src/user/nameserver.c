@@ -66,9 +66,6 @@ static int32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name);
  * @param hashtab The hashtable in concern
  * @param name null terminated char array, the key in the hash table
  * @param tid the tid, value, to be inserted in the hashtab
- * @return 
- * 0 on success
- * -2 if the hashtab is full
  */
 static int32_t nameserver_insert(nameserver_list_t* hashtab, char* name, tid_t tid);
 
@@ -90,12 +87,17 @@ void nameserver_task(void) {
         switch(msg.send_id){
             case WHOIS_ID:
                 result = nameserver_lookup(hashtab,msg.name);
+
+                // Reply with the tid if it is found
+                    // -2 if an entry with msg.name doesn't exist
                 Reply( sender_tid, 
                     (char*)&result, 
                     sizeof(tid_t));
                 break;
             case REGISTERAS_ID:
                 result = nameserver_insert(hashtab,msg.name,msg.tid);
+                //Reply with 0 on success
+                    //-1 if the hashtab is full
                 Reply(sender_tid,(char*)&result,sizeof(int));
                 break;
         }
@@ -129,15 +131,18 @@ void nameserver_initialize(nameserver_list_t* hashtab, size_t hashtab_size) {
 /* lookup: look for s in hashtab */
 tid_t nameserver_lookup(nameserver_list_t* hashtab, char *s) {
     uint32_t i = nameserver_find_slot(hashtab, s);
-    if(i==-2) {
-         return -2; // Our hash list is full 
+    if(i==-1) {
+        // Our hash list is full and we didn't find the name so return -2
+            //to signify we couldn't find the name
+        return -2; 
+
     }
     //otherwise check if a value has been entered at this index 
     if(hashtab[i].filled == true) {
         return hashtab[i].tid;
     }
     
-    return -1;
+    return -2; // didn't find the entry
 }
 
 int32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name) {
@@ -148,7 +153,7 @@ int32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name) {
     while(hashtab[i].filled == true && strcmp(name, hashtab[i].name) != 0) {
         i = (i+1) % MAX_NAME_SERVER_NAMES;
         if(i == orig_i) {
-            return -2; // looks like the hash_tab is full
+            return -1; // looks like the hash_tab is full
         }
     }
     return i;
@@ -156,8 +161,8 @@ int32_t nameserver_find_slot(nameserver_list_t* hashtab, char *name) {
 
 int32_t nameserver_insert(nameserver_list_t* hashtab, char * name, tid_t tid) {
     uint32_t i = nameserver_find_slot(hashtab, name);
-    if(i==-2) {
-         return -2;
+    if(i==-1) {
+         return -1;
     }
     if(hashtab[i].filled) {
         //overwrites the old tid for this name
