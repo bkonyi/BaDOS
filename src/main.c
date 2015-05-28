@@ -10,9 +10,6 @@
 #include <msg_sending_tests.h>
 
 #include <user_prog.h>
-#include <rand_server.h>
-#include <rps/rps_server.h>
-#include <rps/rps_client.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 
@@ -29,12 +26,18 @@ void initialize(global_data_t* global_data) {
     __asm__(   "MRC p15, 0,%0, c1, c0, 0\n\t":"=r"(val));   
     
     //Data cache   
-    if(data_cache) val |= (1<<2); // BEN!: these if statements are for you ;)
-    else   val &=~ (1<<2);
+    if(data_cache) {
+        val |= (1<<2);
+    } else  {
+        val &=~ (1<<2);
+    }  
          
     //Instruction cache    
-    if(instruction_cache) val |= (1<<12); 
-    else val &=~ (1<<12);
+    if(instruction_cache) {
+        val |= (1<<12);
+    } else {
+        val &=~ (1<<12);
+    }
     
     __asm__("MCR p15, 0, %0, c1, c0, 0"::"r"(val)); 
      
@@ -52,23 +55,6 @@ void initialize(global_data_t* global_data) {
 
     //First User Task
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
-    
-
-    //Create the random number generation server
-    //TODO change this priority maybe
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 1, rand_server);
-
-    //Creates the first user task.
-    //NOTE: Priority chosen is arbitrary.
-    //create_task(global_data, (SCHEDULER_HIGHEST_PRIORITY - SCHEDULER_LOWEST_PRIORITY) / 2, first_msg_sending_user_task);
-
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 2, rps_server_task);
-
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_5_plays);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY - 3, rps_client_task_3_plays));
 }
 
 request_t* switch_context(task_descriptor_t* td) {

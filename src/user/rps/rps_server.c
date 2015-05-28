@@ -34,7 +34,7 @@ void rps_server_task(void){
 	int result;
 	int sender_tid;
 
-	bwsetfifo(COM2, ON);
+	bwsetfifo(COM2, OFF);
 	bwsetspeed(COM2, 115200);
 
 	rps_msg msg;
@@ -171,7 +171,8 @@ void rps_server_task(void){
 					//Reset the moves received counter
 					moves_received = 0;
 
-					//bwgetc(COM2);
+					bwprintf(COM2, "\r\n");
+					bwgetc(COM2);
 				}
 				break;
 			default:

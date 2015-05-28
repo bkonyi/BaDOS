@@ -43,7 +43,7 @@ uint32_t rand(void);
  */
 #define WHOIS_ID        ((char)0x20)
 #define REGISTERAS_ID   ((char)0x40)
-#define NAMESERVER_TID  0x9
+#define NAMESERVER_TID  0x1
 typedef struct {
     char send_id;
     tid_t tid;
