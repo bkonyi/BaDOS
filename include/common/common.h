@@ -22,6 +22,10 @@ typedef enum { false, true } bool;
 typedef int16_t tid_t;
 typedef uint8_t priority_t;
 
+#define SCHEDULER_NUM_QUEUES            32
+#define SCHEDULER_HIGHEST_PRIORITY      31
+#define SCHEDULER_LOWEST_PRIORITY       0
+
 #define ASSERT(cond)  if(!(cond)) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Exit(); } while(0)
 #define KASSERT(cond) if(!(cond)) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)
 
@@ -44,6 +48,7 @@ uint32_t rand(void);
 #define WHOIS_ID        ((char)0x20)
 #define REGISTERAS_ID   ((char)0x40)
 #define NAMESERVER_TID  0x1
+ 
 typedef struct {
     char send_id;
     tid_t tid;

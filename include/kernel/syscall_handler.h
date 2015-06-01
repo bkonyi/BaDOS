@@ -5,6 +5,14 @@
 #include <request.h>
 
 /**
+ * @brief Initializes the syscall data structures
+ * @details Initializes the syscall data structures
+ * 
+ * @param syscall_handler_data The syscall data structures
+ */
+void initialize_syscall_handler(global_data_t* global_data);
+
+/**
  * @brief System call handler.
  * @details Performs system calls requested by the currently active task and returns results in the
  * current task's task descriptor.

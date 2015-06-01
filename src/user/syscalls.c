@@ -97,3 +97,12 @@ int WhoIs( char *name ) {
     Send(NAMESERVER_TID, (char*)&t, sizeof(nameserver_msg_t),(char*) &tid, sizeof(tid_t));
     return tid; //TODO
 }
+
+int AwaitEvent( int eventid ) {
+    request_t request;
+
+    request.sys_code = SYS_CALL_AWAIT_EVENT;
+    request.eventid  = eventid;
+
+    return send_sys_call(&request);
+}

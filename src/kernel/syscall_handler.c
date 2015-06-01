@@ -3,32 +3,33 @@
 #include <scheduler.h>
 #include <task_handler.h>
 #include <bwio.h>
+#include <events.h>
 
-int handle_Create(global_data_t* global_data, priority_t priority, void (*code)()) {
+static int handle_Create(global_data_t* global_data, priority_t priority, void (*code)()) {
     return create_task(global_data, priority, code);
 }
 
-int handle_MyTid(global_data_t* global_data) {
+static int handle_MyTid(global_data_t* global_data) {
     task_descriptor_t* td = get_active_task(global_data);
     return td->tid;
 } 
 
-int handle_MyParentTid(global_data_t* global_data) {
+static int handle_MyParentTid(global_data_t* global_data) {
     task_descriptor_t* td = get_active_task(global_data);
     return td->parent;
 }
 
-void handle_Pass(global_data_t* global_data) {
+static void handle_Pass(global_data_t* global_data) {
     //This is basically a nop used to cause this task to be rescheduled.
     //Nothing to do.
     return;
 }
 
-void handle_Exit(global_data_t* global_data) {
+static void handle_Exit(global_data_t* global_data) {
     zombify_active_task(global_data); 
 }
 
-int handle_Send(global_data_t* global_data, int tid, char* msg, int msglen, char* reply, int replylen) {
+static int handle_Send(global_data_t* global_data, int tid, char* msg, int msglen, char* reply, int replylen) {
 
     task_descriptor_t* active_task = get_active_task(global_data);
 
@@ -71,7 +72,7 @@ int handle_Send(global_data_t* global_data, int tid, char* msg, int msglen, char
     return -3;
 }
 
-int handle_Receive(global_data_t* global_data, int* tid, char *msg, int msglen) {
+static int handle_Receive(global_data_t* global_data, int* tid, char *msg, int msglen) {
     task_descriptor_t* active_task = get_active_task(global_data);
 
     //Check to see if there are any messages queued up for this task.
@@ -103,7 +104,7 @@ int handle_Receive(global_data_t* global_data, int* tid, char *msg, int msglen) 
     return 0;
 }
 
-int handle_Reply(global_data_t* global_data, int tid, char* reply, int replylen) {
+static int handle_Reply(global_data_t* global_data, int tid, char* reply, int replylen) {
     int tid_valid = is_valid_task(global_data, tid);
 
     if(tid_valid) {
@@ -140,6 +141,33 @@ int handle_Reply(global_data_t* global_data, int tid, char* reply, int replylen)
     return 0;
 }
 
+static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
+
+    //Check to see if the event id is valid 
+    if(eventid != TIMER3_EVENT) {
+        return -1;
+    }
+
+    syscall_handler_data_t* syscall_handler_data = &(global_data->syscall_handler_data);
+    task_descriptor_t* active_task = get_active_task(global_data);
+
+    active_task->state = TASK_RUNNING_STATE_AWAIT_EVENT_BLOCKED;
+    QUEUE_WAITING_TASK(syscall_handler_data->waiting_tasks[eventid], active_task);
+
+    //Return -2 for now to represent an incomplete transaction. We'll set this later to a proper value
+    return -2;
+}
+
+void initialize_syscall_handler(global_data_t* global_data) {
+    syscall_handler_data_t* syscall_handler_data = &(global_data->syscall_handler_data);
+
+    //initialize the queues used for AwaitEvent
+    int i;
+    for(i = 0; i < NUMBER_OF_EVENTS; ++i) {
+        QUEUE_INIT(syscall_handler_data->waiting_tasks[i]);
+    }
+}
+
 void handle(global_data_t* global_data, request_t* request) {
     if(request == NULL) {
         handle_interrupt(global_data);
@@ -174,6 +202,9 @@ void handle(global_data_t* global_data, request_t* request) {
             break;
         case SYS_CALL_REPLY:
             active_task->return_code = handle_Reply(global_data, request->receiving_tid, request->reply_buffer, request->reply_size);
+            break;
+        case SYS_CALL_AWAIT_EVENT:
+            active_task->return_code = handle_AwaitEvent(global_data, request->eventid);
             break;
         default:
             bwprintf(COM2, "Bad system call: %d\r\n", request->sys_code);

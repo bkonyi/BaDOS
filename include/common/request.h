@@ -11,7 +11,8 @@ typedef enum {
     SYS_CALL_EXIT          = 4,
     SYS_CALL_SEND          = 5,
     SYS_CALL_RECEIVE       = 6,
-    SYS_CALL_REPLY         = 7
+    SYS_CALL_REPLY         = 7,
+    SYS_CALL_AWAIT_EVENT   = 8
 } sys_call_code_t;
 
 typedef struct {
@@ -30,6 +31,8 @@ typedef struct {
 
     int receiving_tid;  //The tid a message is being sent to
     int* sending_tid;   //The tid that sent a message (used for Receive())
+
+    int eventid;        //The event id for AwaitEvent()
 
 } request_t;
 
