@@ -36,18 +36,16 @@ void test(void) {
     Exit();
 }
 
-void test2(void) {
-    bwprintf(COM2, "HWI!\r\n");
-    //KASSERT(0);
-}
-
 void initialize(global_data_t* global_data) {
+    //COM2 initialization
+    bwsetfifo(COM2,OFF); // ensure that fifo is off
+
     /**
      * Performance options
      */
     //For information on the bits being set here see the  ep93xx documentation
     //page 43
-    /*uint32_t val;
+    uint32_t val;
     bool data_cache = false;
     bool instruction_cache = false;
      
@@ -67,7 +65,7 @@ void initialize(global_data_t* global_data) {
         val &=~ (1<<12);
     }
     
-    __asm__ __volatile__("MCR p15, 0, %0, c1, c0, 0"::"r"(val)); */
+    __asm__ __volatile__("MCR p15, 0, %0, c1, c0, 0"::"r"(val));
 
     //Set the software interrupt handler to jump to our
     //kernel entry point in the context switch
@@ -78,9 +76,11 @@ void initialize(global_data_t* global_data) {
     *IRQ_INTERRUPT_HANDLER = (uint32_t) irq_handler;
 
 
+    //TODO clear timer states
+
     //Explicitly disable interrupts
-    __asm__ __volatile__("MSR cpsr_c, #0x93");
-    *TIMER3_LOAD = 508000 * 3;
+    __asm__ __volatile__("MSR cpsr_c, #0x93"); //TODO do we need this?
+    *TIMER3_LOAD = 508000 * 2;
     *TIMER3_CLEAR = 1;
     *TIMER3_CONTROL |= (0x1 << 6) | (0x1 << 3) | (0x1 << 7);
 
@@ -93,17 +93,7 @@ void initialize(global_data_t* global_data) {
     *(volatile uint32_t*)((uint32_t)ICU_2_BASE + ICU_ENABLE_CLEAR_OFFSET) = ~0;
 
     //Enable interrupts for timer 3
-    *(volatile uint32_t*)((uint32_t)ICU_2_BASE + ICU_ENABLE_OFFSET) = (0x1 << 19);
-
-    //COM2 initialization
-    bwsetfifo(COM2,OFF); // ensure that fifo is off
-
-    bwprintf(COM2, "ICU1: 0x%x\r\n", ((uint32_t)ICU_2_BASE + ICU_ENABLE_OFFSET));
-    bwprintf(COM2, "VALUE: %d\r\n", *(uint32_t*)((uint32_t)ICU_2_BASE + ICU_ENABLE_OFFSET));
-    bwprintf(COM2, "Interrupt state: %u\r\n", *ICU_2_BASE);
-
-
-    KASSERT(0);
+    *(volatile uint32_t*)((uint32_t)ICU_2_BASE + ICU_ENABLE_OFFSET) = (0x1 << 19); //TODO 0x1 << 19 is TIMER3 offset
 
     init_task_handler(global_data);
 
@@ -112,7 +102,6 @@ void initialize(global_data_t* global_data) {
     //First User Task
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
-
 }
 
 request_t* switch_context(task_descriptor_t* td) {
@@ -122,9 +111,8 @@ request_t* switch_context(task_descriptor_t* td) {
 int main(void)
 {
     global_data_t global_data;
-    bwprintf(COM2, "Starting...\r\n");
     initialize(&global_data);
-    int first = 1;
+    bwprintf(COM2, "Starting...\r\n");
 
     request_t* request = NULL;
 
@@ -139,17 +127,9 @@ int main(void)
         bwprintf(COM2, "Next Task: %d\r\n", next_task->tid);
         bwprintf(COM2, "Next Task LR: 0x%x\r\n", next_task->pc);
 
-        if(first) {
-            bwprintf(COM2, "Calling std switch_context\r\n");
-            *TIMER3_CLEAR = 1;
-            request = switch_context(next_task);
-            first = 1;
-        } else {
-            bwprintf(COM2, "Calling kerexit_debug\r\n");
-            request = kerexit_debug(next_task);
-        }
+        *TIMER3_CLEAR = 1;
+        request = switch_context(next_task);
 
-        bwprintf(COM2, "Here\r\n");
         if(request != NULL) {
             handle(&global_data, request);
         }
