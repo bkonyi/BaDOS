@@ -2,6 +2,9 @@
 #include <request.h>
 #include <send_sys_call.h>
 #include <bwio.h>
+#include <servers.h>
+#include <clock/clock_server.h>
+
 int Create( int priority, void (*code) () ) {
     request_t request;
 
@@ -105,4 +108,57 @@ int AwaitEvent( int eventid ) {
     request.eventid  = eventid;
 
     return send_sys_call(&request);
+}
+
+int Time( void ) {
+    int32_t CLOCK_SERVER_TID;
+    int32_t time_result;
+    int32_t result;
+
+    CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
+
+    clock_server_msg_t message;
+    message.type = TIME;
+
+    result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&time_result, sizeof(int32_t));
+
+    ASSERT(result == sizeof(int32_t));
+
+    return time_result;
+}
+
+int Delay( int ticks ) {
+    int32_t CLOCK_SERVER_TID;
+    int32_t result;
+    int32_t delay_result = 0;
+
+    CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
+
+    clock_server_msg_t message;
+    message.type = DELAY;
+
+    result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
+
+    ASSERT(result == 0);
+    ASSERT(delay_result == 0);
+
+    return 0;
+}
+
+int DelayUntil( int ticks ) {
+    int32_t CLOCK_SERVER_TID;
+    int32_t result;
+    int32_t delay_result = 0;
+
+    CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
+
+    clock_server_msg_t message;
+    message.type = DELAY_UNTIL;
+
+    result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
+
+    ASSERT(result == 0);
+    ASSERT(delay_result == 0);
+
+    return 0;
 }

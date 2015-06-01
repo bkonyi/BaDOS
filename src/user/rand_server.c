@@ -3,7 +3,7 @@
 #include <common.h>
 #include <servers.h>
 
-void rand_server(void) {
+void rand_server_task(void) {
 
     //Initial values chosen randomly by keyboard smash method
     uint32_t x = 123123;

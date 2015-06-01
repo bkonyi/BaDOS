@@ -188,5 +188,38 @@ int WhoIs( char *name );
  */
 int AwaitEvent( int eventid );
 
+/**
+ * @brief Returns the number of ticks since the clock server was created.
+ * @details Time returns the number of ticks since the clock server was
+ * created and initialized.
+ * With a 10 millisecond tick and a 32-bit int there should be neither
+ * wraparound nor negative time.
+ * 
+ * @return The number of ticks since the kernel has started
+ */
+int Time( void );
+
+/**
+ * @brief Delays for a certain number of tasks
+ * @details Delay returns after the given number of ticks has elapsed.
+ * How long after is not guaranteed because the caller may have to wait on
+ * higher priority tasks
+ * 
+ * @param ticks The number of ticks to delay for.
+ * @return 0, -1 on error
+ */
+int Delay( int ticks );
+
+/**
+ * @brief Delays until the clock server has ticked ticks times.
+ * @details Delay returns when the time since clock server initialization is
+ * greater than the given number of ticks. How long after is not guaranteed
+ * because the caller may have to wait on higher priority tasks.
+ * 
+ * @param ticks The time we want to start executing a delayed task.
+ * @return 0, -1 on error
+ */
+int DelayUntil( int ticks );
+
 #endif//__SYS_CALL_H__
 

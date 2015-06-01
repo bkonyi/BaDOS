@@ -1,14 +1,10 @@
-#include <common.h>
 #include <bwio.h>
+#include <common.h>
 #include <context_switch.h>
-#include <scheduler.h>
-#include <syscalls.h>
-#include <task_handler.h>
-#include <syscall_handler.h>
 #include <global.h>
-#include <a1_user_prog.h>
-#include <msg_sending_tests.h>
-
+#include <scheduler.h>
+#include <syscall_handler.h>
+#include <task_handler.h>
 #include <user_prog.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
@@ -102,8 +98,7 @@ void initialize(global_data_t* global_data) {
     initialize_syscall_handler(global_data);
 
     //First User Task
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
 }
 
 request_t* switch_context(task_descriptor_t* td) {
