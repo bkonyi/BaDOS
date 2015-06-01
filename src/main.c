@@ -12,17 +12,14 @@
 #define IRQ_INTERRUPT_HANDLER2      ((volatile uint32_t*)0x34)
 
 
-#define ICU_1_BASE                 ((volatile uint32_t*)0x800B0000)
-#define ICU_2_BASE                 ((volatile uint32_t*)0x800C0000)
-#define ICU_SELECT_OFFSET          ((uint32_t)0x0c)
-#define ICU_ENABLE_OFFSET          ((uint32_t)0x10)
-#define ICU_ENABLE_CLEAR_OFFSET    ((uint32_t)0x14)
-#define ICU_SW_INTERRUPT_OFFSET    ((uint32_t)0x18)
 
 #define TIMER3_LOAD                (volatile uint32_t*)0x80810080
 #define TIMER3_CONTROL             (volatile uint32_t*)0x80810088
 #define TIMER3_CLEAR               (volatile uint32_t*)0x8081008C
 #define TIMER3_VALUE               (volatile uint32_t*)0x80810084
+
+
+
 
 void test(void) {
     volatile int a = 0;
@@ -80,16 +77,7 @@ void initialize(global_data_t* global_data) {
     *TIMER3_CLEAR = 1;
     *TIMER3_CONTROL |= (0x1 << 6) | (0x1 << 3) | (0x1 << 7);
 
-    //TODO enable ICU
-    *(volatile uint32_t*)((uint32_t)ICU_1_BASE + ICU_SELECT_OFFSET) = 0;
-    *(volatile uint32_t*)((uint32_t)ICU_2_BASE + ICU_SELECT_OFFSET) = 0;
-
-    //Clear the enabled interrupts
-    *(volatile uint32_t*)((uint32_t)ICU_1_BASE + ICU_ENABLE_CLEAR_OFFSET) = ~0;
-    *(volatile uint32_t*)((uint32_t)ICU_2_BASE + ICU_ENABLE_CLEAR_OFFSET) = ~0;
-
-    //Enable interrupts for timer 3
-    *(volatile uint32_t*)((uint32_t)ICU_2_BASE + ICU_ENABLE_OFFSET) = (0x1 << 19); //TODO 0x1 << 19 is TIMER3 offset
+    initialize_interrupts();
 
     init_task_handler(global_data);
 
@@ -99,6 +87,10 @@ void initialize(global_data_t* global_data) {
 
     //First User Task
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
+}
+void cleanup(void){
+    //Clears all interrupts  except timer3.
+    initialize_interrupts();
 }
 
 request_t* switch_context(task_descriptor_t* td) {
@@ -129,6 +121,6 @@ int main(void)
 
         handle(&global_data, request);
     }
-
+ 
     return 0;
 }
