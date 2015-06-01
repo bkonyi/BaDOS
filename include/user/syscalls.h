@@ -163,5 +163,30 @@ int RegisterAs( char *name );
  */
 int WhoIs( char *name );
 
+/**
+ * @brief AwaitEvent blocks until the event identified by eventid occurs
+ *   then returns.
+ * @details AwaitEvent blocks until the event identified by eventid occurs
+ *   then returns. The following details are implementation-dependent.
+ *   • Whether or not the kernel collects volatile data and re-enables the
+ *   interrupt.
+ *   • Whether volatile data is returned as a positive integer in the return
+ *   value, or in the event buffer, or not returned at all.
+ *   • Whether or not interrupts are enabled when AwaitEvent returns.
+ *   • Whether or not to allow more than one task to block on a single
+ *   event.
+ *
+ * 
+ * @param eventid The event ID the task is to wait on
+ * @returns:
+ *   • volatile data – in the form of a positive integer.
+ *   • 0 – volatile data is in the event buffer.
+ *   •-1 – invalid event.
+ *   •-2 – corrupted volatile data. Error indication in the event buffer.
+ *   •-3 – volatile data must be collected and interrupts re-enabled in the
+ *    caller.
+ */
+int AwaitEvent( int eventid );
+
 #endif//__SYS_CALL_H__
 

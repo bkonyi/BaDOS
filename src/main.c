@@ -88,6 +88,8 @@ void initialize(global_data_t* global_data) {
 
     init_scheduler(global_data);
 
+    initialize_syscall_handler(global_data);
+
     //First User Task
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);

@@ -4,6 +4,7 @@
 #include <common.h>
 #include <queue.h>
 #include <request.h>
+#include <events.h>
 
 /**
  *  TASKS DATA STRUCTURES
@@ -14,15 +15,17 @@
 #define STACK_SIZE 1024 * 80 //80KiB
 
 typedef enum {
-    TASK_RUNNING_STATE_ACTIVE           = 0,
-    TASK_RUNNING_STATE_READY            = 1,
-    TASK_RUNNING_STATE_ZOMBIE           = 2,
-    TASK_RUNNING_STATE_REPLY_BLOCKED    = 3,
-    TASK_RUNNING_STATE_RECEIVE_BLOCKED  = 4
+    TASK_RUNNING_STATE_ACTIVE              = 0,
+    TASK_RUNNING_STATE_READY               = 1,
+    TASK_RUNNING_STATE_ZOMBIE              = 2,
+    TASK_RUNNING_STATE_REPLY_BLOCKED       = 3,
+    TASK_RUNNING_STATE_RECEIVE_BLOCKED     = 4,
+    TASK_RUNNING_STATE_AWAIT_EVENT_BLOCKED = 5
 } task_running_state_t;
 
 struct task_descriptor_t;
 
+//Define the message queue structures
 #define MESSAGE_WAITING_NEXT next_message
 
 CREATE_QUEUE_TYPE(message_waiting_queue_t, struct task_descriptor_t);
@@ -37,6 +40,21 @@ CREATE_QUEUE_TYPE(message_waiting_queue_t, struct task_descriptor_t);
 
 #define IS_MESSAGE_WAITING(Q) (!IS_QUEUE_EMPTY(Q))
 
+//Define the event waiting queue structures
+#define NEXT_WAITING_TASK next_waiting_task
+
+CREATE_QUEUE_TYPE(waiting_tasks_queue_t, struct task_descriptor_t);
+
+#define GET_NEXT_WAITING_TASK(Q, VALUE) {                    \
+    QUEUE_POP_FRONT_GENERIC(Q, VALUE, NEXT_WAITING_TASK);    \
+} while(0)
+
+#define QUEUE_WAITING_TASK(Q, VALUE) {                       \
+    QUEUE_PUSH_BACK_GENERIC(Q, VALUE, NEXT_WAITING_TASK);    \
+} while(0)
+
+#define ARE_TASKS_WAITING(Q) (!IS_QUEUE_EMPTY(Q))
+
 typedef struct task_descriptor_t {
     //Registers
     uint32_t sp;   //Stack pointer
@@ -46,6 +64,7 @@ typedef struct task_descriptor_t {
 
     struct task_descriptor_t* next;
     struct task_descriptor_t* MESSAGE_WAITING_NEXT;
+    struct task_descriptor_t* NEXT_WAITING_TASK;
 
     char stack[STACK_SIZE];
     task_running_state_t state;
@@ -67,10 +86,6 @@ typedef struct {
  *  SCHEDULER DATA STRUCTURES
  */
 
-#define SCHEDULER_NUM_QUEUES            32
-#define SCHEDULER_HIGHEST_PRIORITY      31
-#define SCHEDULER_LOWEST_PRIORITY       0
-
 CREATE_QUEUE_TYPE(schedule_queue_t, task_descriptor_t);
 
 /**
@@ -84,12 +99,20 @@ typedef struct scheduler_data_t {
 } scheduler_data_t;
 
 /**
+ * SYSCALL HANDLER DATA STRUCTURES
+ */
+ typedef struct syscall_handler_data_t {
+        waiting_tasks_queue_t waiting_tasks[NUMBER_OF_EVENTS];
+ } syscall_handler_data_t;
+
+/**
  *  GLOBAL DATA STRUCTURE
  */
 
 typedef struct global_data_t {
     task_handler_data_t task_handler_data;
     scheduler_data_t scheduler_data;
+    syscall_handler_data_t syscall_handler_data;
 } global_data_t;
 
 
