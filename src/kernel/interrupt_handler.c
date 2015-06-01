@@ -1,5 +1,7 @@
 #include <interrupt_handler.h>
-
+#include <timer3.h>
+#include <global.h>
+#include <scheduler.h>
 #define VIC1_BASE                 ((uint32_t)0x800B0000)
 #define VIC2_BASE                 ((uint32_t)0x800C0000)
 
@@ -27,7 +29,7 @@
 
 static void timer3_handle(void);
 
-void initialize_interrupts(void) {
+void initialize_interrupts(global_data_t* global_data) {
 	    //TODO enable ICU
     *(uint32_t*)(VIC1_BASE + VICxIntSelect) = 0;
     *(uint32_t*)(VIC2_BASE + VICxIntSelect) = 0;
@@ -42,6 +44,10 @@ void initialize_interrupts(void) {
     //TODO: enable as needed.
     //*(uint32_t*)((uint32_t)VIC2_BASE + VICxIntEnable) = VIC2_UART1_MASK; //TODO 0x1 << 19 is TIMER3 offset
     //*(uint32_t*)((uint32_t)VIC2_BASE + VICxIntEnable) = VIC2_UART2_MASK; //TODO 0x1 << 19 is TIMER3 offset
+    int i;
+    for(i=0; i <NUMBER_OF_EVENTS;i++){
+    	QUEUE_INIT(global_data->syscall_handler_data.interrupt_waiting_tasks[i]);
+    }
 }
 
 void handle_interrupt(global_data_t* global_data) {
@@ -56,9 +62,14 @@ void handle_interrupt(global_data_t* global_data) {
 
     uint32_t vic1_2clear = 0, vic2_2clear = 0;
 
+    // left uninitialized so we have the chance of a compiler warning
+    	//If the cases below don't set the value
+    uint32_t interrupt_index; 
     if(vic2_status|VIC2_TC3UI_MASK){
     	timer3_handle();
-    	vic2_2clear = VIC2_TC3UI_MASK;
+
+    	vic2_2clear 	=	VIC2_TC3UI_MASK;
+    	interrupt_index = 	VIC2_TC3UI_INDEX;
     }
     /*else if(vic2_status|VIC2_UART1_MASK){
 
@@ -68,6 +79,15 @@ void handle_interrupt(global_data_t* global_data) {
     	vic2_2clear = VIC2_UART2_MASK;
     }*/
 
+   	task_descriptor_t* td;
+   	interrupt_waiting_tasks_queue_t *waiting_tasks_queue;
+   	waiting_tasks_queue = &(global_data->syscall_handler_data.interrupt_waiting_tasks[interrupt_index]);
+   	while(ARE_TASKS_WAITING((*waiting_tasks_queue))) {
+   		GET_NEXT_WAITING_TASK((*waiting_tasks_queue),td);
+   		schedule(global_data, td);
+   	}
+   	
+
     //Clear the bits if any have been marked for clear
 	*(uint32_t*)(VIC1_BASE + VICxIntEnClear) = vic1_2clear;
 	*(uint32_t*)(VIC1_BASE + VICxIntEnClear) = vic2_2clear;
@@ -76,7 +96,6 @@ void handle_interrupt(global_data_t* global_data) {
 
 
 void timer3_handle(void) {
-	//TODO
-	
+	timer3_clear();
 }
 

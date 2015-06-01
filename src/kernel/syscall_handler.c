@@ -152,7 +152,7 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
     task_descriptor_t* active_task = get_active_task(global_data);
 
     active_task->state = TASK_RUNNING_STATE_AWAIT_EVENT_BLOCKED;
-    QUEUE_WAITING_TASK(syscall_handler_data->waiting_tasks[eventid], active_task);
+    QUEUE_WAITING_TASK(syscall_handler_data->interrupt_waiting_tasks[eventid], active_task);
 
     //Return -2 for now to represent an incomplete transaction. We'll set this later to a proper value
     return -2;
@@ -164,7 +164,7 @@ void initialize_syscall_handler(global_data_t* global_data) {
     //initialize the queues used for AwaitEvent
     int i;
     for(i = 0; i < NUMBER_OF_EVENTS; ++i) {
-        QUEUE_INIT(syscall_handler_data->waiting_tasks[i]);
+        QUEUE_INIT(syscall_handler_data->interrupt_waiting_tasks[i]);
     }
 }
 

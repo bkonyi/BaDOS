@@ -43,7 +43,7 @@ CREATE_QUEUE_TYPE(message_waiting_queue_t, struct task_descriptor_t);
 //Define the event waiting queue structures
 #define NEXT_WAITING_TASK next_waiting_task
 
-CREATE_QUEUE_TYPE(waiting_tasks_queue_t, struct task_descriptor_t);
+CREATE_QUEUE_TYPE(interrupt_waiting_tasks_queue_t, struct task_descriptor_t);
 
 #define GET_NEXT_WAITING_TASK(Q, VALUE) {                    \
     QUEUE_POP_FRONT_GENERIC(Q, VALUE, NEXT_WAITING_TASK);    \
@@ -102,7 +102,7 @@ typedef struct scheduler_data_t {
  * SYSCALL HANDLER DATA STRUCTURES
  */
  typedef struct syscall_handler_data_t {
-        waiting_tasks_queue_t waiting_tasks[NUMBER_OF_EVENTS];
+        interrupt_waiting_tasks_queue_t interrupt_waiting_tasks[NUMBER_OF_EVENTS];
  } syscall_handler_data_t;
 
 /**

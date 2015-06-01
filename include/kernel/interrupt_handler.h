@@ -2,7 +2,7 @@
 #define __INTERRUPT_HANDLER_H__
 #include <global.h>
 
-void initialize_interrupts(void);
+void initialize_interrupts(global_data_t* global_data);
 
 /**
  * @brief handles any interrupts that might have been set

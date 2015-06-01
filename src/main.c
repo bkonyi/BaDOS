@@ -9,7 +9,7 @@
 #include <a1_user_prog.h>
 #include <msg_sending_tests.h>
 #include <interrupt_handler.h>
-
+#include <timer3.h>
 #include <user_prog.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
@@ -17,11 +17,6 @@
 #define IRQ_INTERRUPT_HANDLER2      ((volatile uint32_t*)0x34)
 
 
-
-#define TIMER3_LOAD                (volatile uint32_t*)0x80810080
-#define TIMER3_CONTROL             (volatile uint32_t*)0x80810088
-#define TIMER3_CLEAR               (volatile uint32_t*)0x8081008C
-#define TIMER3_VALUE               (volatile uint32_t*)0x80810084
 
 
 
@@ -78,11 +73,10 @@ void initialize(global_data_t* global_data) {
 
     //Explicitly disable interrupts
     __asm__ __volatile__("MSR cpsr_c, #0x93"); //TODO do we need this?
-    *TIMER3_LOAD = 508000 * 2;
-    *TIMER3_CLEAR = 1;
-    *TIMER3_CONTROL |= (0x1 << 6) | (0x1 << 3) | (0x1 << 7);
 
-    initialize_interrupts();
+    timer3_start(50800); // 100 milli Seconds
+
+    initialize_interrupts(global_data);
 
     init_task_handler(global_data);
 
@@ -94,9 +88,9 @@ void initialize(global_data_t* global_data) {
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, test);
 }
-void cleanup(void){
+void cleanup(global_data_t* global_data){
     //Clears all interrupts  except timer3.
-    initialize_interrupts();
+    initialize_interrupts(global_data);
 }
 
 request_t* switch_context(task_descriptor_t* td) {
@@ -122,11 +116,10 @@ int main(void)
         bwprintf(COM2, "Next Task: %d\r\n", next_task->tid);
         bwprintf(COM2, "Next Task LR: 0x%x\r\n", next_task->pc);
 
-        *TIMER3_CLEAR = 1;
         request = switch_context(next_task);
 
         handle(&global_data, request);
     }
- 
+    cleanup(&global_data);
     return 0;
 }
