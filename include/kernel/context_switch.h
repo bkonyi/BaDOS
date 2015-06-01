@@ -12,11 +12,15 @@
  * @return A pointer to the system call request made by the user task.
  */
 extern request_t* kerexit(task_descriptor_t* td);
+extern request_t* kerexit_debug(task_descriptor_t* td);
+
 
 /**
  * @brief The kernel re-entry point.
  * @details The point where execution returns to the kernel.
  */
-extern void kerenter();
+extern void kerenter(void);
+
+extern void irq_handler(void);
 
 #endif

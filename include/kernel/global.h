@@ -10,7 +10,7 @@
  */
 
 #define MAX_NUMBER_OF_TASKS 200 //TODO Arbitrary number for now
-#define USER_TASK_MODE      0xD0
+#define USER_TASK_MODE      0x50
 #define STACK_SIZE 1024 * 80 //80KiB
 
 typedef enum {

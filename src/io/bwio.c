@@ -279,5 +279,5 @@ void bwdumpregs()
 		"MOV %3,r14\n\t"
 		
 		:"=r"(r11),"=r"(r12),"=r"(r13),"=r"(r14));
-	bwprintf(COM2,"r0:0x%x\r\n r1:0x%x\r\n r2:0x%x\r\nr3:0x%x\r\n r4:0x%x\r\n r5:0x%x\r\n r6:0x%x\r\n r7:0x%x\r\n r8:0x%x\r\nr9:0x%x\r\n r10:0x%x\r\n r11:0x%x\r\n r12:0x%x\r\n r13:0x%x\r\n r14:0x%x\r\n",r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14);
+	bwprintf(COM2,"r0:0x%x\r\n r1:0x%x\r\n r2:0x%x\r\n r3:0x%x\r\n r4:0x%x\r\n r5:0x%x\r\n r6:0x%x\r\n r7:0x%x\r\n r8:0x%x\r\n r9:0x%x\r\n SL:0x%x\r\n FP:0x%x\r\n IP:0x%x\r\n SP:0x%x\r\n LR:0x%x\r\n",r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14);
 }
