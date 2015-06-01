@@ -2,8 +2,8 @@
 #define __CLOCK_NOTIFIER_H__
 
 /**
- * @brief Waits for timer events to notify the clock server that a tick has occurred
- * @details Waits for timer events to notify the clock server that a tick has occurred
+ * @brief Waits for timer events to notify the clock server that a tick has occurred.
+ * @details Waits for timer events to notify the clock server that a tick has occurred.
  */
 void clock_notifier_task(void);
 
