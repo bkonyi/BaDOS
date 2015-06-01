@@ -1,4 +1,5 @@
 #include <syscall_handler.h>
+#include <interrupt_handler.h>
 #include <scheduler.h>
 #include <task_handler.h>
 #include <bwio.h>
@@ -140,6 +141,10 @@ int handle_Reply(global_data_t* global_data, int tid, char* reply, int replylen)
 }
 
 void handle(global_data_t* global_data, request_t* request) {
+    if(request == NULL) {
+        handle_interrupt(global_data);
+    }
+
     task_descriptor_t* active_task = get_active_task(global_data);
 
     switch(request->sys_code) {

@@ -130,9 +130,7 @@ int main(void)
         *TIMER3_CLEAR = 1;
         request = switch_context(next_task);
 
-        if(request != NULL) {
-            handle(&global_data, request);
-        }
+        handle(&global_data, request);
     }
 
     return 0;
