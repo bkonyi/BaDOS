@@ -7,25 +7,27 @@ By: Ben Konyi & Dan Chevalier
 
 To run the BADos kernel, follow these steps:
 1. On a linux machine that has access to `/u1/dpchevalier` and `/u/cs452/tftp/ARM/`
-	cp /u1/dpchevalier/cs452/submission/bados.a1/bados.elf /u/cs452/tftp/ARM/bados.elf
+	cp /u1/dpchevalier/cs452/submission/k3.bados/bados.elf /u/cs452/tftp/ARM/bados.elf
 	chmod 777 /u/cs452/tftp/ARM/bados.elf
 
 2. Load the Kernel:
 	i. on one of the workstations in the realtime lab:
-		load -b 0x00218000 -h 10.15.167.5 ARM/bados.elf
+		i. Reset the ARM boxy
+		ii Run the command:
+			load -b 0x00218000 -h 10.15.167.5 ARM/bados.elf
 
 3. Run the Kernel:
-	This will build create the elf file `/u1/dpchevalier/cs452/submission/bados.a1/bados.elf`
+	This will build create the elf file `/u1/dpchevalier/cs452/submission/k3.bados/bados.elf`
 	i. on the same workstation from step 2:
 		go
 
 ===========================BUILD===========================
 
 To build bados: 
-	cd /u1/dpchevalier/cs452/submission/bados.a1
+	cd /u1/dpchevalier/cs452/submission/k3.bados
 	make
 
-This will build create the elf file `/u1/dpchevalier/cs452/submission/bados.a1/bados.elf`
+This will build create the elf file `/u1/dpcheval/cs452/submission/k3.bados/src/bados.elf`
 
 NOTE: building BADos automatically copies the bados.elf file to `/u/cs452/tftp/ARM/bados.elf`
 
