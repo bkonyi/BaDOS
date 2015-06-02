@@ -109,8 +109,8 @@ int main(void)
             return 0;
         }
 
-        bwprintf(COM2, "Next Task: %d\r\n", next_task->tid);
-        bwprintf(COM2, "Next Task LR: 0x%x\r\n", next_task->pc);
+        //bwprintf(COM2, "Next Task: %d\r\n", next_task->tid);
+        //bwprintf(COM2, "Next Task LR: 0x%x\r\n", next_task->pc);
 
         request = switch_context(next_task);
 

@@ -3,6 +3,7 @@
 #include <common.h>
 #include <servers.h>
 #include <syscalls.h>
+#include <bwio.h>
 
 void clock_server_task(void) {
     int32_t ticks = 0;
@@ -21,6 +22,7 @@ void clock_server_task(void) {
         //Check to see if the clock notifier has detected a tick.
         if(receive_tid == CLOCK_NOTIFIER_TID) {
             ++ticks;
+            bwprintf(COM2,"L: %d\r\n", ticks);
             Reply(CLOCK_NOTIFIER_TID, (char*)NULL, 0);
 
             //TODO check to see if we need to respond to any Delay calls here

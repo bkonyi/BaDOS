@@ -91,7 +91,7 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     if(IS_QUEUE_EMPTY(scheduler_data->queues[r])) {
         scheduler_data->occupied_queues &= ~(0x1 << r);
     }
-
+    bwprintf(COM2,"scheduling tid: %d\r\n",scheduler_data->active_task->tid );
     return scheduler_data->active_task;
 }
 

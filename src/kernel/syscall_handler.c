@@ -171,6 +171,7 @@ void initialize_syscall_handler(global_data_t* global_data) {
 void handle(global_data_t* global_data, request_t* request) {
     if(request == NULL) {
         handle_interrupt(global_data);
+        return;
     }
 
     task_descriptor_t* active_task = get_active_task(global_data);
@@ -207,7 +208,7 @@ void handle(global_data_t* global_data, request_t* request) {
             active_task->return_code = handle_AwaitEvent(global_data, request->eventid);
             break;
         default:
-            bwprintf(COM2, "Bad system call: %d\r\n", request->sys_code);
+            bwprintf(COM2, "Task: %d Bad system call: %d\r\n", active_task->tid, request->sys_code);
             break;
     }
 
