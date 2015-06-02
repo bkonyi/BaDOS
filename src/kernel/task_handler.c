@@ -3,7 +3,7 @@
 #include "common.h"
 #include <bwio.h>
 
-#define NUMBER_USER_REGS_ON_STACK 12
+#define NUMBER_USER_REGS_ON_STACK 13
 
 void init_task_handler(global_data_t* global_data) {
     global_data->task_handler_data.next_tid = 0;
