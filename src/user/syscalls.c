@@ -121,7 +121,6 @@ int Time( void ) {
     message.type = TIME;
 
     result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&time_result, sizeof(int32_t));
-
     ASSERT(result == sizeof(int32_t));
 
     return time_result;

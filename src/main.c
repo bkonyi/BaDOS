@@ -71,8 +71,6 @@ void initialize(global_data_t* global_data) {
     //Explicitly disable interrupts
     __asm__ __volatile__("MSR cpsr_c, #0x93"); //TODO do we need this?
 
-    timer3_start(50800); // 100 milli Seconds
-
     initialize_interrupts(global_data);
 
     init_task_handler(global_data);
@@ -83,6 +81,9 @@ void initialize(global_data_t* global_data) {
 
     //First User Task
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
+
+    timer3_start(5080); // 10 milli Seconds
+
 }
 void cleanup(global_data_t* global_data){
     //Clears all interrupts  except timer3.
@@ -108,9 +109,6 @@ int main(void)
             bwprintf(COM2, "Goodbye!\r\n");
             return 0;
         }
-
-        //bwprintf(COM2, "Next Task: %d\r\n", next_task->tid);
-        //bwprintf(COM2, "Next Task LR: 0x%x\r\n", next_task->pc);
 
         request = switch_context(next_task);
 

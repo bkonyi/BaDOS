@@ -58,7 +58,7 @@ kerexit:
 
 	@ Pop the registers off of the user stack
 	@ NOTE: if the number of these registers ever change, change the NUMBER_USER_REGS_ON_STACK macro in task_handler.c
-	ldmfd   sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+	ldmfd   sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
 
 	@bl bwdumpregs
 
@@ -90,7 +90,7 @@ kerenter:
 
 	@ Store all of the user registers on the user stack
 	@ NOTE: if the number of these registers ever change, change the NUMBER_USER_REGS_ON_STACK macro in task_handler.c
-	stmfd sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip} @TODO I think we need to store R0
+	stmfd sp!, { r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, lr}
 
 	@ Save the stack pointer to R3 for future reference
 	mov r3, sp
