@@ -139,7 +139,7 @@ int Delay( int ticks ) {
     
     result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 
-    ASSERT(result == 0);
+    ASSERT(result == sizeof(int32_t));
     ASSERT(delay_result == 0);
 
     return 0;

@@ -27,6 +27,8 @@
     typedef struct {                            \
         TYPE* head;                             \
         TYPE* tail;                             \
+        TYPE* iterator_previous;                \
+        TYPE* iterator;                         \
         uint32_t count;                         \
     } NAME;
 /**
@@ -34,10 +36,12 @@
  * 
  * @param Q  An instance of a queue type (defined by CREATE_QUEUE_TYPE)
  */
-#define QUEUE_INIT(Q){                          \
-    Q.head = NULL;                              \
-    Q.tail = NULL;                              \
-    Q.count= 0;                                 \
+#define QUEUE_INIT(Q){                            \
+    (Q).head = NULL;                              \
+    (Q).tail = NULL;                              \
+    (Q).iterator = NULL;                          \
+    (Q).iterator_previous = NULL;                 \
+    (Q).count= 0;                                 \
 } while(0)
 
 /**
@@ -47,13 +51,13 @@
  * @param VALUE a TYPE pointer to store the resulting address that is popped from the queue
  */
 #define QUEUE_POP_FRONT_GENERIC(Q, VALUE, NEXT) {       \
-        if(Q.count == 0) VALUE = NULL;                  \
+        if((Q).count == 0) VALUE = NULL;                \
         else{                                           \
-            VALUE = Q.head;                             \
-            Q.head = Q.head->NEXT;                      \
-            Q.count--;                                  \
-            if(Q.head==NULL){                           \
-                Q.tail = NULL;                          \
+            VALUE = (Q).head;                           \
+            (Q).head = (Q).head->NEXT;                  \
+            (Q).count--;                                \
+            if((Q).head==NULL){                         \
+                (Q).tail = NULL;                        \
             }                                           \
         }                                               \
     } while(0)
@@ -67,18 +71,54 @@
 #define QUEUE_PUSH_BACK_GENERIC(Q, INPUT, NEXT) {       \
             if(INPUT!=NULL){                            \
                 (INPUT)->NEXT= NULL;                    \
-                if(Q.count == 0){                       \
-                    Q.head = INPUT;                     \
-                    Q.tail = INPUT;                     \
+                if((Q).count == 0){                     \
+                    (Q).head = INPUT;                   \
+                    (Q).tail = INPUT;                   \
                 }else{                                  \
-                    Q.tail->NEXT = INPUT;               \
-                    Q.tail = INPUT;                     \
+                    (Q).tail->NEXT = INPUT;             \
+                    (Q).tail = INPUT;                   \
                 }                                       \
-                Q.count++;                              \
+                (Q).count++;                            \
             }                                           \
     } while(0)
 
-
+/**
+ * @brief Treats the queue as a sorted queue. This , of course, assumes that the queue
+ * is already sorted. To maintain this, ONLY USER QUEUE_SORTED_INSERT on a queue that you
+ * inted to be sorted
+ * 
+ * @param Q The queue that INPUT should be placed in
+ * @param INPUT A pointer to the data type to insert in the queue
+ * @param NEXT_MEMBER the member of TYPE of this queue that represents the next
+ * element in the queue.
+ * @param VALUE_MEMBER the member of TYPE of this queue that represents the value
+ * that the elements are sorted on
+ * @param OP the comparison operator used to compare 2 adjacent elements
+ */
+#define QUEUE_SORTED_INSERT(Q, INPUT, NEXT_MEMBER, VALUE_MEMBER, OP) {           \
+            if((INPUT)!=NULL) {                                                  \
+                (Q).iterator = (Q).head;                                         \
+                (Q).iterator_previous = NULL;                                    \
+                while((Q).iterator != NULL) {                                    \
+                    if((INPUT)->VALUE_MEMBER OP (Q).iterator->VALUE_MEMBER) {    \
+                        break;                                                   \
+                    }                                                            \
+                    (Q).iterator_previous = (Q).iterator;                        \
+                    (Q).iterator = (Q).iterator->NEXT_MEMBER;                    \
+                }                                                                \
+                if((Q).iterator_previous == NULL) {/*Item belongs at head*/      \
+                    (INPUT)->NEXT_MEMBER = (Q).head;                             \
+                    (Q).head = (INPUT);                                          \
+                }else if((Q).iterator == NULL) {/*Item belongs at end*/          \
+                    (INPUT)->NEXT_MEMBER = NULL;                                 \
+                    (Q).iterator_previous->NEXT_MEMBER = (INPUT);                \
+                }else {   /*Item belongs between 2 nodes*/                       \
+                    (INPUT)->NEXT_MEMBER = (Q).iterator;                         \
+                    (Q).iterator_previous->NEXT_MEMBER = (INPUT);                \
+                }                                                                \
+                (Q).count++;                                                     \
+            }                                                                    \
+    } while(0)
 
 #define QUEUE_POP_FRONT(Q, VALUE) {             \
     QUEUE_POP_FRONT_GENERIC(Q, VALUE, next);    \

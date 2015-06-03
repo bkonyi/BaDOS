@@ -10,6 +10,8 @@
 #include <clock/clock_server.h>
 #include <idle.h>
 
+#include <a3_user_prog.h>
+
 void first_user_task(void) {
     bwprintf(COM2, "Starting the Name Server with priority %d.\r\n",SCHEDULER_HIGHEST_PRIORITY);
     //IMPORTANT:
@@ -20,12 +22,12 @@ void first_user_task(void) {
 
     //Create the clock server
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, clock_server_task);
-
     //Create the random number generation server
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, rand_server_task);
-
     //Create the idle task which keeps the kernel running even when every other task is blocked.
     Create(SCHEDULER_LOWEST_PRIORITY, idle_task);
-
+    Create(SCHEDULER_LOWEST_PRIORITY+1,delay_test_task);
+    Create(SCHEDULER_LOWEST_PRIORITY+1,delay_test_task2);
+    Create(SCHEDULER_LOWEST_PRIORITY+1,delay_test_task3);
     Exit();
 }
