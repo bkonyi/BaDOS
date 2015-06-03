@@ -27,14 +27,14 @@
     (BUFFER).size  = (SIZE)
 
 #define POP_FRONT(BUFFER, VALUE) {                       \
-        VALUE = BUFFER.buffer[BUFFER.start];             \
-        BUFFER.start = (BUFFER.start + 1) % BUFFER.size; \
+        VALUE = (BUFFER).buffer[(BUFFER).start];             \
+        (BUFFER).start = ((BUFFER).start + 1) % (BUFFER).size; \
         } while(0)
 
 #define PUSH_BACK(BUFFER, INPUT, RESULT) {              \
         BUFFER.buffer[BUFFER.end] = (INPUT);            \
         BUFFER.end = (BUFFER.end + 1) % BUFFER.size;    \
-        if(IS_BUFFER_EMPTY(BUFFER)) {                   \
+        if(IS_BUFFER_FULL(BUFFER)) {                   \
             RESULT = -1;                                \
         }                                               \
         RESULT = 0;                                     \

@@ -135,7 +135,8 @@ int Delay( int ticks ) {
 
     clock_server_msg_t message;
     message.type = DELAY;
-
+    message.ticks = ticks;
+    
     result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 
     ASSERT(result == 0);
@@ -153,6 +154,7 @@ int DelayUntil( int ticks ) {
 
     clock_server_msg_t message;
     message.type = DELAY_UNTIL;
+    message.ticks = ticks;
 
     result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 

@@ -65,6 +65,7 @@ typedef struct task_descriptor_t {
     struct task_descriptor_t* next;
     struct task_descriptor_t* MESSAGE_WAITING_NEXT;
     struct task_descriptor_t* NEXT_WAITING_TASK;
+    struct task_descriptor_t* NEXT_DELAY_TASK;
 
     char stack[STACK_SIZE];
     task_running_state_t state;
