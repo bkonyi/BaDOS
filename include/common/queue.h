@@ -36,7 +36,7 @@
  * 
  * @param Q  An instance of a queue type (defined by CREATE_QUEUE_TYPE)
  */
-#define QUEUE_INIT(Q){                            \
+#define QUEUE_INIT(Q) {                           \
     (Q).head = NULL;                              \
     (Q).tail = NULL;                              \
     (Q).iterator = NULL;                          \
@@ -51,12 +51,13 @@
  * @param VALUE a TYPE pointer to store the resulting address that is popped from the queue
  */
 #define QUEUE_POP_FRONT_GENERIC(Q, VALUE, NEXT) {       \
-        if((Q).count == 0) VALUE = NULL;                \
-        else{                                           \
+        if((Q).count == 0) {                            \
+            VALUE = NULL;                               \
+        } else {                                        \
             VALUE = (Q).head;                           \
             (Q).head = (Q).head->NEXT;                  \
             (Q).count--;                                \
-            if((Q).head==NULL){                         \
+            if((Q).head==NULL) {                         \
                 (Q).tail = NULL;                        \
             }                                           \
         }                                               \
@@ -69,12 +70,12 @@
  * @param INPUT the TYPE pointer to push onto the end of Q
  */
 #define QUEUE_PUSH_BACK_GENERIC(Q, INPUT, NEXT) {       \
-            if(INPUT!=NULL){                            \
+            if(INPUT!=NULL) {                           \
                 (INPUT)->NEXT= NULL;                    \
-                if((Q).count == 0){                     \
+                if((Q).count == 0) {                    \
                     (Q).head = INPUT;                   \
                     (Q).tail = INPUT;                   \
-                }else{                                  \
+                } else {                                \
                     (Q).tail->NEXT = INPUT;             \
                     (Q).tail = INPUT;                   \
                 }                                       \
@@ -109,10 +110,10 @@
                 if((Q).iterator_previous == NULL) {/*Item belongs at head*/      \
                     (INPUT)->NEXT_MEMBER = (Q).head;                             \
                     (Q).head = (INPUT);                                          \
-                }else if((Q).iterator == NULL) {/*Item belongs at end*/          \
+                } else if((Q).iterator == NULL) {/*Item belongs at end*/         \
                     (INPUT)->NEXT_MEMBER = NULL;                                 \
                     (Q).iterator_previous->NEXT_MEMBER = (INPUT);                \
-                }else {   /*Item belongs between 2 nodes*/                       \
+                } else {   /*Item belongs between 2 nodes*/                      \
                     (INPUT)->NEXT_MEMBER = (Q).iterator;                         \
                     (Q).iterator_previous->NEXT_MEMBER = (INPUT);                \
                 }                                                                \

@@ -45,7 +45,7 @@ void clock_server_task(void) {
     //Fill the queue with all of the available pointers to delayed_task_t
     //inside our delayed_task_t heap
     uint32_t i;
-    for(i=0; i < MAX_NUMBER_OF_TASKS; i++){
+    for(i=0; i < MAX_NUMBER_OF_TASKS; i++) {
        DELAY_QUEUE_PUSH_BACK(available_delayed_tasks_queue, &(task_delay_heap[i]));
     }
 
@@ -66,7 +66,7 @@ void clock_server_task(void) {
             Reply(CLOCK_NOTIFIER_TID, (char*)NULL, 0); // Let the clock notifier know we have received it's message
             //Check to see if we have reached the necesarry ticks for the next task
             //that has been delayed
-            if(next_delay_task != NULL && next_delay_task->ticks <= ticks){
+            if(next_delay_task != NULL && next_delay_task->ticks <= ticks) {
 
                 result = 0;
                 //bwprintf(COM2,"CURTICKS: %d reply to tid: %d for ticks: %d\r\n",ticks,next_delay_task->tid, next_delay_task->ticks);
@@ -88,16 +88,16 @@ void clock_server_task(void) {
                 message.ticks +=ticks;
                 //NOTE: there is intentionally no break here
             case DELAY_UNTIL:
-                if(message.ticks <= ticks){
+                if(message.ticks <= ticks) {
                     result = 0;
                     Reply(next_delay_task->tid,(char*)&result,sizeof(int));
                 }
-                if(next_delay_task == NULL){    //We don't have any tasks delayed
+                if(next_delay_task == NULL) {    //We don't have any tasks delayed
                     //get a free delayed_task object and fill it for the next_delayed_task
                     DELAY_QUEUE_POP_FRONT(available_delayed_tasks_queue,next_delay_task);
                     next_delay_task->ticks = message.ticks;
                     next_delay_task->tid = receive_tid;
-                }else if(next_delay_task != NULL && message.ticks <= next_delay_task->ticks ){
+                } else if(next_delay_task != NULL && message.ticks <= next_delay_task->ticks ) {
                     //the task asking to be delayed is delayed before any of our other delayed tasks
                     //put our current task back on the delay_queue
                     DELAY_QUEUE_SORTED_INSERT(delay_queue,next_delay_task);
@@ -106,7 +106,7 @@ void clock_server_task(void) {
                     next_delay_task->ticks = message.ticks;
                     next_delay_task->tid = receive_tid;
 
-                }else{
+                } else {
                     //This task just needs to be inserted into the delay_queue
                     delay_queue_insert(&delay_queue,&available_delayed_tasks_queue, receive_tid,message.ticks);
                 }

@@ -26,8 +26,8 @@ void first_user_task(void) {
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, rand_server_task);
     //Create the idle task which keeps the kernel running even when every other task is blocked.
     Create(SCHEDULER_LOWEST_PRIORITY, idle_task);
-    Create(SCHEDULER_LOWEST_PRIORITY+1,delay_test_task);
-    Create(SCHEDULER_LOWEST_PRIORITY+1,delay_test_task2);
-    Create(SCHEDULER_LOWEST_PRIORITY+1,delay_test_task3);
+    Create(SCHEDULER_LOWEST_PRIORITY + 1,delay_test_task);
+    Create(SCHEDULER_LOWEST_PRIORITY + 1,delay_test_task2);
+    Create(SCHEDULER_LOWEST_PRIORITY + 1,delay_test_task3);
     Exit();
 }

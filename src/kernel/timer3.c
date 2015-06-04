@@ -68,5 +68,5 @@ uint32_t timer3_stop(){
     uint32_t ticks = (TIMER3_MAXCOUNT-time);
     
     //we have 508kHz but want 1000kHz so multiply to account for that
-    return ticks*TIMER_508_TO_MICRO;
+    return ticks * TIMER_508_TO_MICRO;
 }

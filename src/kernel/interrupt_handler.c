@@ -45,7 +45,7 @@ void initialize_interrupts(global_data_t* global_data) {
     //*(uint32_t*)((uint32_t)VIC2_BASE + VICxIntEnable) = VIC2_UART1_MASK; //TODO 0x1 << 19 is TIMER3 offset
     //*(uint32_t*)((uint32_t)VIC2_BASE + VICxIntEnable) = VIC2_UART2_MASK; //TODO 0x1 << 19 is TIMER3 offset
     int i;
-    for(i=0; i <NUMBER_OF_EVENTS;i++){
+    for(i = 0; i < NUMBER_OF_EVENTS; i++) {
     	QUEUE_INIT(global_data->syscall_handler_data.interrupt_waiting_tasks[i]);
     }
 }
@@ -65,7 +65,7 @@ void handle_interrupt(global_data_t* global_data) {
     // left uninitialized so we have the chance of a compiler warning
     	//If the cases below don't set the value
     uint32_t interrupt_index; 
-    if(vic2_status|VIC2_TC3UI_MASK){
+    if(vic2_status|VIC2_TC3UI_MASK) {
     	timer3_handle();
 
     	vic2_2clear 	=	VIC2_TC3UI_MASK;
@@ -82,6 +82,7 @@ void handle_interrupt(global_data_t* global_data) {
    	task_descriptor_t* td;
    	interrupt_waiting_tasks_queue_t *waiting_tasks_queue;
    	waiting_tasks_queue = &(global_data->syscall_handler_data.interrupt_waiting_tasks[interrupt_index]);
+
    	while(ARE_TASKS_WAITING((*waiting_tasks_queue))) {
    		GET_NEXT_WAITING_TASK((*waiting_tasks_queue),td);
    		schedule(global_data, td);
@@ -91,7 +92,6 @@ void handle_interrupt(global_data_t* global_data) {
     //Clear the bits if any have been marked for clear
 	*(uint32_t*)(VIC1_BASE + VICxIntEnClear) = vic1_2clear;
 	*(uint32_t*)(VIC1_BASE + VICxIntEnClear) = vic2_2clear;
-  
 }
 
 

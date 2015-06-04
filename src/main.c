@@ -13,19 +13,6 @@
 #define IRQ_INTERRUPT_HANDLER      ((volatile uint32_t*)0x38)
 #define IRQ_INTERRUPT_HANDLER2      ((volatile uint32_t*)0x34)
 
-
-
-
-
-
-void test(void) {
-    volatile int a = 0;
-    while(1) {
-        a += 1;
-    }
-    Exit();
-}
-
 void initialize(global_data_t* global_data) {
     //COM2 initialization
     bwsetfifo(COM2,OFF); // ensure that fifo is off
@@ -65,11 +52,10 @@ void initialize(global_data_t* global_data) {
     //IRQ kernel entry point
     *IRQ_INTERRUPT_HANDLER = (uint32_t) irq_handler;
 
-
-    //TODO clear timer states
-
     //Explicitly disable interrupts
     __asm__ __volatile__("MSR cpsr_c, #0x93"); //TODO do we need this?
+
+    timer3_stop(); //Clear the timer, just in case
 
     initialize_interrupts(global_data);
 
@@ -79,13 +65,16 @@ void initialize(global_data_t* global_data) {
 
     initialize_syscall_handler(global_data);
 
-    //First User Task
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
-
     timer3_start(5080); // 10 milli Seconds
 
+    //First User Task
+    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
 }
-void cleanup(global_data_t* global_data){
+
+void cleanup(global_data_t* global_data) {
+    //Stop the timer
+    timer3_stop();
+
     //Clears all interrupts  except timer3.
     initialize_interrupts(global_data);
 }

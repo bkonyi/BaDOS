@@ -12,4 +12,5 @@ void time_start();
  * @return the number of microseconds that have elapsed since time_start.
  */
 uint32_t time_stop();
+
 #endif //_TIMER_H_

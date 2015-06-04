@@ -19,7 +19,7 @@
  * 		- 508 kHz
  * 		- 0xFFFFFFFF initial tick value (behaves just like freerun)
  */
-static void time_init(){
+static void time_init() {
 	uint32_t * line,buf;
     //disable timer.
     line = (unsigned int*)TIMER3_CTRL;
@@ -40,7 +40,7 @@ static void time_init(){
     *line = TIMER3_MAXCOUNT;
 }
 
-void time_start(){
+void time_start() {
 	unsigned int * line,buf;
 	time_init();
 
@@ -52,7 +52,7 @@ void time_start(){
     buf = *line;
 }
 
-uint32_t time_stop(){
+uint32_t time_stop() {
 	uint32_t* line, time, buf;
 	line = (unsigned int*)TIMER3_VALUE;
     time = *line;
@@ -67,5 +67,5 @@ uint32_t time_stop(){
     uint32_t ticks = (TIMER3_MAXCOUNT-time);
     
     //we have 508kHz but want 1000kHz so multiply to account for that
-    return ticks*TIMER_508_TO_MICRO;
+    return ticks * TIMER_508_TO_MICRO;
 }
