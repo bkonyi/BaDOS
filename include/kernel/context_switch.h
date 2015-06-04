@@ -19,6 +19,11 @@ extern request_t* kerexit(task_descriptor_t* td);
  */
 extern void kerenter(void);
 
+/**
+ * @brief code that handles interrupt requests
+ * @details wraps around kerenter to take advantage of the the fact that kerenter
+ * is a subset of irq_handler.
+ */
 extern void irq_handler(void);
 
 #endif

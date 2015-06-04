@@ -121,10 +121,24 @@
             }                                                                    \
     } while(0)
 
+/**
+ * @brief Wrapper for QUEUE_POP_FRONT_GENERIC
+ * @details uses the default parameter 'next'
+ * 
+ * @param Q     An instance of a queue type (defined by CREATE_QUEUE_TYPE)
+ * @param VALUE a TYPE pointer to store the resulting address that is popped from the queue
+ */
 #define QUEUE_POP_FRONT(Q, VALUE) {             \
     QUEUE_POP_FRONT_GENERIC(Q, VALUE, next);    \
 } while(0)
 
+/**
+ * @brief Wrapper for QUEUE_PUSH_BACK_GENERIC
+ * @details uses the default parameter 'next'
+ * 
+ * @param Q     An instance of a queue type (defined by CREATE_QUEUE_TYPE)
+ * @param VALUE a TYPE pointer to store the resulting address that is popped from 
+ */
 #define QUEUE_PUSH_BACK(Q, VALUE) {             \
     QUEUE_PUSH_BACK_GENERIC(Q, VALUE, next);    \
 } while(0)

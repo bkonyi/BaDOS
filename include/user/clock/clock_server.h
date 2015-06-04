@@ -16,8 +16,8 @@ typedef enum {
  * The message struct used to communicate with the clock server
  */
 typedef struct {
-    clock_server_msg_type_t type;
-    int32_t ticks;
+    clock_server_msg_type_t type;	//The type of message being sent
+    int32_t ticks;					//number of ticks to consider for the type case
 } clock_server_msg_t;
 
 /**
