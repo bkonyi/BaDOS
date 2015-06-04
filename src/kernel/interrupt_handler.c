@@ -85,6 +85,7 @@ void handle_interrupt(global_data_t* global_data) {
 
    	while(ARE_TASKS_WAITING((*waiting_tasks_queue))) {
    		GET_NEXT_WAITING_TASK((*waiting_tasks_queue),td);
+        td->return_code = 0; //Clear the return code since AwaitEvent was successful
    		schedule(global_data, td);
    	}
    	
