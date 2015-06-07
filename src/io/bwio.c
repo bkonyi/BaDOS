@@ -7,6 +7,7 @@
 
 #include <ts7200.h>
 #include <bwio.h>
+#include <io_common.h>
 
 /*
  * The UARTs are initialized by RedBoot to the following state
@@ -144,53 +145,6 @@ int bwgetc( int channel ) {
 	return c;
 }
 
-int bwa2d( char ch ) {
-	if( ch >= '0' && ch <= '9' ) return ch - '0';
-	if( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
-	if( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
-	return -1;
-}
-
-char bwa2i( char ch, char **src, int base, int *nump ) {
-	int num, digit;
-	char *p;
-
-	p = *src; num = 0;
-	while( ( digit = bwa2d( ch ) ) >= 0 ) {
-		if ( digit > base ) break;
-		num = num*base + digit;
-		ch = *p++;
-	}
-	*src = p; *nump = num;
-	return ch;
-}
-
-void bwui2a( unsigned int num, unsigned int base, char *bf ) {
-	int n = 0;
-	int dgt;
-	unsigned int d = 1;
-	
-	while( (num / d) >= base ) d *= base;
-	while( d != 0 ) {
-		dgt = num / d;
-		num %= d;
-		d /= base;
-		if( n || dgt > 0 || d == 0 ) {
-			*bf++ = dgt + ( dgt < 10 ? '0' : 'a' - 10 );
-			++n;
-		}
-	}
-	*bf = 0;
-}
-
-void bwi2a( int num, char *bf ) {
-	if( num < 0 ) {
-		num = -num;
-		*bf++ = '-';
-	}
-	bwui2a( num, 10, bf );
-}
-
 void bwformat ( int channel, char *fmt, va_list va ) {
 	char bf[12];
 	char ch, lz;
@@ -216,7 +170,7 @@ void bwformat ( int channel, char *fmt, va_list va ) {
 			case '7':
 			case '8':
 			case '9':
-				ch = bwa2i( ch, &fmt, 10, &w );
+				ch = a2i( ch, &fmt, 10, &w );
 				break;
 			}
 			switch( ch ) {
@@ -228,15 +182,15 @@ void bwformat ( int channel, char *fmt, va_list va ) {
 				bwputw( channel, w, 0, va_arg( va, char* ) );
 				break;
 			case 'u':
-				bwui2a( va_arg( va, unsigned int ), 10, bf );
+				ui2a( va_arg( va, unsigned int ), 10, bf );
 				bwputw( channel, w, lz, bf );
 				break;
 			case 'd':
-				bwi2a( va_arg( va, int ), bf );
+				i2a( va_arg( va, int ), bf );
 				bwputw( channel, w, lz, bf );
 				break;
 			case 'x':
-				bwui2a( va_arg( va, unsigned int ), 16, bf );
+				ui2a( va_arg( va, unsigned int ), 16, bf );
 				bwputw( channel, w, lz, bf );
 				break;
 			case '%':

@@ -221,5 +221,28 @@ int Delay( int ticks );
  */
 int DelayUntil( int ticks );
 
+/**
+ * @brief Get a character from a UART
+ * @details Getc returns first unreturned character from the given UART.
+ * Getc is actually a wrapper for a send to the serial server.
+ * 
+ * @param channel The channel to get the character from.
+ * @return the returned character on success, -1 otherwise
+ */
+int Getc( int channel );
+
+/**
+ * @brief Send a character from the given UART
+ * @details queues the given character for transmission by the given UART.
+ * On return, the only guarantee is that the character has been queued.
+ * Whether it has been transmistted or received is not guaranteed.
+ * Putc is actually a wrapper for a send to the serial server.
+ * 
+ * @param channel The channel to send the character from
+ * @param ch The character to send
+ * @return 0 on success, -1 otherwise
+ */
+int Putc( int channel, char ch );
+
 #endif//__SYS_CALL_H__
 

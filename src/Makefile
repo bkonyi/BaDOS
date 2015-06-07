@@ -5,13 +5,14 @@ CC  = gcc
 AS	= as
 AR	= ar
 LD  = ld
-CFLAGS  = -O3 -c -fPIC -Wall -Werror -mcpu=arm920t -msoft-float
+CFLAGS  = -O3 -c -fPIC -Wall -Werror -mcpu=arm920t -msoft-float -fno-builtin
 # -g: include hooks for gdb
 # -c: only compile
 # -mcpu=arm920t: generate code for the 920t architecture
 # -fpic: emit position-independent code
 # -Wall: report all warnings
 # -msoft-float: use software for floating point
+# -fno-builtin: disables reservation of built-in functions (i.e., we can redefine printf now)
 
 ASFLAGS	= -mcpu=arm920t -mapcs-32
 # -mapcs-32: always create a complete stack frame

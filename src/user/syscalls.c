@@ -2,6 +2,7 @@
 #include <request.h>
 #include <send_sys_call.h>
 #include <bwio.h>
+#include <io.h>
 #include <servers.h>
 #include <clock/clock_server.h>
 
@@ -162,4 +163,14 @@ int DelayUntil( int ticks ) {
     ASSERT(delay_result == 0);
 
     return 0;
+}
+
+//Just for compatability with the kernel spec.
+int Getc( int channel ) {
+    return getc(channel);
+}
+
+//Just for compatability with the kernel spec.
+int Putc( int channel, char ch ) {
+    return putc(channel, ch);
 }
