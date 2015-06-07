@@ -56,7 +56,7 @@ void clock_server_task(void) {
 
     FOREVER {
         //Receive messages from the clock_notifier_task or tasks that are asking
-        // for delay or delayuntil
+        // for Delay,DelayUntil or Time
         Receive(&receive_tid, (char*)(&message), sizeof(clock_server_msg_t));
 
         //Check to see if the clock notifier has detected a tick.
@@ -66,7 +66,7 @@ void clock_server_task(void) {
             Reply(CLOCK_NOTIFIER_TID, (char*)NULL, 0); // Let the clock notifier know we have received it's message
             //Check to see if we have reached the necesarry ticks for the next task
             //that has been delayed
-            if(next_delay_task != NULL && next_delay_task->ticks <= ticks) {
+            while(next_delay_task != NULL && next_delay_task->ticks <= ticks) {
 
                 result = 0;
                 //bwprintf(COM2,"CURTICKS: %d reply to tid: %d for ticks: %d\r\n",ticks,next_delay_task->tid, next_delay_task->ticks);

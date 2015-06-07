@@ -12,7 +12,7 @@ void clock_notifier_task(void) {
 
     FOREVER {
         result = AwaitEvent(TIMER3_EVENT);
-        ASSERT(result);
+        ASSERT(result>=0);
 
         //Notify the clock server that we've ticked
         Send(CLOCK_SERVER_TID, NULL, 0, NULL, 0);
