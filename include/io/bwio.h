@@ -4,6 +4,8 @@
  * bwio.h
  */
 
+#include <io_common.h>
+
 int bwsetfifo( int channel, int state );
 
 int bwsetspeed( int channel, int speed );

@@ -4,7 +4,7 @@
  * io.h
  */
 
-#include <bwio.h>
+#include <io_common.h>
 
 #define COM1	0
 #define COM2	1
