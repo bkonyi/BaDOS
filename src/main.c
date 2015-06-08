@@ -16,6 +16,7 @@
 void initialize(global_data_t* global_data) {
     //COM2 initialization
     bwsetfifo(COM2,OFF); // ensure that fifo is off
+    bwsetfifo(COM1,OFF); // ensure that fifo is off
 
     /**
      * Performance options

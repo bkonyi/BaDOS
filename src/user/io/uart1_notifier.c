@@ -1,8 +1,9 @@
-#include <uart1_notifier.h>
+#include <io/uart1_notifier.h>
 #include <common.h>
 #include <servers.h>
 #include <syscalls.h>
 #include <ts7200.h>
+#include <events.h>
 
 void uart1_transmit_notifier(void) {
     
@@ -11,11 +12,11 @@ void uart1_transmit_notifier(void) {
 
     ASSERT(send_server_tid >= 0);
 
-    volatile int32_t* UART1_EVENT_REGISTER = UART1_BASE + UART_INTR_OFFSET;
-    volatile int32_t* UART1_DATA_REGISTER  = UART1_BASE + UART_DATA_OFFSET;
+    volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
+    volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
 
     FOREVER {
-        result = AwaitEvent(UART1_EVENT);
+        result = AwaitEvent(UART1_TRANSMIT_EVENT);
         ASSERT(result >= 0);
 
         if(*UART1_EVENT_REGISTER & TIS_MASK) {
@@ -45,11 +46,11 @@ void uart1_receive_notifier(void) {
 
     ASSERT(receive_server_tid >= 0);
 
-    volatile int32_t* UART1_EVENT_REGISTER = UART1_BASE + UART_INTR_OFFSET;
-    volatile int32_t* UART1_DATA_REGISTER  = UART1_BASE + UART_DATA_OFFSET;
+    volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
+    //volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
 
     FOREVER {
-        result = AwaitEvent(UART1_EVENT);
+        result = AwaitEvent(UART1_RECEIVE_EVENT);
         ASSERT(result >= 0);
 
         if(*UART1_EVENT_REGISTER & RIS_MASK) {
