@@ -5,5 +5,7 @@
 
 //Event codes
 #define TIMER3_EVENT  51
+#define UART1_EVENT   52
+#define UART2_EVENT   54
 
 #endif //__EVENTS_H__
