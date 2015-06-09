@@ -11,12 +11,13 @@
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 #define IRQ_INTERRUPT_HANDLER      ((volatile uint32_t*)0x38)
-#define IRQ_INTERRUPT_HANDLER2      ((volatile uint32_t*)0x34)
 
 void initialize(global_data_t* global_data) {
     //COM2 initialization
-    bwsetfifo(COM2,OFF); // ensure that fifo is off
-    bwsetfifo(COM1,OFF); // ensure that fifo is off
+    setspeed(COM1, 2400);
+    setspeed(COM2, 115200);
+    setfifo(COM2,OFF); // ensure that fifo is off
+    setfifo(COM1,OFF); // ensure that fifo is off
 
     /**
      * Performance options
@@ -88,13 +89,13 @@ int main(void)
 {
     global_data_t global_data;
     initialize(&global_data);
-    bwprintf(COM2, "Starting...\r\n");
+    //bwprintf(COM2, "Starting...\r\n");
 
     request_t* request = NULL;
 
     FOREVER {
         task_descriptor_t* next_task = schedule_next_task(&global_data);
-
+        //bwprintf(COM2, "TID: %d\r\n", next_task->tid);
         if(next_task == NULL) {
             bwprintf(COM2, "Goodbye!\r\n");
             return 0;

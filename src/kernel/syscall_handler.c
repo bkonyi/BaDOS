@@ -144,8 +144,23 @@ static int handle_Reply(global_data_t* global_data, int tid, char* reply, int re
 static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
 
     //Check to see if the event id is valid 
-    if(eventid != TIMER3_EVENT) {
+    if(eventid != TIMER3_EVENT && eventid != UART1_TRANSMIT_EVENT &&
+        eventid != UART1_RECEIVE_EVENT && eventid != UART2_TRANSMIT_EVENT &&
+        eventid != UART2_RECEIVE_EVENT) {
         return -1;
+    }
+
+    switch(eventid) {
+        case UART1_TRANSMIT_EVENT:
+            //Re-enable transmit ready interrupts. Only enabling it here will prevent the
+            //interrupt from spamming us when we're not ready for it or don't care about it
+            *(uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
+            break;
+        case UART2_TRANSMIT_EVENT:
+            *(uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
+            break;
+        default:
+            break;
     }
 
     syscall_handler_data_t* syscall_handler_data = &(global_data->syscall_handler_data);

@@ -21,6 +21,10 @@ typedef char *va_list;
 #define ON  1
 #define OFF 0
 
+int setfifo( int channel, int state );
+
+int setspeed( int channel, int speed );
+
 char c2x( char ch );
 
 int a2d( char ch );

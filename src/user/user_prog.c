@@ -8,6 +8,8 @@
 #include <rps/rps_server.h>
 #include <rps/rps_client.h>
 #include <clock/clock_server.h>
+#include <io/uart1_servers.h>
+#include <io/uart1_notifier.h>
 #include <idle.h>
 
 #include <a3_user_prog.h>
@@ -15,11 +17,11 @@
 #define SET_DELAY_INFO(delay, iterations) (((uint64_t)(delay)) << 32) | ((uint32_t)(iterations))
 
 void first_user_task(void) {
-    bwprintf(COM2, "Starting the Name Server with priority %d.\r\n",SCHEDULER_HIGHEST_PRIORITY);
+    //bwprintf(COM2, "Starting the Name Server with priority %d.\r\n",SCHEDULER_HIGHEST_PRIORITY);
     //IMPORTANT:
     //The nameserver need to be the first task created so that is has TID of NAMESERVER_TID
     tid_t tid = Create(SCHEDULER_HIGHEST_PRIORITY,  nameserver_task);
-    bwprintf(COM2, "Created Name Server with tid %d.\r\n",tid);
+    //bwprintf(COM2, "Created Name Server with tid %d.\r\n",tid);
     ASSERT(tid == NAMESERVER_TID);
 
     //Create the clock server
@@ -29,7 +31,7 @@ void first_user_task(void) {
     //Create the idle task which keeps the kernel running even when every other task is blocked.
     Create(SCHEDULER_LOWEST_PRIORITY, idle_task);
 
-    Create(SCHEDULER_HIGHEST_PRIORITY - 3, delay_task);
+    /*Create(SCHEDULER_HIGHEST_PRIORITY - 3, delay_task);
     Create(SCHEDULER_HIGHEST_PRIORITY - 4, delay_task);
     Create(SCHEDULER_HIGHEST_PRIORITY - 5, delay_task);
     Create(SCHEDULER_HIGHEST_PRIORITY - 6, delay_task);
@@ -52,7 +54,10 @@ void first_user_task(void) {
 
     Receive(&receive_tid, NULL, 0);
     delay_info = SET_DELAY_INFO(71, 3);
-    Reply(receive_tid, (char*)&delay_info, sizeof(uint64_t));
+    Reply(receive_tid, (char*)&delay_info, sizeof(uint64_t));*/
+
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_server);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_notifier);
 
     Exit();
 }

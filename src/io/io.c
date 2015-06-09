@@ -6,28 +6,28 @@
  */
 
 #include <ts7200.h>
+#include <common.h>
 #include <io.h>
 #include <io_common.h>
-
-/*
- * The UARTs are initialized by RedBoot to the following state
- * 	115,200 bps
- * 	8 bits
- * 	no parity
- * 	fifos enabled
- */
-int setfifo( int channel, int state ) {
-	//TODO send message to IO server
-	return 0;
-}
-
-int setspeed( int channel, int speed ) {
-	//TODO send message to IO server
-	return 0;
-}
+#include <servers.h>
+#include <syscalls.h>
 
 int putc( int channel, char c ) {
-	//TODO send to IO task
+	int transmit_server_tid = -1;
+
+	switch(channel) {
+		case COM1:
+			transmit_server_tid = WhoIs(UART1_TRANSMIT_SERVER); //TODO we might want to hardcode these values in if possible for speed
+			break;
+		case COM2:
+			transmit_server_tid = WhoIs(UART2_TRANSMIT_SERVER);
+			break;
+		default:
+			ASSERT(0); //Do we want to do this?
+	}
+
+	Send(transmit_server_tid, &c, sizeof(char), (char*)NULL, 0);
+
 	return 0;
 }
 

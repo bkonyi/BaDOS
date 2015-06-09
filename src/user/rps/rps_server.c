@@ -34,9 +34,6 @@ void rps_server_task(void){
 	int result;
 	int sender_tid;
 
-	bwsetfifo(COM2, OFF);
-	bwsetspeed(COM2, 115200);
-
 	rps_msg msg;
 
 	//Queue for waiting players

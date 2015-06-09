@@ -6,36 +6,32 @@
 #include <events.h>
 
 void uart1_transmit_notifier(void) {
+    bwprintf(COM2, "Notifier created\r\n");
     
-    int send_server_tid = WhoIs(UART1_TRANSMIT_SERVER);
+    int send_server_tid;
+
+    do {
+        send_server_tid = WhoIs(UART1_TRANSMIT_SERVER);
+    } while(send_server_tid == -2);
+
     int result;
 
     ASSERT(send_server_tid >= 0);
 
-    volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
+    //volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
     volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
 
     FOREVER {
+
         result = AwaitEvent(UART1_TRANSMIT_EVENT);
         ASSERT(result >= 0);
 
-        if(*UART1_EVENT_REGISTER & TIS_MASK) {
-            //Check to see if Transmit Interrupt Status is set
+        //Get the byte to send
+        char byte;
+        Send(send_server_tid, (char*)NULL, 0, &byte, sizeof(char));
 
-            //Disable transmit ready interrupt
-            //TODO
-
-            //Get the byte to send
-            char byte;
-            Send(send_server_tid, (char*)NULL, 0, &byte, sizeof(char));
-
-            //Put the byte in the UART register
-            *UART1_DATA_REGISTER = byte;
-
-            //Re-enable transmit ready interrupt
-            //TODO
-        }
-
+        //Put the byte in the UART register
+        *UART1_DATA_REGISTER = byte;
     }
 }
 
