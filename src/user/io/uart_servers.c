@@ -166,4 +166,5 @@ void uart1_receive_server(void) {
 }
 void uart2_receive_server(void) {
     unbuffered_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
+
 }

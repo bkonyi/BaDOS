@@ -13,5 +13,7 @@
 
 #define UART1_EVENT 			52
 #define UART2_EVENT 			54
+#define UART1_STATUS_EVENT 		UART1_EVENT
+#define UART2_STATUS_EVENT 		UART2_EVENT
 
 #endif //__EVENTS_H__

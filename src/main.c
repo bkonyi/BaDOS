@@ -16,7 +16,7 @@ void initialize(global_data_t* global_data) {
     //COM2 initialization
     setspeed(COM1, 2400);
     setspeed(COM2, 115200);
-    setfifo(COM2,OFF); // ensure that fifo is on
+    setfifo(COM2,ON); // ensure that fifo is on
     setfifo(COM1,OFF); // ensure that fifo is off
 
     /**

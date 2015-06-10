@@ -4,7 +4,6 @@
 #include <io.h>
 void test_task(void) {
 	char c;
-	Delay(500);
 	FOREVER {
 		printf(COM1, "Hello!\r\n");
         printf(COM2, "Test!\r\n");

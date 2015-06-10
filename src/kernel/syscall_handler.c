@@ -146,7 +146,7 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
     //Check to see if the event id is valid 
     if(eventid != TIMER3_EVENT && eventid != UART1_TRANSMIT_EVENT &&
         eventid != UART1_RECEIVE_EVENT && eventid != UART2_TRANSMIT_EVENT &&
-        eventid != UART2_RECEIVE_EVENT) {
+        eventid != UART2_RECEIVE_EVENT && eventid != UART1_STATUS_EVENT && eventid != UART2_STATUS_EVENT) {
         return -1;
     }
     
@@ -159,6 +159,14 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
         case UART2_TRANSMIT_EVENT:
             *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
             break;
+        case UART1_STATUS_EVENT:
+            //reenable the status interrupt so we can catch timeouts
+            *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART1_STATUS_MASK;
+            break;
+        case UART2_STATUS_EVENT:
+            //reenable the status interrupt so we can catch timeouts
+            *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART2_STATUS_MASK;
+            break;  
         default:
             break;
     }

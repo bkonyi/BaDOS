@@ -2,29 +2,10 @@
 #include <timer3.h>
 #include <global.h>
 #include <scheduler.h>
-#define VIC1_BASE                 ((uint32_t)0x800B0000)
-#define VIC2_BASE                 ((uint32_t)0x800C0000)
+#include <ts7200.h>
 
 
-#define VICxIRQStatus 		((uint32_t)0x00) 	//RO 	One bit for each interrupt source 1 if interrupt is asserted and enabled
-#define VICxFIQStatus 		((uint32_t)0x04) 	//RO 	As above for FIQ
-#define VICxRawIntr 		((uint32_t)0x08) 	//RO 	As above but not masked
-#define VICxIntSelect 		((uint32_t)0x0c) 	//R/W 	0: IRQ, 1: FIQ
-#define VICxIntEnable 		((uint32_t)0x10) 	//R/W 	0: Masked, 1: Enabled
-#define VICxIntEnClear 		((uint32_t)0x14) 	//WO 	Clears bits in VICxIntEnable
-#define VICxSoftInt 		((uint32_t)0x18) 	//R/W 	Asserts interrupt from software
-#define VICxSoftIntClear 	((uint32_t)0x1c) 	//WO 	Clears interrupt from software
-#define VICxProtection 		((uint32_t)0x20) 	//R/W 	Bit 0 enables protection from user mode access
-#define VICxVectAddr 		((uint32_t)0x30) 	//R/W 	Enables priority hardware
 
-//INTERRUPT MASKS
-#define VIC2_TC3UI_MASK 		        (0x1 << (TIMER3_EVENT-32))
-
-#define VIC1_UART1_RECEIVE_MASK			(0x1 << (UART1_RECEIVE_EVENT))
-#define VIC1_UART1_TRANSMIT_MASK        (0x1 << (UART1_TRANSMIT_EVENT))
-
-#define VIC1_UART2_RECEIVE_MASK         (0x1 << (UART2_RECEIVE_EVENT))
-#define VIC1_UART2_TRANSMIT_MASK        (0x1 << (UART2_TRANSMIT_EVENT))
 
 
 static void timer3_handle(void);
@@ -32,6 +13,9 @@ static void uart1_receive_handle(void);
 static void uart1_transmit_handle(void);
 static void uart2_receive_handle(void);
 static void uart2_transmit_handle(void);
+static void uart1_status_handle(void);
+static void uart2_status_handle(void);
+
 
 void initialize_interrupts(global_data_t* global_data) {
 	    //TODO enable ICU
@@ -43,13 +27,16 @@ void initialize_interrupts(global_data_t* global_data) {
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = ~0;
 
     //Enable the interrupts on the VIC1 for UARTS
-     *(volatile uint32_t*)(VIC1_BASE + VICxIntEnable) |= VIC1_UART1_RECEIVE_MASK 
+     *(volatile uint32_t*)(VIC1_BASE + VICxIntEnable) |=  VIC1_UART1_RECEIVE_MASK 
                                                        |  VIC1_UART2_RECEIVE_MASK
                                                        |  VIC1_UART1_TRANSMIT_MASK
                                                        |  VIC1_UART2_TRANSMIT_MASK;
 
-    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= RIEN_MASK;
-    *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= RIEN_MASK;
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART1_STATUS_MASK
+                                                     |  VIC2_UART2_STATUS_MASK;
+
+    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | RTIEN_MASK;
+    *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | RTIEN_MASK;
     
     //Enable interrupts for timer 3
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK; 
@@ -93,6 +80,14 @@ void handle_interrupt(global_data_t* global_data) {
     } else if(vic1_status & VIC1_UART2_TRANSMIT_MASK) {
         uart2_transmit_handle();
         interrupt_index =   UART2_TRANSMIT_EVENT;
+    } else if(vic2_status & VIC2_UART1_STATUS_MASK) {
+        uart1_status_handle();
+        return_code = *(volatile int *)( UART1_BASE + UART_DATA_OFFSET );
+        interrupt_index =   UART1_STATUS_EVENT;
+    } else if(vic2_status & VIC2_UART2_STATUS_MASK) {
+        uart2_status_handle();
+        return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
+        interrupt_index =   UART2_STATUS_EVENT;
     } else {
         bwprintf(COM2,"INTERRUPT STATUS 0x%x-%x\r\n",vic1_status,vic2_status);
         KASSERT(0); // Unhandled interrupt
@@ -145,3 +140,10 @@ void uart2_transmit_handle(void){
     //AwaitEvent will re-enable this interrupt.
     *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
 }
+void uart1_status_handle(void){
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART1_STATUS_MASK;
+} 
+void uart2_status_handle(void){
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART2_STATUS_MASK;
+} 
+
