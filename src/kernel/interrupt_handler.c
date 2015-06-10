@@ -47,6 +47,9 @@ void initialize_interrupts(global_data_t* global_data) {
                                                        |  VIC1_UART2_RECEIVE_MASK
                                                        |  VIC1_UART1_TRANSMIT_MASK
                                                        |  VIC1_UART2_TRANSMIT_MASK;
+
+    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= RIEN_MASK;
+    *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= RIEN_MASK;
     
     //Enable interrupts for timer 3
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK; 
@@ -118,7 +121,7 @@ void timer3_handle(void) {
 void uart1_receive_handle(void){
     //Clear the interrupt bit
     //TODO do we need this?
-    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;    
+    //*(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;    
 }
 
 void uart1_transmit_handle(void){
@@ -132,7 +135,7 @@ void uart1_transmit_handle(void){
 void uart2_receive_handle(void){
     //Clear the interrupt bit
     //TODO do we need this?
-    *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;
+    //*(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;
 }
 
 void uart2_transmit_handle(void){

@@ -66,8 +66,22 @@ void putw( int channel, int n, char fc, char *bf ) {
 }
 
 int getc( int channel ) {
-	//TODO request char from IO task
-	return 0;
+	int transmit_server_tid = -1;
+ 	char byte;
+	switch(channel) {
+		case COM1:
+			transmit_server_tid = WhoIs(UART1_RECEIVE_SERVER); //TODO we might want to hardcode these values in if possible for speed
+			break;
+		case COM2:
+			transmit_server_tid = WhoIs(UART2_RECEIVE_SERVER);
+			break;
+		default:
+			ASSERT(0); //Do we want to do this?
+	}
+
+	Send(transmit_server_tid, (char*)NULL, 0, &byte, sizeof(char));
+
+	return (int)byte;
 }
 
 void format ( int channel, char *fmt, va_list va ) {

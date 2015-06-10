@@ -22,6 +22,7 @@ typedef enum { false, true } bool;
 typedef int16_t tid_t;
 typedef uint8_t priority_t;
 
+#define MAX_NUMBER_OF_TASKS 200 //TODO Arbitrary number for now
 #define SCHEDULER_NUM_QUEUES            32
 #define SCHEDULER_HIGHEST_PRIORITY      31
 #define SCHEDULER_LOWEST_PRIORITY       0
