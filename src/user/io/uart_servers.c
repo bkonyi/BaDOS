@@ -7,7 +7,7 @@
 #include <ring_buffer.h>
 #include <servers.h>
 #include <syscalls.h>
-#include <io/uart1_notifier.h>
+#include <io/uart_notifier.h>
 
 #define OUTPUT_BUFFER_SIZE 4096
 #define INPUT_BUFFER_SIZE  2048
@@ -74,7 +74,7 @@ void uart2_transmit_server(void) {
     uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
-void fifo_off_receive_server(char* name,uint32_t buffer_size) {
+void buffered_receive_server(char* name,uint32_t buffer_size) {
     int sending_tid;
     char byte;
     int result;
@@ -125,9 +125,45 @@ void fifo_off_receive_server(char* name,uint32_t buffer_size) {
     Exit();
 }
 
+void unbuffered_receive_server(char* name,uint32_t buffer_size) {
+    int sending_tid;
+    char byte;
+    int result;
+    tid_t tid;
+    
+    uart_tid_buffer_t tid_buffer;
+    RING_BUFFER_INIT(tid_buffer, MAX_NUMBER_OF_TASKS);
+
+    RegisterAs(name);
+    FOREVER {
+        result = Receive(&sending_tid, &byte, sizeof(char));
+        
+        
+        if(result == 0) { //User requests bytes
+            PUSH_BACK(tid_buffer, sending_tid, result);
+            ASSERT(result == 0);
+        } else if(result == sizeof(char)) { //Notifier provides byte
+            //Let the sender wake back up
+            Reply(sending_tid, (char*)NULL, 0);
+
+            //If the UART is waiting on an output, send the byte now.
+            if(!IS_BUFFER_EMPTY(tid_buffer)) {
+                POP_FRONT(tid_buffer,tid);
+                Reply(tid, &byte, sizeof(char));
+            }
+        } else {
+            //This shouldn't happen
+            ASSERT(0);
+        }
+    }
+
+    //Shouldn't get here
+    Exit();
+}
+
 void uart1_receive_server(void) {
-    fifo_off_receive_server(UART1_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
+    buffered_receive_server(UART1_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 }
 void uart2_receive_server(void) {
-    fifo_off_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
+    unbuffered_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 }

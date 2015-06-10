@@ -9,7 +9,7 @@
 #include <rps/rps_client.h>
 #include <clock/clock_server.h>
 #include <io/uart_servers.h>
-#include <io/uart1_notifier.h>
+#include <io/uart_notifier.h>
 #include <idle.h>
 #include <tests/test_task.h>
 

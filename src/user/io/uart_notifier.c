@@ -1,4 +1,4 @@
-#include <io/uart1_notifier.h>
+#include <io/uart_notifier.h>
 #include <common.h>
 #include <servers.h>
 #include <syscalls.h>
