@@ -10,7 +10,9 @@
 #include <io/uart1_notifier.h>
 
 #define OUTPUT_BUFFER_SIZE 4096
-CREATE_NON_POINTER_BUFFER_TYPE(output_buffer_t, char, OUTPUT_BUFFER_SIZE);
+#define INPUT_BUFFER_SIZE  2048
+CREATE_NON_POINTER_BUFFER_TYPE(uart_buffer_t, char, OUTPUT_BUFFER_SIZE);
+CREATE_NON_POINTER_BUFFER_TYPE(uart_tid_buffer_t,tid_t,MAX_NUMBER_OF_TASKS);
 
 void uart_transmit_server(char* name,uint32_t buffer_size) {
     int sending_tid;
@@ -19,7 +21,7 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
     bool output_ready = false;
     int output_notifier = -1;
 
-    output_buffer_t output_buffer;
+    uart_buffer_t output_buffer;
     RING_BUFFER_INIT(output_buffer, buffer_size);
 
     RegisterAs(name);
@@ -65,20 +67,67 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
     //Shouldn't get here
     Exit();
 }
-void uart1_transmit_server(void){
+void uart1_transmit_server(void) {
     uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
-void uart2_transmit_server(void){
+void uart2_transmit_server(void) {
     uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
-void uart1_receive_server(void) {
-    RegisterAs(UART1_RECEIVE_SERVER);
+void fifo_off_receive_server(char* name,uint32_t buffer_size) {
+    int sending_tid;
+    char byte;
+    int result;
+    tid_t tid;
+    
+    uart_buffer_t input_buffer;
+    uart_tid_buffer_t tid_buffer;
+    RING_BUFFER_INIT(input_buffer, buffer_size);
+    RING_BUFFER_INIT(tid_buffer, MAX_NUMBER_OF_TASKS);
 
+    RegisterAs(name);
     FOREVER {
-        //TODO
+        result = Receive(&sending_tid, &byte, sizeof(char));
+        
+        
+        if(result == 0) { //User requests bytes
+            PUSH_BACK(tid_buffer, sending_tid, result);
+            ASSERT(result == 0);
+            //If there's a character on the queue, send it to the notifier
+            if(!IS_BUFFER_EMPTY(input_buffer)) {
+                POP_FRONT(input_buffer, byte);
+                POP_FRONT(tid_buffer,tid);
+                Reply(tid, &byte, sizeof(char));
+            }
+        } else if(result == sizeof(char)) { //Notifier provides byte
+            //Queue up the next character to output
+            PUSH_BACK(input_buffer, byte, result);
+            ASSERT(result == 0);
+
+            //Let the sender wake back up
+            Reply(sending_tid, (char*)NULL, 0);
+
+            //If the UART is waiting on an output, send the byte now.
+            while(!IS_BUFFER_EMPTY(tid_buffer) && !IS_BUFFER_EMPTY(input_buffer)) {
+
+                POP_FRONT(input_buffer, byte);
+                POP_FRONT(tid_buffer,tid);
+                Reply(tid, &byte, sizeof(char));
+            }
+            
+        } else {
+            //This shouldn't happen
+            ASSERT(0);
+        }
     }
 
     //Shouldn't get here
     Exit();
+}
+
+void uart1_receive_server(void) {
+    fifo_off_receive_server(UART1_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
+}
+void uart2_receive_server(void) {
+    fifo_off_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 }

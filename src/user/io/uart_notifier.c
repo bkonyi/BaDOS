@@ -28,7 +28,7 @@ void uart_transmit_notifier(uint32_t com) {
         default: 
             ASSERT(0);
     }
-    bwprintf(COM2, "Notifier created\r\n");
+    bwprintf(COM2, "Transmit Notifier created\r\n");
     
     
     int result;
@@ -75,24 +75,23 @@ void uart_receive_notifier(uint32_t com) {
         default: 
             ASSERT(0);
     }
-     
+   // bwprintf(COM2, "Receive Notifier created\r\n");
     int result;
 
     ASSERT(receive_server_tid >= 0);
 
-    volatile int32_t* UART_EVENT_REGISTER = (int32_t*)(base + UART_INTR_OFFSET);
+    //volatile int32_t* UART_EVENT_REGISTER = (int32_t*)(base + UART_INTR_OFFSET);
     //volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
 
     FOREVER {
+       // bwprintf(COM2,"AWAITING ID: %d\r\n",event);
         result = AwaitEvent(event);
+       // bwprintf(COM2,"back from await, eventid: %d\r\n",event);
         ASSERT(result >= 0);
 
-        if(*UART_EVENT_REGISTER & RIS_MASK) {
-            //Check to see if Receive Interrupt Status is set
-
-            //Send the byte grabbed to the receive task
-            Send(receive_server_tid, (char*)&result, sizeof(char), (char*)NULL, 0);
-        }
+        //Send the byte grabbed to the receive task
+        Send(receive_server_tid, (char*)&result, sizeof(char), (char*)NULL, 0);
+        
     }
 }
 void uart1_transmit_notifier(void) {

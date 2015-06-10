@@ -11,6 +11,7 @@
 #include <io/uart_servers.h>
 #include <io/uart1_notifier.h>
 #include <idle.h>
+#include <tests/test_task.h>
 
 #include <a3_user_prog.h>
 
@@ -60,6 +61,18 @@ void first_user_task(void) {
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_notifier);
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_server);
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_notifier);
+
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_receive_notifier);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_receive_server);
+    
+    tid_t tid1,tid2;
+
+
+    tid2 = Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_server);
+    tid1 = Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_notifier);
+    bwprintf(COM2,"u2 rec not tid: %d u2 serv rec tid: %d\r\n",tid1, tid2);
+
+    Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
 
     Exit();
 }

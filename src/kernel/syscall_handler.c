@@ -149,7 +149,7 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
         eventid != UART2_RECEIVE_EVENT) {
         return -1;
     }
-
+    
     switch(eventid) {
         case UART1_TRANSMIT_EVENT:
             //Re-enable transmit ready interrupts. Only enabling it here will prevent the

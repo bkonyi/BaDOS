@@ -11,8 +11,7 @@ void idle_task(void) {
         ++a; //Just do something to pass the time
 
         //TODO remove this testing code
-        printf(COM1, "Hello!\r\n");
-        printf(COM2, "Test!\r\n");
+
     }
 }
 
