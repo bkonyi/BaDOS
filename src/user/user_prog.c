@@ -10,6 +10,7 @@
 #include <clock/clock_server.h>
 #include <io/uart_servers.h>
 #include <io/uart_notifier.h>
+#include <io/uart_courrier.h>
 #include <idle.h>
 #include <tests/test_task.h>
 
@@ -70,6 +71,7 @@ void first_user_task(void) {
 
     tid2 = Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_server);
     tid1 = Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_notifier);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart_courrier);
     bwprintf(COM2,"u2 rec not tid: %d u2 serv rec tid: %d\r\n",tid1, tid2);
 
     Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
