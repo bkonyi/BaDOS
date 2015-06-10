@@ -12,7 +12,7 @@
 #define OUTPUT_BUFFER_SIZE 4096
 CREATE_NON_POINTER_BUFFER_TYPE(output_buffer_t, char, OUTPUT_BUFFER_SIZE);
 
-void uart1_transmit_server(void) {
+void uart_transmit_server(char* name,uint32_t buffer_size) {
     int sending_tid;
     char byte;
     int result;
@@ -20,9 +20,9 @@ void uart1_transmit_server(void) {
     int output_notifier = -1;
 
     output_buffer_t output_buffer;
-    RING_BUFFER_INIT(output_buffer, OUTPUT_BUFFER_SIZE);
+    RING_BUFFER_INIT(output_buffer, buffer_size);
 
-    RegisterAs(UART1_TRANSMIT_SERVER);
+    RegisterAs(name);
 
     FOREVER {
         result = Receive(&sending_tid, &byte, sizeof(char));
@@ -64,6 +64,12 @@ void uart1_transmit_server(void) {
 
     //Shouldn't get here
     Exit();
+}
+void uart1_transmit_server(void){
+    uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
+}
+void uart2_transmit_server(void){
+    uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
 void uart1_receive_server(void) {

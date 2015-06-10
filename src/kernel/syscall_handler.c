@@ -154,10 +154,10 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
         case UART1_TRANSMIT_EVENT:
             //Re-enable transmit ready interrupts. Only enabling it here will prevent the
             //interrupt from spamming us when we're not ready for it or don't care about it
-            *(uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
+            *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
             break;
         case UART2_TRANSMIT_EVENT:
-            *(uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
+            *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
             break;
         default:
             break;

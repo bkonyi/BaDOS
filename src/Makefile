@@ -5,7 +5,7 @@ CC  = gcc
 AS	= as
 AR	= ar
 LD  = ld
-CFLAGS  = -O3 -c -fPIC -Wall -Werror -mcpu=arm920t -msoft-float -fno-builtin
+CFLAGS  =  -c -fPIC -Wall -Werror -mcpu=arm920t -msoft-float -fno-builtin
 # -g: include hooks for gdb
 # -c: only compile
 # -mcpu=arm920t: generate code for the 920t architecture

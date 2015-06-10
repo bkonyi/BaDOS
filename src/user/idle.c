@@ -12,7 +12,7 @@ void idle_task(void) {
 
         //TODO remove this testing code
         printf(COM1, "Hello!\r\n");
-        bwprintf(COM2, "Test!\r\n");
+        printf(COM2, "Test!\r\n");
     }
 }
 

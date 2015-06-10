@@ -5,4 +5,6 @@ void uart1_transmit_server(void);
 
 void uart1_receive_server(void);
 
+void uart2_transmit_server(void);
+void uart2_receive_server(void);
 #endif //__UART1_SERVERS_H__

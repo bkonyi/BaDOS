@@ -58,6 +58,8 @@ void first_user_task(void) {
 
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_server);
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_notifier);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_server);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_notifier);
 
     Exit();
 }

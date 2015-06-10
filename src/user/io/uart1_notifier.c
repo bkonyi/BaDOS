@@ -5,25 +5,41 @@
 #include <ts7200.h>
 #include <events.h>
 
-void uart1_transmit_notifier(void) {
+void uart_transmit_notifier(uint32_t com) {
+    int send_server_tid= -1;
+    uint32_t event=0, base=0;
+
+    //Set up our values so that we can properly contact the right UART1 and servers
+    switch (com){
+        case COM1:
+            base = UART1_BASE;
+            event = UART1_TRANSMIT_EVENT;
+            do {
+                send_server_tid = WhoIs(UART1_TRANSMIT_SERVER);
+            } while(send_server_tid == -2);
+            break;
+        case COM2:
+            base = UART2_BASE;
+            event = UART2_TRANSMIT_EVENT;
+            do {
+                send_server_tid = WhoIs(UART2_TRANSMIT_SERVER);
+            } while(send_server_tid == -2);
+            break;
+        default: 
+            ASSERT(0);
+    }
     bwprintf(COM2, "Notifier created\r\n");
     
-    int send_server_tid;
-
-    do {
-        send_server_tid = WhoIs(UART1_TRANSMIT_SERVER);
-    } while(send_server_tid == -2);
-
+    
     int result;
 
     ASSERT(send_server_tid >= 0);
 
     //volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
-    volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
+    volatile int32_t* UART_DATA_REGISTER  = (int32_t*)(base + UART_DATA_OFFSET);
 
     FOREVER {
-
-        result = AwaitEvent(UART1_TRANSMIT_EVENT);
+        result = AwaitEvent(event);
         ASSERT(result >= 0);
 
         //Get the byte to send
@@ -31,25 +47,47 @@ void uart1_transmit_notifier(void) {
         Send(send_server_tid, (char*)NULL, 0, &byte, sizeof(char));
 
         //Put the byte in the UART register
-        *UART1_DATA_REGISTER = byte;
+        *UART_DATA_REGISTER = byte;
     }
 }
 
-void uart1_receive_notifier(void) {
-    
-    int receive_server_tid = WhoIs(UART1_RECEIVE_SERVER);
+
+void uart_receive_notifier(uint32_t com) {
+    uint32_t event=0, base=0;
+    int receive_server_tid = -1;
+
+    //Set up our values so that we can properly contact the right UART1 and servers
+    switch (com){
+        case COM1:
+            base = UART1_BASE;
+            event = UART1_RECEIVE_EVENT;
+            do {
+                receive_server_tid = WhoIs(UART1_RECEIVE_SERVER);
+            } while(receive_server_tid == -2);
+            break;
+        case COM2:
+            base = UART2_BASE;
+            event = UART2_RECEIVE_EVENT;
+            do {
+                receive_server_tid = WhoIs(UART2_RECEIVE_SERVER);
+            } while(receive_server_tid == -2);
+            break;
+        default: 
+            ASSERT(0);
+    }
+     
     int result;
 
     ASSERT(receive_server_tid >= 0);
 
-    volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
+    volatile int32_t* UART_EVENT_REGISTER = (int32_t*)(base + UART_INTR_OFFSET);
     //volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
 
     FOREVER {
-        result = AwaitEvent(UART1_RECEIVE_EVENT);
+        result = AwaitEvent(event);
         ASSERT(result >= 0);
 
-        if(*UART1_EVENT_REGISTER & RIS_MASK) {
+        if(*UART_EVENT_REGISTER & RIS_MASK) {
             //Check to see if Receive Interrupt Status is set
 
             //Send the byte grabbed to the receive task
@@ -57,3 +95,18 @@ void uart1_receive_notifier(void) {
         }
     }
 }
+void uart1_transmit_notifier(void) {
+    uart_transmit_notifier(COM1);
+}
+
+void uart1_receive_notifier(void) {
+    uart_receive_notifier(COM1);
+}
+void uart2_transmit_notifier(void) {
+    uart_transmit_notifier(COM2);
+}
+
+void uart2_receive_notifier(void) {
+    uart_receive_notifier(COM2);
+}
+

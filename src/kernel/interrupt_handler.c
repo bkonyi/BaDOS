@@ -35,21 +35,21 @@ static void uart2_transmit_handle(void);
 
 void initialize_interrupts(global_data_t* global_data) {
 	    //TODO enable ICU
-    *(uint32_t*)(VIC1_BASE + VICxIntSelect) = 0;
-    *(uint32_t*)(VIC2_BASE + VICxIntSelect) = 0;
+    *(volatile uint32_t*)(VIC1_BASE + VICxIntSelect) = 0;
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntSelect) = 0;
 
     //Clear the enabled interrupts
-    *(uint32_t*)(VIC1_BASE + VICxIntEnClear) = ~0;
-    *(uint32_t*)(VIC2_BASE + VICxIntEnClear) = ~0;
+    *(volatile uint32_t*)(VIC1_BASE + VICxIntEnClear) = ~0;
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = ~0;
 
     //Enable the interrupts on the VIC1 for UARTS
-     *(uint32_t*)((uint32_t)VIC1_BASE + VICxIntEnable) |= VIC1_UART1_RECEIVE_MASK 
-                                                      | VIC1_UART2_RECEIVE_MASK
-                                                      | VIC1_UART1_TRANSMIT_MASK
-                                                      | VIC1_UART2_TRANSMIT_MASK;
-
+     *(volatile uint32_t*)(VIC1_BASE + VICxIntEnable) |= VIC1_UART1_RECEIVE_MASK 
+                                                       |  VIC1_UART2_RECEIVE_MASK
+                                                       |  VIC1_UART1_TRANSMIT_MASK
+                                                       |  VIC1_UART2_TRANSMIT_MASK;
+    
     //Enable interrupts for timer 3
-    *(uint32_t*)((uint32_t)VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK; 
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK; 
 
     int i;
     for(i = 0; i < NUMBER_OF_EVENTS; i++) {
@@ -63,24 +63,23 @@ void handle_interrupt(global_data_t* global_data) {
     //acquire the statuses here so that we don't look at interrupts
     //that show up as we handle the current status
 
-    uint32_t vic1_status = *(uint32_t*)(VIC1_BASE + VICxIRQStatus);
-    uint32_t vic2_status = *(uint32_t*)(VIC2_BASE + VICxIRQStatus);
+    uint32_t vic1_status = *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus);
+    uint32_t vic2_status = *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus);
 
     // left uninitialized so we have the chance of a compiler warning
     	//If the cases below don't set the value
     int32_t interrupt_index = -1; 
     int return_code = 0;
-
     if(vic2_status & VIC2_TC3UI_MASK) {
     	timer3_handle();
     	interrupt_index = 	TIMER3_EVENT;
     } else if(vic1_status & VIC1_UART1_RECEIVE_MASK) {
         uart1_receive_handle();
-        return_code = *(int *)( UART1_BASE + UART_DATA_OFFSET );
+        return_code = *(volatile int *)( UART1_BASE + UART_DATA_OFFSET );
         interrupt_index =   UART1_RECEIVE_EVENT;
     } else if(vic1_status & VIC1_UART2_RECEIVE_MASK) {
         uart2_receive_handle();
-        return_code = *(int *)( UART2_BASE + UART_DATA_OFFSET );
+        return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
         interrupt_index =   UART2_RECEIVE_EVENT;
     } else if(vic1_status & VIC1_UART1_TRANSMIT_MASK) {
         uart1_transmit_handle();
@@ -89,6 +88,7 @@ void handle_interrupt(global_data_t* global_data) {
         uart2_transmit_handle();
         interrupt_index =   UART2_TRANSMIT_EVENT;
     } else {
+        bwprintf(COM2,"INTERRUPT STATUS 0x%x-%x\r\n",vic1_status,vic2_status);
         KASSERT(0); // Unhandled interrupt
         return;
     }
@@ -114,7 +114,7 @@ void timer3_handle(void) {
 void uart1_receive_handle(void){
     //Clear the interrupt bit
     //TODO do we need this?
-    *(uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;    
+    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;    
 }
 
 void uart1_transmit_handle(void){
@@ -122,13 +122,13 @@ void uart1_transmit_handle(void){
     //about this interrupt have been notified and don't (currently)
     //care if it goes off again until they call AwaitEvent again.
     //AwaitEvent will re-enable this interrupt.
-    *(uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
+    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
 }
 
 void uart2_receive_handle(void){
     //Clear the interrupt bit
     //TODO do we need this?
-    *(uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;
+    *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~RIS_MASK;
 }
 
 void uart2_transmit_handle(void){
@@ -136,5 +136,5 @@ void uart2_transmit_handle(void){
     //about this interrupt have been notified and don't (currently)
     //care if it goes off again until they call AwaitEvent again.
     //AwaitEvent will re-enable this interrupt.
-    *(uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
+    *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
 }
