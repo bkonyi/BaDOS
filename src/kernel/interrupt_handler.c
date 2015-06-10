@@ -68,10 +68,13 @@ void handle_interrupt(global_data_t* global_data) {
 
     // left uninitialized so we have the chance of a compiler warning
     	//If the cases below don't set the value
+
     int32_t interrupt_index = -1; 
     int return_code = 0;
     if(vic2_status & VIC2_TC3UI_MASK) {
     	timer3_handle();
+        //bwprintf(COM2, "Timer cleared\r\n");
+        //bwprintf(COM2, "Interrupt: 0x%x 0x%x\r\n", *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus), *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus));
     	interrupt_index = 	TIMER3_EVENT;
     } else if(vic1_status & VIC1_UART1_RECEIVE_MASK) {
         uart1_receive_handle();
@@ -102,6 +105,7 @@ void handle_interrupt(global_data_t* global_data) {
    	while(ARE_TASKS_WAITING((*waiting_tasks_queue))) {
    		GET_NEXT_WAITING_TASK((*waiting_tasks_queue),td);
         td->return_code = return_code; //Clear the return code since AwaitEvent was successful
+        td->state = TASK_RUNNING_STATE_READY;
    		schedule(global_data, td);
    	}
 }
