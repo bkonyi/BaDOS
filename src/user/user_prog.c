@@ -10,6 +10,7 @@
 #include <clock/clock_server.h>
 #include <io/uart_servers.h>
 #include <io/uart_notifier.h>
+#include <io/uart_courrier.h>
 #include <idle.h>
 #include <tests/test_task.h>
 
@@ -68,8 +69,12 @@ void first_user_task(void) {
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_server);
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_notifier);
 
+
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_timeout_notifier);
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_timeout_notifier);
+
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart_courrier);
+
 
     Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
 
