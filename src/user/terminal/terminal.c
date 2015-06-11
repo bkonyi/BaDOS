@@ -29,7 +29,10 @@ void terminal_server(void) {
         switch(data.command) {
             case TERMINAL_UPDATE_CLOCK:
                 handle_update_terminal_clock(data.ticks);
-            break;
+                break;
+            case TERMINAL_ECHO_INPUT:
+                putc(COM2, data.echo_byte);
+                break;
             default:
                 ASSERT(0);
                 break;

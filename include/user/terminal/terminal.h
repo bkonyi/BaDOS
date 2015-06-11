@@ -5,12 +5,14 @@
 
 typedef enum {
     TERMINAL_UPDATE_CLOCK    =  0,
+    TERMINAL_ECHO_INPUT      =  1,
     TERMINAL_UNKNOWN_COMMAND = -1
 } terminal_command_t;
 
 typedef struct {
     terminal_command_t command;
     int32_t            ticks;
+    char               echo_byte;
 } terminal_data_t;
 
 void terminal_server(void);
