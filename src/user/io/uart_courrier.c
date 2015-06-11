@@ -2,23 +2,19 @@
 #include <common.h>
 #include <servers.h>
 #include <syscalls.h>
+#include <terminal/terminal.h>
 
 void uart_courrier(void) {
-    int uart_receiver, uart_transmitter;
     char byte;
+    terminal_data_t echo_command;
+    echo_command.command = TERMINAL_ECHO_INPUT;
 
     RegisterAs(UART2_COURRIER);
 
-    do {
-        uart_receiver = WhoIs(UART2_RECEIVE_SERVER);
-    } while(uart_receiver == -2);
-
-    do {
-        uart_transmitter = WhoIs(UART2_TRANSMIT_SERVER);
-    } while(uart_transmitter == -2);
-
     FOREVER {
-        Send(uart_receiver, (char*)NULL, 0, &byte, sizeof(char));
-        Send(uart_transmitter, &byte, sizeof(char), (char*)NULL, 0);
+        Send(UART2_RECEIVE_SERVER_ID, (char*)NULL, 0, &byte, sizeof(char));
+
+        echo_command.echo_byte = byte;
+        Send(TERMINAL_SERVER_ID, (char*)&echo_command, sizeof(terminal_data_t), (char*)NULL, 0);
     }
 }

@@ -9,8 +9,7 @@
 #include <rps/rps_client.h>
 #include <clock/clock_server.h>
 #include <io/uart_servers.h>
-#include <io/uart_notifier.h>
-#include <io/uart_courrier.h>
+#include <terminal/terminal.h>
 #include <idle.h>
 #include <tests/test_task.h>
 #include <user/servers.h>
@@ -45,8 +44,13 @@ void first_user_task(void) {
     ASSERT(tid == UART2_RECEIVE_SERVER_ID);
     tid = Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_server);
     ASSERT(tid == UART2_TRANSMIT_SERVER_ID);
+
     tid = Create(SCHEDULER_HIGHEST_PRIORITY -1, command_server);
     ASSERT(tid == COMMAND_SERVER_ID);
+
+    tid = Create(SCHEDULER_HIGHEST_PRIORITY - 2, terminal_server);
+    ASSERT(tid == COMMAND_SERVER_ID);
+
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/

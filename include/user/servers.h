@@ -18,4 +18,7 @@
 #define COMMAND_SERVER_ID		9
 #define COMMAND_SERVER 			"COMMAND_SERVER"
 
+#define TERMINAL_SERVER         "TERMINAL_SERVER"
+#define TERMINAL_SERVER_ID       10
+
 #endif
