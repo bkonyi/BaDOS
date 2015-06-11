@@ -56,6 +56,15 @@ int32_t strcmp(char* a, char* b);
  */
 int32_t strtokenize(char* str, char** argv, uint32_t maxtoks);
 
+/**
+ * @brief takes a decimal or hexadecimal string and returns it's value as an integer
+ * 
+ * @param c the string of characters to convert to an integer
+ * @return returns the integer that the string converts to. Confusingly, it will return -1
+ *  if the string is ill formatted. So that error message is only really useful if 
+ *  you expect non negative numbers
+ */
+int strtoi(char* c);
 void to_upper(char* a);
 
 //TODO: this common file needs to be split into kcommon, common, and ucommon since rand uses a syscall

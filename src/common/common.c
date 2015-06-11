@@ -89,7 +89,7 @@ int min(int val1, int val2) {
 
     return val1;
 }
-static bool is_whitespace(char c){
+static bool is_whitespace(char c) {
     return(c == ' ' || c == (char)CARRIAGE_RETURN);
 }
 int32_t strtokenize(char* str, char** argv, uint32_t maxtoks){
@@ -112,6 +112,33 @@ int32_t strtokenize(char* str, char** argv, uint32_t maxtoks){
         iter++;
     }   
     return argc;
+
+}
+static int char2int( char ch, uint32_t base ) {
+    if( ch >= '0' && ch <= '9' && base >= 10) return ch - '0';
+    if( ch >= 'a' && ch <= 'f' && base == 16) return ch - 'a' + 10;
+    if( ch >= 'A' && ch <= 'F' && base == 16) return ch - 'A' + 10;
+    return -1;
+}
+
+int strtoi(char* c) {
+    int num;
+    int charnum;
+    int base = 10;
+    num =0;
+    if(c[0]!= '\0' && c[1]!= '\0'){
+        if(c[2]=='\0') return -1; // Improper hex format
+        //This is hex, skip the first 2 format chars
+        c+=2; //
+        base = 16;
+    }
+    for(;*c!='\0';c++){
+        num*=base;
+        charnum = char2int(*c, base);
+        if(charnum < 0) return -1;
+        num+=charnum;
+    }
+    return num;
 
 }
 
