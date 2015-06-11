@@ -89,6 +89,31 @@ int min(int val1, int val2) {
 
     return val1;
 }
+static bool is_whitespace(char c){
+    return(c == ' ' || c == (char)CARRIAGE_RETURN);
+}
+int32_t strtokenize(char* str, char** argv, uint32_t maxtoks){
+    //Tokenizing string taken from Dan's(20427084) a0
+    char* iter=str;
+    uint32_t argc =0; 
+    char lastchar =' '; //we want the first char to count
+    while(*iter!='\0'){
+        if(is_whitespace(*iter)){
+            *iter='\0';
+            lastchar =' ';
+        }else{
+            if(lastchar==' '){
+                if(argc >= maxtoks)return -1; // we have found too many tokens to fit in argv
+                argv[argc]=iter;
+                argc++; 
+            }
+            lastchar=*iter;
+        }
+        iter++;
+    }   
+    return argc;
+
+}
 
 uint32_t rand(void) {
     uint32_t rand_val;

@@ -34,10 +34,28 @@ void* memcpy(void* dest, void* src, size_t len);
 int max(int val1, int val2);
 int min(int val1, int val2);
 
+#define CARRIAGE_RETURN (char)13
+#define BACKSPACE       (char)8
+
 char* strcpy(char* dest, char* src);
 char* strlcpy(char* dest, char* src, uint32_t maxlen);
 size_t strlen(char* str);
 int32_t strcmp(char* a, char* b);
+
+/**
+ * @brief modifies the given string so that words inside of it can be accessed as tokens
+ * @details turns all whitespace into \0, and modifies argv so that it contains a list of
+ * pointers to the beginning of those tokens.
+ * 
+ * @param str the string to tokenize
+ * @param argv an array of size maxtoks
+ * @param maxtoks the maximum number of tokens that can be held in argv
+ * 
+ * @return on success, returns the number of tokens that have been inserted into argv
+ * 				-1 if more tokens where found than could fit into argv
+ */
+int32_t strtokenize(char* str, char** argv, uint32_t maxtoks);
+
 void to_upper(char* a);
 
 //TODO: this common file needs to be split into kcommon, common, and ucommon since rand uses a syscall

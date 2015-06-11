@@ -14,7 +14,7 @@
 #include <idle.h>
 #include <tests/test_task.h>
 #include <user/servers.h>
-
+#include <command_server.h>
 #include <a3_user_prog.h>
 
 #define SET_DELAY_INFO(delay, iterations) (((uint64_t)(delay)) << 32) | ((uint32_t)(iterations))
@@ -45,7 +45,8 @@ void first_user_task(void) {
     ASSERT(tid == UART2_RECEIVE_SERVER_ID);
     tid = Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_server);
     ASSERT(tid == UART2_TRANSMIT_SERVER_ID);
-
+    tid = Create(SCHEDULER_HIGHEST_PRIORITY -1, command_server);
+    ASSERT(tid == COMMAND_SERVER_ID);
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/
