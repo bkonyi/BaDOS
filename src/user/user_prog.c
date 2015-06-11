@@ -50,12 +50,12 @@ void first_user_task(void) {
 
     tid = Create(SCHEDULER_HIGHEST_PRIORITY - 2, terminal_server);
     ASSERT(tid == COMMAND_SERVER_ID);
-
+    tid = Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
+    ASSERT(tid == TERMINAL_SERVER_ID);
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/
 
-    Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
 
     Exit();
 }

@@ -30,4 +30,6 @@ void putw( int channel, int n, char fc, char *bf );
 
 void printf( int channel, char *format, ... );
 
+void vprintf(int channel, char* fmt, va_list va);
+
 #endif //__IO_H__

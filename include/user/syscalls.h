@@ -244,5 +244,10 @@ int Getc( int channel );
  */
 int Putc( int channel, char ch );
 
+/**
+ * @brief Tells the kernel to stop scheduling and terminate
+ */
+int Terminate(void);
+
 #endif//__SYS_CALL_H__
 

@@ -104,6 +104,10 @@ int main(void)
 
         request = switch_context(next_task);
 
+        if(request->sys_code == SYS_CALL_TERMINATE) { 
+            // We have politely been asked to terminate
+            break;
+        }
         handle(&global_data, request);
     }
     cleanup(&global_data);

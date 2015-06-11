@@ -147,3 +147,6 @@ void printf( int channel, char *fmt, ... ) {
         format( channel, fmt, va );
         va_end(va);
 }
+void vprintf(int channel, char* fmt, va_list va){
+    format( channel, fmt, va );
+}

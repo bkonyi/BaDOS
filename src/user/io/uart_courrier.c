@@ -14,7 +14,7 @@ void uart_courrier(void) {
     FOREVER {
         Send(UART2_RECEIVE_SERVER_ID, (char*)NULL, 0, &byte, sizeof(char));
 
-        echo_command.echo_byte = byte;
+        echo_command.byte1 = byte;
         Send(TERMINAL_SERVER_ID, (char*)&echo_command, sizeof(terminal_data_t), (char*)NULL, 0);
     }
 }

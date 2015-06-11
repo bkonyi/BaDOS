@@ -3,6 +3,7 @@
 #include <servers.h>
 #include <common.h>
 #include <io.h>
+#include <terminal/terminal.h>
 
 #define USER_INPUT_BUFFER_SIZE 32
 static void process_input(char* input);
@@ -12,13 +13,13 @@ void command_server(void) {
 	char byte;
 	char input_buffer[USER_INPUT_BUFFER_SIZE];
 	char*input_iterator = input_buffer;
+	terminal_data_t terminal_data;
 	FOREVER {
 		byte = Getc(COM2);
 		if(input_iterator< (input_buffer+USER_INPUT_BUFFER_SIZE)) {
 			if(byte == CARRIAGE_RETURN){
 				*input_iterator = '\0'; // terminate the users input with the null char
 				//react to the input we currently have
-				printf(COM2,"command server got command:\r\n\t%s\r\n",input_buffer);
 				process_input(input_buffer);
 				//Start inserting chars from the beginning
 				input_iterator = input_buffer;
@@ -26,12 +27,16 @@ void command_server(void) {
 				//TODO: Send server command to backspace
 				if(input_iterator>input_buffer) {
 					input_iterator--;
+					terminal_data.command = TERMINAL_BACKSPACE;
+					Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 				}
-			}else{
+			}else {
 				*input_iterator = byte;
 				input_iterator++;
 			}	
 			
+		}else{
+			//TODO: ERROR: input too long
 		}
 
 	}
@@ -44,9 +49,9 @@ void process_input(char* input) {
 	int32_t argc = strtokenize(input,argv,10);
 	//if(argc < 0); TODO: INPUT TOO LARGE
 
-	//TODO: instance of terminal server command struct
-	//char stat_msg[STATUS_SIZE];
-	//term_clear_whole_line(t);
+	terminal_data_t terminal_data;
+	//Assume error, prove otherwise
+	terminal_data.command = TERMINAL_COMMAND_ERROR;
 	
 	//inst->type = NONE;
 	if(argc > 3){
@@ -55,26 +60,22 @@ void process_input(char* input) {
 		target_train_number = strtoi(argv[1]);//TODO: add hex support
 		if(strcmp(argv[0],"tr")==0){
 			target_train_value = strtoi(argv[2]);
+			terminal_data.command = TERMINAL_TRAIN_COMMAND;
+
 			if(((target_train_number) != -1) 
 					&& (target_train_value) != -1){
-				//tgstrformat(stat_msg,"SET TRAIN %d SPD T0 %d",target_train_number,target_train_value);
-				//term_set_status(t,stat_msg);
-				//inst->type = TR;
-				//inst->target = target_train_number;
-				//inst->value = target_train_value;
+				terminal_data.num1 = target_train_number;
+				terminal_data.num2 = target_train_value;
 			}else{
 				//term_set_status(t,"ERROR: TR Args invalid");
 			}
 		}else if(strcmp(argv[0],"sw")==0){
 			if(target_train_number >= 0 ){ //TODO: max train number?
 				//Set type to SW
-				if(strcmp(argv[2],"C")==0){
-					//tgstrformat(stat_msg,"SET SWITCH %d TO %s",target_train_number,argv[2]);
-					//term_set_status(t,stat_msg);
-					
-					//	inst->value = 'C';
-				}else if(strcmp(argv[2],"S")==0) {
-					//	inst->value = 'S';
+				terminal_data.command = TERMINAL_SWITCH_COMMAND;
+				if((strcmp(argv[2],"C")==0) || (strcmp(argv[2],"S")==0)){
+					terminal_data.num1 = target_train_number;
+					terminal_data.byte1= argv[2][0];
 				}else{
 					//term_set_status(t,"ERROR: SW, INVALID switch value");
 				}
@@ -89,25 +90,19 @@ void process_input(char* input) {
 		if(strcmp(argv[0],"rv")==0){
 			target_train_number = strtoi(argv[1]);
 			if(target_train_number>0){
-				//tgstrformat(stat_msg,"REVERSE TRAIN %d",target_train_number);
-				//term_set_status(t,stat_msg);
-				//inst->type = RV;
-				//inst->target = target_train_number;
+				terminal_data.command = TERMINAL_REVERSE_COMMAND;
+				terminal_data.num1 = target_train_number;
 			}else{
+				printf(COM2,"INVTR %d", target_train_number);
 				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
 		}else{
 			//term_set_status(t,"ERROR: Invalid command");
 		}
 	}else if( argc == 1){
-
 		if(strcmp(argv[0],"q")==0){
-			//term_set_status(t,"QUITTING");
-  			// /t->operation_state=-1;
-		}else{
-			//term_set_status(t,"ERROR: Invalid command");
+			terminal_data.command = TERMINAL_QUIT;
 		}
-	}else{
-		//term_set_status(t,"ERROR: TR Args invalid");
 	}
+	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
