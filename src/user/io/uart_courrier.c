@@ -7,8 +7,10 @@ void uart_courrier(void) {
     int uart_receiver, uart_transmitter;
     char byte;
 
+    RegisterAs(UART2_COURRIER);
+
     do {
-        uart_receiver = WhoIs(UART2_RECEIVE_NOTIFIER);
+        uart_receiver = WhoIs(UART2_RECEIVE_SERVER);
     } while(uart_receiver == -2);
 
     do {

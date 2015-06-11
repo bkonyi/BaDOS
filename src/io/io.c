@@ -17,10 +17,10 @@ int putc( int channel, char c ) {
 
 	switch(channel) {
 		case COM1:
-			transmit_server_tid = WhoIs(UART1_TRANSMIT_SERVER); //TODO we might want to hardcode these values in if possible for speed
+			transmit_server_tid = UART1_TRANSMIT_SERVER_ID;
 			break;
 		case COM2:
-			transmit_server_tid = WhoIs(UART2_TRANSMIT_SERVER);
+			transmit_server_tid = UART2_TRANSMIT_SERVER_ID;
 			break;
 		default:
 			ASSERT(0); //Do we want to do this?
@@ -70,10 +70,10 @@ int getc( int channel ) {
  	char byte;
 	switch(channel) {
 		case COM1:
-			transmit_server_tid = WhoIs(UART1_RECEIVE_SERVER); //TODO we might want to hardcode these values in if possible for speed
+			transmit_server_tid = UART1_RECEIVE_SERVER_ID;
 			break;
 		case COM2:
-			transmit_server_tid = WhoIs(UART2_RECEIVE_SERVER);
+			transmit_server_tid = UART2_RECEIVE_SERVER_ID;
 			break;
 		default:
 			ASSERT(0); //Do we want to do this?

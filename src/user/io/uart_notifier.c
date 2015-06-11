@@ -27,9 +27,7 @@ void uart_transmit_notifier(uint32_t com) {
             break;
         default: 
             ASSERT(0);
-    }
-    bwprintf(COM2, "Transmit Notifier created\r\n");
-    
+    }    
     
     int result;
 
@@ -72,31 +70,17 @@ void uart_receive_notifier(uint32_t com) {
                 receive_server_tid = WhoIs(UART2_RECEIVE_SERVER);
             } while(receive_server_tid == -2);
 
-            RegisterAs(UART2_RECEIVE_NOTIFIER);
             break;
         default: 
             ASSERT(0);
     }
-   // bwprintf(COM2, "Receive Notifier created\r\n");
     int result;
 
     ASSERT(receive_server_tid >= 0);
 
-    //volatile int32_t* UART_EVENT_REGISTER = (int32_t*)(base + UART_INTR_OFFSET);
-    //volatile int32_t* UART1_DATA_REGISTER  = (int32_t*)(UART1_BASE + UART_DATA_OFFSET);
-    int courrier_tid;
-
     FOREVER {
-       // bwprintf(COM2,"AWAITING ID: %d\r\n",event);
         result = AwaitEvent(event);
-       // bwprintf(COM2,"back from await, eventid: %d\r\n",event);
         ASSERT(result >= 0);
-
-        //Echo the input to the terminal
-        if(com == COM2) {
-            Receive(&courrier_tid, (char*)NULL, 0);
-            Reply(courrier_tid, (char*)&result, sizeof(char));
-        }
 
         //Send the byte grabbed to the receive task
         Send(receive_server_tid, (char*)&result, sizeof(char), (char*)NULL, 0);
