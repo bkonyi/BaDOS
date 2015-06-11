@@ -189,6 +189,7 @@ void uart1_receive_server(void) {
 void uart2_receive_server(void) {
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_notifier);
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart_courrier);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_timeout_notifier);
     unbuffered_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 
 }
