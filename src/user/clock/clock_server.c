@@ -68,7 +68,7 @@ void clock_server_task(void) {
             //that has been delayed
             while(next_delay_task != NULL && next_delay_task->ticks <= ticks) {
 
-                result = 0;
+                result = ticks;
                 //bwprintf(COM2,"CURTICKS: %d reply to tid: %d for ticks: %d\r\n",ticks,next_delay_task->tid, next_delay_task->ticks);
                 Reply(next_delay_task->tid,(char*)&result,sizeof(int));
                 //The current delay_task_t object is now free and can be added
@@ -89,7 +89,7 @@ void clock_server_task(void) {
                 //NOTE: there is intentionally no break here
             case DELAY_UNTIL:
                 if(message.ticks <= ticks) {
-                    result = 0;
+                    result = ticks;
                     Reply(next_delay_task->tid,(char*)&result,sizeof(int));
                 }
                 if(next_delay_task == NULL) {    //We don't have any tasks delayed

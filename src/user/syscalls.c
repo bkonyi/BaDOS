@@ -141,9 +141,9 @@ int Delay( int ticks ) {
     result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 
     ASSERT(result == sizeof(int32_t));
-    ASSERT(delay_result == 0);
+    ASSERT(delay_result >= 0);
 
-    return 0;
+    return delay_result;
 }
 
 int DelayUntil( int ticks ) {
@@ -160,9 +160,9 @@ int DelayUntil( int ticks ) {
     result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 
     ASSERT(result == 0);
-    ASSERT(delay_result == 0);
+    ASSERT(delay_result >= 0);
 
-    return 0;
+    return delay_result;
 }
 
 //Just for compatability with the kernel spec.

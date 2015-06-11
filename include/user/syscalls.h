@@ -206,7 +206,7 @@ int Time( void );
  * higher priority tasks
  * 
  * @param ticks The number of ticks to delay for.
- * @return 0, -1 on error
+ * @return The current tick count, -1 on error
  */
 int Delay( int ticks );
 
@@ -217,7 +217,7 @@ int Delay( int ticks );
  * because the caller may have to wait on higher priority tasks.
  * 
  * @param ticks The time we want to start executing a delayed task.
- * @return 0, -1 on error
+ * @return The current tick count, -1 on error
  */
 int DelayUntil( int ticks );
 
