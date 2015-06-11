@@ -3,8 +3,10 @@
 #include <syscalls.h>
 #include <io.h>
 void test_task(void) {
+
 	//char c;
 	//Delay(500);
+
 	FOREVER {
         //printf(COM2, "Hello!");
 	}
