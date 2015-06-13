@@ -4,6 +4,7 @@
 #include <common.h>
 #include <io.h>
 #include <terminal/terminal.h>
+#include <trains/train_controller_commander.h>
 
 #define USER_INPUT_BUFFER_SIZE 32
 static void process_input(char* input);
@@ -17,25 +18,25 @@ void command_server(void) {
 	FOREVER {
 		byte = Getc(COM2);
 		if(input_iterator< (input_buffer+USER_INPUT_BUFFER_SIZE)) {
-			if(byte == CARRIAGE_RETURN){
+			if(byte == CARRIAGE_RETURN) {
 				*input_iterator = '\0'; // terminate the users input with the null char
 				//react to the input we currently have
 				process_input(input_buffer);
 				//Start inserting chars from the beginning
 				input_iterator = input_buffer;
-			}else if (byte == BACKSPACE) {
+			} else if (byte == BACKSPACE) {
 				//TODO: Send server command to backspace
 				if(input_iterator>input_buffer) {
 					input_iterator--;
 					terminal_data.command = TERMINAL_BACKSPACE;
-					Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+					Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this stuff in terminal.h
 				}
-			}else {
+			} else {
 				*input_iterator = byte;
 				input_iterator++;
 			}	
 			
-		}else{
+		} else {
 			//TODO: ERROR: input too long
 		}
 
@@ -54,55 +55,61 @@ void process_input(char* input) {
 	terminal_data.command = TERMINAL_COMMAND_ERROR;
 	
 	//inst->type = NONE;
-	if(argc > 3){
+	if(argc > 3) {
 		//ERROR too many args
-	}else if(argc ==3){
+	} else if(argc ==3){
 		target_train_number = strtoi(argv[1]);//TODO: add hex support
-		if(strcmp(argv[0],"tr")==0){
+		if(strcmp(argv[0],"tr")==0) {
 			target_train_value = strtoi(argv[2]);
 			terminal_data.command = TERMINAL_TRAIN_COMMAND;
 
 			if(((target_train_number) != -1) 
-					&& (target_train_value) != -1){
+					&& (target_train_value) != -1) {
 				terminal_data.num1 = target_train_number;
 				terminal_data.num2 = target_train_value;
-			}else{
+
+				ASSERT(train_set_speed(target_train_number, target_train_value) == 0);
+			} else {
 				//term_set_status(t,"ERROR: TR Args invalid");
 			}
-		}else if(strcmp(argv[0],"sw")==0){
-			if(target_train_number >= 0 ){ //TODO: max train number?
+		} else if(strcmp(argv[0],"sw")==0) {
+			if(target_train_number >= 0 ) { //TODO: max train number?
 				//Set type to SW
 				terminal_data.command = TERMINAL_SWITCH_COMMAND;
-				if((strcmp(argv[2],"C")==0) || (strcmp(argv[2],"S")==0)){
+				if((strcmp(argv[2],"C") == 0) || (strcmp(argv[2],"S") == 0) ||
+					(strcmp(argv[2], "c") == 0) || (strcmp(argv[2], "s") == 0)) {
 					terminal_data.num1 = target_train_number;
 					terminal_data.byte1= argv[2][0];
-				}else{
+
+					ASSERT(switch_set_direction(target_train_number, argv[2][0]) == 0);
+				} else {
 					//term_set_status(t,"ERROR: SW, INVALID switch value");
 				}
-			}else{
+			} else {
 				//term_set_status(t,"ERROR: SW, INVALID switch number");
 			}
-		}else{
+		} else {
 			//term_set_status(t,"ERROR: Invalid command");
 		}
-	}else if(argc ==2){
+	} else if(argc ==2) {
 		
-		if(strcmp(argv[0],"rv")==0){
+		if(strcmp(argv[0],"rv")==0) {
 			target_train_number = strtoi(argv[1]);
-			if(target_train_number>0){
+			if(target_train_number>0) {
 				terminal_data.command = TERMINAL_REVERSE_COMMAND;
 				terminal_data.num1 = target_train_number;
-			}else{
+				ASSERT(train_reverse(target_train_number) == 0);
+			} else {
 				printf(COM2,"INVTR %d", target_train_number);
 				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
-		}else{
+		} else {
 			//term_set_status(t,"ERROR: Invalid command");
 		}
-	}else if( argc == 1){
+	} else if( argc == 1) {
 		if(strcmp(argv[0],"q")==0){
 			terminal_data.command = TERMINAL_QUIT;
 		}
 	}
-	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this in terminal.h
 }

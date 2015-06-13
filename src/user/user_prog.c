@@ -13,6 +13,7 @@
 #include <idle.h>
 #include <tests/test_task.h>
 #include <user/servers.h>
+#include <trains/train_controller_commander.h>
 #include <command_server.h>
 #include <a3_user_prog.h>
 
@@ -49,12 +50,14 @@ void first_user_task(void) {
     ASSERT(tid == COMMAND_SERVER_ID);
 
     tid = Create(SCHEDULER_HIGHEST_PRIORITY - 2, terminal_server);
-    ASSERT(tid == COMMAND_SERVER_ID);
-    tid = Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
     ASSERT(tid == TERMINAL_SERVER_ID);
+
+    tid = Create(SCHEDULER_HIGHEST_PRIORITY - 1, train_controller_commander_server);
+    ASSERT(tid == TRAIN_CONTROLLER_SERVER_ID);
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/
+    tid = Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
 
 
     Exit();
