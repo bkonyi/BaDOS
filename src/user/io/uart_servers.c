@@ -17,8 +17,9 @@ CREATE_NON_POINTER_BUFFER_TYPE(uart_tid_buffer_t,tid_t,MAX_NUMBER_OF_TASKS);
 
 void uart_transmit_server(char* name,uint32_t buffer_size) {
     int sending_tid;
-    char byte;
+    char message[TRANSMIT_BUFFER_SIZE];
     int result;
+    int size;
     bool output_ready = false;
     int output_notifier = -1;
 
@@ -28,34 +29,36 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
     RegisterAs(name);
 
     FOREVER {
-        result = Receive(&sending_tid, &byte, sizeof(char));
+        result = Receive(&sending_tid, message, sizeof(char) * TRANSMIT_BUFFER_SIZE);
 
         //Only the notifier sends messages of length 0
         if(result == 0) {
-
             //If there's a character on the queue, send it to the notifier
             if(!IS_BUFFER_EMPTY(output_buffer)) {
-                POP_FRONT(output_buffer, byte);
-                Reply(sending_tid, &byte, sizeof(char));
+                POP_FRONT(output_buffer, message[0]);
+                Reply(sending_tid, message, sizeof(char));
             } else {
                 //Otherwise, we wait to reply until later
                 output_ready = true;
                 output_notifier = sending_tid;
             }
 
-        } else if(result == sizeof(char)) {
+        } else if(result >= sizeof(char)) {
+            size = result;
 
-            //Queue up the next character to output
-            PUSH_BACK(output_buffer, byte, result);
-            ASSERT(result == 0);
+            int i;
+            for(i = 0; i < size; i++) {
+                PUSH_BACK(output_buffer, message[i], result);
+                ASSERT(result == 0);
+            }
 
             //Let the sender wake back up
             Reply(sending_tid, (char*)NULL, 0);
 
             //If the UART is waiting on an output, send the byte now.
             if(output_ready) {
-                POP_FRONT(output_buffer, byte);
-                Reply(output_notifier, &byte, sizeof(char));
+                POP_FRONT(output_buffer, message[0]);
+                Reply(output_notifier, message, sizeof(char));
                 output_ready = false;
             }
 

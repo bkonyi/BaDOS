@@ -11,6 +11,14 @@
 #include <io_common.h>
 #include <servers.h>
 #include <syscalls.h>
+#include <io/uart_servers.h>
+
+#define SEND_TRANSMIT_BUFFER() { 											     \
+	Send(transmit_server_tid, msg_buffer, msg_buffer_index, (char*)NULL, 0); 	 \
+	msg_buffer_index = 0;														 \
+} while(0)
+
+static int buffer_putw( char* output_buffer, int buffer_size, int n, char fc, char *bf );
 
 int putc( int channel, char c ) {
 	int transmit_server_tid = -1;
@@ -65,6 +73,32 @@ void putw( int channel, int n, char fc, char *bf ) {
 	while( ( ch = *bf++ ) ) putc( channel, ch );
 }
 
+int buffer_putw( char* output_buffer, int buffer_size, int n, char fc, char *bf ) {
+	char ch;
+	char *p = bf;
+
+	int index = 0;
+
+	while( *p++ && n > 0 ) n--;
+	while( n-- > 0 ) {
+		if(index >= buffer_size) {
+			return -1;
+		}
+
+		output_buffer[index++] = fc;
+	}
+
+	while( ( ch = *bf++ ) ) {
+		if(index >= buffer_size) {
+			return -1;
+		}
+		
+		output_buffer[index++] = ch;
+	}
+
+	return index;
+}
+
 int getc( int channel ) {
 	int transmit_server_tid = -1;
  	char byte;
@@ -84,16 +118,33 @@ int getc( int channel ) {
 	return (int)byte;
 }
 
+
 void format ( int channel, char *fmt, va_list va ) {
 	char bf[12];
 	char ch, lz;
 	int w;
 
+	char msg_buffer[TRANSMIT_BUFFER_SIZE];
+	int msg_buffer_index = 0;
+
+	int result;
+	int transmit_server_tid = -1;
 	
+	switch(channel) {
+		case COM1:
+			transmit_server_tid = UART1_TRANSMIT_SERVER_ID;
+			break;
+		case COM2:
+			transmit_server_tid = UART2_TRANSMIT_SERVER_ID;
+			break;
+		default:
+			ASSERT(0); //Do we want to do this?
+	}
+
 	while ( ( ch = *(fmt++) ) ) {
-		if ( ch != '%' )
-			putc( channel, ch );
-		else {
+		if ( ch != '%' ) {
+			msg_buffer[msg_buffer_index++] = ch;
+		} else {
 			lz = 0; w = 0;
 			ch = *(fmt++);
 			switch ( ch ) {
@@ -113,31 +164,68 @@ void format ( int channel, char *fmt, va_list va ) {
 				break;
 			}
 			switch( ch ) {
-			case 0: return;
+			case 0:
+				SEND_TRANSMIT_BUFFER(); 
+				return;
 			case 'c':
-				putc( channel, va_arg( va, char ) );
+				msg_buffer[msg_buffer_index++] = ch;
 				break;
 			case 's':
-				putw( channel, w, 0, va_arg( va, char* ) );
+				do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, 0, va_arg(va, char*));
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);
+
 				break;
 			case 'u':
 				ui2a( va_arg( va, unsigned int ), 10, bf );
-				putw( channel, w, lz, bf );
+				do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);
 				break;
 			case 'd':
 				i2a( va_arg( va, int ), bf );
-				putw( channel, w, lz, bf );
+				do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);
 				break;
 			case 'x':
 				ui2a( va_arg( va, unsigned int ), 16, bf );
-				putw( channel, w, lz, bf );
+				do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);
 				break;
 			case '%':
-				putc( channel, ch );
+				msg_buffer[msg_buffer_index++] = ch;
 				break;
 			}
 		}
+
+		if(msg_buffer_index == TRANSMIT_BUFFER_SIZE) {
+			SEND_TRANSMIT_BUFFER();
+		}
 	}
+
+	SEND_TRANSMIT_BUFFER();
 }
 
 void printf( int channel, char *fmt, ... ) {
