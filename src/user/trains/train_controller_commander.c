@@ -3,6 +3,7 @@
 #include <io/io.h>
 #include <servers.h>
 #include <syscalls.h>
+#include <terminal/terminal.h>
 
 #define REVERSE_DELAY_TICKS 200 //2000ms
 #define CONTROLLER_DELAY()  Delay(5);
@@ -19,6 +20,8 @@
 #define MAX_SPEED       14
 #define REVERSE_COMMAND 15
 
+#define QUERY_SENSORS_COMMAND 133
+
 typedef struct {
     int16_t train;
     int32_t reverse_time;
@@ -32,8 +35,10 @@ static void handle_train_reverse_begin(int8_t train);
 static void handle_train_reverse_end(int8_t train, int8_t speed);
 static void handle_switch_set_direction(int16_t switch_num, char direction);
 
+static void sensor_query_server(void);
+static void handle_start_track_query(void);
+
 void train_controller_commander_server(void) {
-    bwprintf(COM2, "Creating train controller commander server...\r\n");
     int sending_tid;
     train_controller_data_t data;
     int8_t train_speeds[MAX_TRAIN_NUM + 1];
@@ -45,6 +50,7 @@ void train_controller_commander_server(void) {
 
     //TODO should change priority of this probably...
     int train_reverse_server_tid = Create(SCHEDULER_HIGHEST_PRIORITY - 1, train_reverse_delay_server);
+    Create(SCHEDULER_HIGHEST_PRIORITY - 1, sensor_query_server);
 
     RegisterAs(TRAIN_CONTROLLER_SERVER);
 
@@ -71,6 +77,9 @@ void train_controller_commander_server(void) {
                 break;
             case SWITCH_DIRECTION:
                 handle_switch_set_direction(data.var1, data.var2);
+                break;
+            case SENSOR_QUERY_REQUEST:
+                handle_start_track_query();
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -157,6 +166,25 @@ void send_reverse_delay(int server_id, int8_t train) {
     Send(server_id, (char*)&delay_request, sizeof(reverse_delay_t), (char*)NULL, 0);
 }
 
+void sensor_query_server(void) {
+    train_controller_data_t data;
+    data.command = SENSOR_QUERY_REQUEST;
+
+    int8_t sensors[10];
+
+    FOREVER {
+        Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+
+        int i;
+        for(i = 0; i < 10; ++i) {
+            sensors[i] = getc(COM1);
+        }
+
+        update_terminal_sensors_display(sensors);
+        //TODO broadcast updated sensor data.
+    }
+}
+
 void handle_train_set_speed(int8_t train, int8_t speed) {
     putc(COM1, speed);
     CONTROLLER_DELAY();//TODO I think we need this 50ms delay...
@@ -190,4 +218,9 @@ void handle_switch_set_direction(int16_t switch_num, char direction) {
     putc(COM1, switch_num);
     CONTROLLER_DELAY();//TODO I think we need this 50ms delay...
     putc(COM1, SWITCH_DEACTIVATE);
+}
+
+void handle_start_track_query(void) {
+    putc(COM1, QUERY_SENSORS_COMMAND);
+    CONTROLLER_DELAY();
 }

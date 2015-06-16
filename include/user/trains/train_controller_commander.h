@@ -8,7 +8,7 @@ typedef enum {
     TRAIN_REVERSE_BEGIN,
     TRAIN_REVERSE_REACCEL,
     SWITCH_DIRECTION,
-    SENSOR_QUERY, 
+    SENSOR_QUERY_REQUEST, 
     TRAIN_CONTROLLER_UKNOWN_COMMAND
 } train_controller_command_t;
 

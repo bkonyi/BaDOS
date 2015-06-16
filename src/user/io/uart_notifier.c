@@ -44,6 +44,10 @@ void uart_transmit_notifier(uint32_t com) {
         char byte;
         Send(send_server_tid, (char*)NULL, 0, &byte, sizeof(char));
 
+        if(com == COM1) {
+            Delay(5); //SUPER HACK
+        }
+
         //Put the byte in the UART register
         *UART_DATA_REGISTER = byte;
     }

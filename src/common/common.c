@@ -37,6 +37,14 @@ size_t strlen(char* str) {
     return count;
 }
 
+char char_to_upper(char a) {
+    if('a'<= a && a <= 'z'){
+        a = a - ('a'-'A');
+    }
+
+    return a;
+}
+
 void to_upper(char* a) {
     //TODO: untested
     #if 0

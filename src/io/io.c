@@ -168,7 +168,7 @@ void format ( int channel, char *fmt, va_list va ) {
 				SEND_TRANSMIT_BUFFER(); 
 				return;
 			case 'c':
-				msg_buffer[msg_buffer_index++] = ch;
+				msg_buffer[msg_buffer_index++] = va_arg( va, char );
 				break;
 			case 's':
 				do {

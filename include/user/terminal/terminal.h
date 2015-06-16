@@ -12,6 +12,7 @@ typedef enum {
     TERMINAL_COMMAND_ERROR   =  6,
     TERMINAL_BACKSPACE       =  7,
     TERMINAL_QUIT			 =  8,
+    TERMINAL_UPDATE_SENSORS  =  9,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -21,9 +22,11 @@ typedef struct {
     int32_t            num1;
     int32_t            num2;
     char               byte1;
+    int8_t             sensors[10]; //I really don't want to put this here...
 } terminal_data_t;
 
 void terminal_server(void);
 void update_terminal_clock(int32_t ticks);
+void update_terminal_sensors_display(int8_t* sensors);
 
 #endif //__TERMINAL_H__

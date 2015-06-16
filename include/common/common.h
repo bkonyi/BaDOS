@@ -65,6 +65,7 @@ int32_t strtokenize(char* str, char** argv, uint32_t maxtoks);
  *  you expect non negative numbers
  */
 int strtoi(char* c);
+char char_to_upper(char a);
 void to_upper(char* a);
 
 //TODO: this common file needs to be split into kcommon, common, and ucommon since rand uses a syscall
