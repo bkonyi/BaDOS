@@ -7,18 +7,21 @@
 #include <terminal/terminal_control.h>
 #include <ring_buffer.h>
 
-#define TERM_SENSORS_ROW          3
+#define TERM_SENSORS_ROW          4
 #define TERM_SENSORS_DATA_ROW     TERM_SENSORS_ROW + 3
 #define TERM_SENSORS_DATA_WIDTH   4
+
+#define TERM_TIME_ROW TERM_SENSORS_ROW + 12
+#define TERM_TIME_COL 54
 
 #define TERM_SWITCHES_DATA_ROW       TERM_SENSORS_ROW + 4
 #define TERM_SWITCHES_DATA_COLUMN    48
 #define TERM_SWITCHES_COL_WIDTH      3
 #define TERM_SWITCHES_BIG_COL_WIDTH  6
 #define TERM_SWITCHES_ROW_HEIGHT     3
-#define TERM_INPUT_ROW               18
-#define TERM_INPUT_COORDS            8, TERM_INPUT_ROW
-#define TERM_STATUS_COORDS           0, (TERM_INPUT_ROW-1)
+#define TERM_INPUT_ROW               TERM_SENSORS_ROW + 16
+#define TERM_INPUT_COORDS            10, TERM_INPUT_ROW
+#define TERM_STATUS_COORDS           11, (TERM_INPUT_ROW-2)
 
 #define NUM_RECENT_SENSORS           10
 #define RECENT_SENSORS_DATA_ROW      TERM_SENSORS_DATA_ROW 
@@ -57,11 +60,14 @@ void terminal_server(void) {
     RegisterAs(TERMINAL_SERVER);
 
     term_clear();
-    term_move_cursor(1,1);
-    printf(COM2, "Time:");
+    //term_move_cursor(1,1);
+    //printf(COM2, "Time:");
 
-    term_move_cursor(1, TERM_SENSORS_ROW);
-    printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
+    term_move_cursor(1, 1);
+    printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
+    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃\r\n");
+    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃A1  A2  A3  A4  A5  A6  A7  A8  ┃          ┃  1  2  3  4  5  6  7  8  9  ┃\r\n");
@@ -72,13 +78,13 @@ void terminal_server(void) {
     printf(COM2, "┃C9  C10 C11 C12 C13 C14 C15 C16 ┃          ┃                             ┃\r\n");
     printf(COM2, "┃D1  D2  D3  D4  D5  D6  D7  D8  ┃          ┃    153   154   155   156    ┃\r\n");
     printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┃\r\n");
-    printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┃                             ┃\r\n");
-    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃                             ┃\r\n");
-    printf(COM2, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");
-
-    term_move_cursor(1,TERM_INPUT_ROW);
-    term_green_text();
-    printf(COM2, "Input:");
+    printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ \e[1;34mTIME:\e[0m                       ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃ \e[33;1mResult:\e[0m                                                                 ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃ \e[32;1mInput:\e[0m                                                                  ┃\r\n");
+    printf(COM2, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");
     term_fmt_clr();
 
     Create(SCHEDULER_HIGHEST_PRIORITY / 2, terminal_tick_notifier);
@@ -170,13 +176,16 @@ void update_terminal_sensors_display(int8_t* sensors) {
 
 void handle_update_terminal_clock(int32_t ticks) {
     term_save_cursor();
-    term_move_cursor(7,1);
-    printf(COM2, "%d:%d.%d", (ticks / 100) / 60, (ticks / 100) % 60, (ticks / 10) % 10);
+    term_hide_cursor();
+    term_move_cursor(TERM_TIME_COL,TERM_TIME_ROW);
+    printf(COM2, "%d:%d.%d ", (ticks / 100) / 60, (ticks / 100) % 60, (ticks / 10) % 10);
     term_restore_cursor();
+    term_show_cursor();
 }
 
 void handle_update_sensors(char* previous_sensors, char* sensors, int* recent_sensors, int* recent_sensors_index) {
     term_save_cursor();
+    term_hide_cursor();
     int i;
     bool sensor_changed = false;
 
@@ -257,8 +266,8 @@ void handle_update_sensors(char* previous_sensors, char* sensors, int* recent_se
             printf(COM2, "%c%d ", letter, number); //Extra space is to overwrite any two digit numbers previously there
         }
     }
-
     term_restore_cursor();
+    term_show_cursor();
 }
 
 /**
@@ -266,6 +275,7 @@ void handle_update_sensors(char* previous_sensors, char* sensors, int* recent_se
  * to the location of the screen where we want our status message to go
  */
 void status_message(char* fmt, ...){
+    term_hide_cursor();
     term_move_cursor(TERM_STATUS_COORDS);
     term_clear_rest_line();
     va_list va;
@@ -278,6 +288,7 @@ void status_message(char* fmt, ...){
 void clear_user_input(void) {
     term_move_cursor(TERM_INPUT_COORDS);
     term_clear_rest_line();
+    term_show_cursor();
 }
 void handle_train_command(int32_t num,int32_t speed){
     status_message("CMD: 'TR' #: '%d' Speed: '%d'",num,speed);
@@ -288,6 +299,7 @@ void handle_reverse_command(int32_t num){
 void handle_switch_command(int32_t num,char state){
     status_message("CMD 'SW' #: '%d' State: '%c'",num,state);
 
+    term_hide_cursor();
     term_save_cursor();
     num -= 1;
 
@@ -302,6 +314,7 @@ void handle_switch_command(int32_t num,char state){
     printf(COM2, "%c", char_to_upper(state));
 
     term_restore_cursor();
+    term_show_cursor();
 }
 void handle_quit_command(void){
     status_message("CMD QUIT");

@@ -42,6 +42,7 @@ void command_server(void) {
 
 void process_input(char* input) {
 	char * argv[10];
+	int32_t result;
 	int32_t target_train_number, target_train_value;
 	
 	int32_t argc = strtokenize(input,argv,10);
@@ -65,7 +66,11 @@ void process_input(char* input) {
 				terminal_data.num1 = target_train_number;
 				terminal_data.num2 = target_train_value;
 
-				train_set_speed(target_train_number, target_train_value);
+				result = train_set_speed(target_train_number, target_train_value);
+
+				if(result != 0) {
+					terminal_data.command = TERMINAL_COMMAND_ERROR;
+				}
 			} else {
 				//term_set_status(t,"ERROR: TR Args invalid");
 			}
@@ -78,7 +83,11 @@ void process_input(char* input) {
 					terminal_data.num1 = target_train_number;
 					terminal_data.byte1= argv[2][0];
 
-					switch_set_direction(target_train_number, argv[2][0]);
+					result = switch_set_direction(target_train_number, argv[2][0]);
+
+					if(result != 0) {
+						terminal_data.command = TERMINAL_COMMAND_ERROR;
+					}
 				} else {
 					//term_set_status(t,"ERROR: SW, INVALID switch value");
 				}
@@ -95,7 +104,11 @@ void process_input(char* input) {
 			if(target_train_number>0) {
 				terminal_data.command = TERMINAL_REVERSE_COMMAND;
 				terminal_data.num1 = target_train_number;
-				train_reverse(target_train_number);
+				result = train_reverse(target_train_number);
+
+				if(result != 0) {
+					terminal_data.command = TERMINAL_COMMAND_ERROR;
+				}
 			} else {
 				printf(COM2,"INVTR %d", target_train_number);
 				//term_set_status(t,"ERROR: RV, INVALID train number");

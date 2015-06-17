@@ -81,6 +81,12 @@ void cleanup(global_data_t* global_data) {
     //Stop the timer
     timer3_stop();
 
+    //Clear the screen
+    bwprintf(COM2,"\e[2J");
+
+    //Move the cursor to the top left
+    bwprintf(COM2,"\e[1;1H");
+
     //Clears all interrupts  except timer3.
     initialize_interrupts(global_data);
 }
