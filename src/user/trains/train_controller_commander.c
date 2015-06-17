@@ -5,7 +5,7 @@
 #include <syscalls.h>
 #include <terminal/terminal.h>
 
-#define REVERSE_DELAY_TICKS 500 //5000ms
+#define REVERSE_DELAY_TICKS 350 //3500ms
 
 #define MAX_TRAIN_NUM 100 //TODO change this arbitrary value
 
@@ -20,6 +20,27 @@
 #define REVERSE_COMMAND 15
 
 #define QUERY_SENSORS_COMMAND 133
+
+#define START_CONTROLLER_COMMAND 96
+#define STOP_CONTROLLER_COMMAND  97
+
+typedef enum {
+    TRAIN_SET_SPEED,
+    TRAIN_REVERSE_BEGIN,
+    TRAIN_REVERSE_REACCEL,
+    SWITCH_DIRECTION,
+    SENSOR_QUERY_REQUEST, 
+    START_CONTROLLER,
+    STOP_CONTROLLER,
+    TRAIN_CONTROLLER_UKNOWN_COMMAND
+} train_controller_command_t;
+
+typedef struct {
+    train_controller_command_t command;
+    int16_t var1;
+    int8_t  var2;
+
+} train_controller_data_t;
 
 typedef struct {
     int16_t train;
@@ -37,6 +58,9 @@ static void handle_switch_set_direction(int16_t switch_num, char direction);
 static void sensor_query_server(void);
 static void handle_start_track_query(void);
 
+static void handle_start_controller(void);
+static void handle_stop_controller(void);
+
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -48,8 +72,14 @@ void train_controller_commander_server(void) {
     }
 
     //TODO should change priority of this probably...
+    //Create the server responsible for creating the delay when reversing trains
     int train_reverse_server_tid = Create(SCHEDULER_HIGHEST_PRIORITY - 1, train_reverse_delay_server);
+    
+    //Create the task responsible for requesting sensor querys and handling the responses
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, sensor_query_server);
+
+    //Since we turn the controller off when we start, we might as well turn it back on.
+    handle_start_controller();
 
     RegisterAs(TRAIN_CONTROLLER_SERVER);
 
@@ -79,6 +109,12 @@ void train_controller_commander_server(void) {
                 break;
             case SENSOR_QUERY_REQUEST:
                 handle_start_track_query();
+                break;
+            case START_CONTROLLER:
+                handle_start_controller();
+                break;
+            case STOP_CONTROLLER:
+                handle_stop_controller();
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -137,6 +173,18 @@ int switch_set_direction(int16_t switch_num, char direction) {
     return 0;
 }
 
+void start_controller(void) {
+    train_controller_data_t data;
+    data.command = START_CONTROLLER;
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+}
+
+void stop_controller(void) {
+    train_controller_data_t data;
+    data.command = STOP_CONTROLLER;
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+}
+
 void train_reverse_delay_server(void) {
     int sending_tid;
     reverse_delay_t delay_request;
@@ -180,7 +228,6 @@ void sensor_query_server(void) {
         }
 
         update_terminal_sensors_display(sensors);
-        //TODO broadcast updated sensor data.
     }
 }
 
@@ -217,4 +264,12 @@ void handle_switch_set_direction(int16_t switch_num, char direction) {
 
 void handle_start_track_query(void) {
     putc(COM1, QUERY_SENSORS_COMMAND);
+}
+
+void handle_start_controller(void) {
+    putc(COM1, START_CONTROLLER_COMMAND);
+}
+
+void handle_stop_controller(void) {
+    putc(COM1, STOP_CONTROLLER_COMMAND);
 }

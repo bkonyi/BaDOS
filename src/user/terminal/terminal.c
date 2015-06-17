@@ -33,6 +33,8 @@ static void handle_train_command(int32_t num,int32_t speed);
 static void handle_reverse_command(int32_t num);
 static void handle_switch_command(int32_t num,char state);
 static void handle_quit_command(void);
+static void handle_start_command(void);
+static void handle_stop_command(void);
 static void clear_user_input(void);
 static void status_message(char* fmt, ...);
 
@@ -122,6 +124,12 @@ void terminal_server(void) {
                 break;
             case TERMINAL_QUIT:
                 handle_quit_command();
+                break;
+            case TERMINAL_START_CTRL:
+                handle_start_command();
+                break;
+            case TERMINAL_STOP_CTRL:
+                handle_stop_command();
                 break;
             case TERMINAL_UPDATE_SENSORS:
                 handle_update_sensors(previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
@@ -298,5 +306,13 @@ void handle_switch_command(int32_t num,char state){
 void handle_quit_command(void){
     status_message("CMD QUIT");
     Terminate();
+}
+
+void handle_start_command(void) {
+    status_message("ENABLING TRAIN CONTROLLER");
+}
+
+void handle_stop_command(void) {
+    status_message("STOPPING TRAINS AND TURNING OFF CONTROLLER");
 }
 

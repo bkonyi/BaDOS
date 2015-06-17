@@ -2,6 +2,7 @@
 #define __IO_H__
 /*
  * io.h
+ * These functions use interrupt based IO.
  */
 
 #include <io_common.h>

@@ -65,7 +65,7 @@ void process_input(char* input) {
 				terminal_data.num1 = target_train_number;
 				terminal_data.num2 = target_train_value;
 
-				ASSERT(train_set_speed(target_train_number, target_train_value) == 0);
+				train_set_speed(target_train_number, target_train_value);
 			} else {
 				//term_set_status(t,"ERROR: TR Args invalid");
 			}
@@ -78,7 +78,7 @@ void process_input(char* input) {
 					terminal_data.num1 = target_train_number;
 					terminal_data.byte1= argv[2][0];
 
-					ASSERT(switch_set_direction(target_train_number, argv[2][0]) == 0);
+					switch_set_direction(target_train_number, argv[2][0]);
 				} else {
 					//term_set_status(t,"ERROR: SW, INVALID switch value");
 				}
@@ -95,7 +95,7 @@ void process_input(char* input) {
 			if(target_train_number>0) {
 				terminal_data.command = TERMINAL_REVERSE_COMMAND;
 				terminal_data.num1 = target_train_number;
-				ASSERT(train_reverse(target_train_number) == 0);
+				train_reverse(target_train_number);
 			} else {
 				printf(COM2,"INVTR %d", target_train_number);
 				//term_set_status(t,"ERROR: RV, INVALID train number");
@@ -106,6 +106,12 @@ void process_input(char* input) {
 	} else if( argc == 1) {
 		if(strcmp(argv[0],"q")==0){
 			terminal_data.command = TERMINAL_QUIT;
+		} else if(strcmp(argv[0], "x") == 0) {
+			stop_controller();
+			terminal_data.command = TERMINAL_STOP_CTRL;
+		} else if(strcmp(argv[0], "g") == 0) {
+			start_controller();
+			terminal_data.command = TERMINAL_START_CTRL;
 		}
 	}
 	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this in terminal.h

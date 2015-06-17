@@ -71,10 +71,12 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
     //Shouldn't get here
     Exit();
 }
+
 void uart1_transmit_server(void) {
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_notifier);
     uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
+
 void uart2_transmit_server(void) {
     Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_notifier);
     uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
