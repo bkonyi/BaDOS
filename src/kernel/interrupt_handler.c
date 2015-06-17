@@ -35,11 +35,20 @@ void initialize_interrupts(global_data_t* global_data) {
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART1_STATUS_MASK
                                                      |  VIC2_UART2_STATUS_MASK;
 
-    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | RTIEN_MASK;
+    *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | MSIEN_MASK;
     *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | RTIEN_MASK;
     
     //Enable interrupts for timer 3
-    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK; 
+    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK;
+
+
+    //we need to initialize the transmit pin DCTS  value.
+    volatile uint32_t* modem_sts = (volatile uint32_t *)( UART1_BASE + UART_MDMSTS_OFFSET );
+    //Read the Modem status register
+    volatile uint32_t tmp = *modem_sts;
+    (void)tmp;
+    bwputc(COM1,(char)97); // Send stop char to track
+    //Next time we read the modem status register DCTS will be allowed to be 1
 
     int i;
     for(i = 0; i < NUMBER_OF_EVENTS; i++) {
@@ -74,16 +83,58 @@ void handle_interrupt(global_data_t* global_data) {
         uart2_receive_handle();
         return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
         interrupt_index =   UART2_RECEIVE_EVENT;
+
+        
     } else if(vic1_status & VIC1_UART1_TRANSMIT_MASK) {
         uart1_transmit_handle();
         interrupt_index =   UART1_TRANSMIT_EVENT;
+
+        if(global_data->uart1_modem_state.clear_to_send == true) {
+            global_data->uart1_modem_state.events_waiting = false;
+            global_data->uart1_modem_state.clear_to_send = false;
+            //bwprintf(COM2,"\033[KSENDING 2\r\n");
+        }else {
+            //bwprintf(COM2,"\033                                [Kevents_waiting\r\n");
+
+            global_data->uart1_modem_state.events_waiting = true;
+            return;
+        }
     } else if(vic1_status & VIC1_UART2_TRANSMIT_MASK) {
         uart2_transmit_handle();
         interrupt_index =   UART2_TRANSMIT_EVENT;
     } else if(vic2_status & VIC2_UART1_STATUS_MASK) {
+        volatile uint32_t* modem_sts = (volatile uint32_t *)( UART1_BASE + UART_MDMSTS_OFFSET );
         uart1_status_handle();
-        return_code = *(volatile int *)( UART1_BASE + UART_DATA_OFFSET );
-        interrupt_index =   UART1_STATUS_EVENT;
+        uint32_t val = *modem_sts;
+        //bwprintf(COM2,"V1 0x%x\r\n",val);
+        if((val&STS_DCTS_MASK)!=0 ){
+            uint32_t val2 = *modem_sts;
+            //bwprintf(COM2,"V2 0x%x\r\n",val2);
+            if((val2&STS_CTS_MASK)!=0){
+                if(global_data->uart1_modem_state.events_waiting == false) {
+                    global_data->uart1_modem_state.clear_to_send = true;
+                    //bwprintf(COM2,"\033[Kclear_to_send\r\n");
+                    return;
+                }else {
+                    global_data->uart1_modem_state.clear_to_send = false;
+                    global_data->uart1_modem_state.events_waiting = false;
+                    interrupt_index =   UART1_TRANSMIT_EVENT;
+                    //bwprintf(COM2,"\033[KSENDING 1\r\n");
+                    //fall through to release events
+                }
+            }else{
+                return;
+            }
+            
+        }else{
+            return;
+        }
+        //We actually want to do nothing here. We don't want to check the modem until
+            //we get a transmit
+        
+
+
+        
     } else if(vic2_status & VIC2_UART2_STATUS_MASK) {
         uart2_status_handle();
         return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
@@ -141,7 +192,10 @@ void uart2_transmit_handle(void){
     *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
 }
 void uart1_status_handle(void){
-    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART1_STATUS_MASK;
+    //*(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART1_STATUS_MASK;
+    //Turn off the modem interrupt
+    *(volatile uint32_t*)(UART1_BASE + UART_INTR_OFFSET) = MIS_MASK;
+
 } 
 void uart2_status_handle(void){
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART2_STATUS_MASK;

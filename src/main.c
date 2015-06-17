@@ -72,6 +72,9 @@ void initialize(global_data_t* global_data) {
 
     //First User Task
     create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
+
+    global_data->uart1_modem_state.clear_to_send = false;
+    global_data->uart1_modem_state.events_waiting = false;
 }
 
 void cleanup(global_data_t* global_data) {

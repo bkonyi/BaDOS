@@ -5,8 +5,7 @@
 #include <syscalls.h>
 #include <terminal/terminal.h>
 
-#define REVERSE_DELAY_TICKS 200 //2000ms
-#define CONTROLLER_DELAY()  Delay(5);
+#define REVERSE_DELAY_TICKS 500 //5000ms
 
 #define MAX_TRAIN_NUM 100 //TODO change this arbitrary value
 
@@ -187,7 +186,6 @@ void sensor_query_server(void) {
 
 void handle_train_set_speed(int8_t train, int8_t speed) {
     putc(COM1, speed);
-    CONTROLLER_DELAY();//TODO I think we need this 50ms delay...
     putc(COM1, train);
 }
 
@@ -197,7 +195,6 @@ void handle_train_reverse_begin(int8_t train) {
 
 void handle_train_reverse_end(int8_t train, int8_t speed) {
     handle_train_set_speed(train, REVERSE_COMMAND);
-    CONTROLLER_DELAY();
     handle_train_set_speed(train, speed);
 }
 
@@ -214,13 +211,10 @@ void handle_switch_set_direction(int16_t switch_num, char direction) {
     }
 
     putc(COM1, direction_code);
-    CONTROLLER_DELAY();//TODO I think we need this 50ms delay...
     putc(COM1, switch_num);
-    CONTROLLER_DELAY();//TODO I think we need this 50ms delay...
     putc(COM1, SWITCH_DEACTIVATE);
 }
 
 void handle_start_track_query(void) {
     putc(COM1, QUERY_SENSORS_COMMAND);
-    CONTROLLER_DELAY();
 }

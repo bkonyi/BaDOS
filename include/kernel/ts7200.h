@@ -76,10 +76,13 @@
  	#define RTIS_MASK   0x8
 #define UART_DMAR_OFFSET	0x28
 
+
 // Specific to UART1
 
 #define UART_MDMCTL_OFFSET	0x100
 #define UART_MDMSTS_OFFSET	0x104
+  	#define STS_DCTS_MASK	0x1
+ 	#define STS_CTS_MASK	0x10
 #define UART_HDLCCTL_OFFSET	0x20c
 #define UART_HDLCAMV_OFFSET	0x210
 #define UART_HDLCAM_OFFSET	0x214

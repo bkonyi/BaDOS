@@ -161,7 +161,7 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
             break;
         case UART1_STATUS_EVENT:
             //reenable the status interrupt so we can catch timeouts
-            *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART1_STATUS_MASK;
+            //*(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART1_STATUS_MASK;
             break;
         case UART2_STATUS_EVENT:
             //reenable the status interrupt so we can catch timeouts

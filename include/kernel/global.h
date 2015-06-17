@@ -98,6 +98,13 @@ typedef struct scheduler_data_t {
 } scheduler_data_t;
 
 /**
+ * UART1 modem state
+ */
+ typedef struct uart1_modem_state_t {
+    bool clear_to_send;
+    bool events_waiting;
+} uart1_modem_state_t;
+/**
  * SYSCALL HANDLER DATA STRUCTURES
  */
  typedef struct syscall_handler_data_t {
@@ -112,6 +119,7 @@ typedef struct global_data_t {
     task_handler_data_t task_handler_data;
     scheduler_data_t scheduler_data;
     syscall_handler_data_t syscall_handler_data;
+    uart1_modem_state_t uart1_modem_state;
 } global_data_t;
 
 
