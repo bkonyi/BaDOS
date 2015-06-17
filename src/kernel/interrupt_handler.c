@@ -103,22 +103,16 @@ void handle_interrupt(global_data_t* global_data) {
         volatile uint32_t* modem_sts = (volatile uint32_t *)( UART1_BASE + UART_MDMSTS_OFFSET );
         uart1_status_handle();
         uint32_t val = *modem_sts;
-        if((val&STS_DCTS_MASK)!=0 ){
-            uint32_t val2 = *modem_sts;
-            if((val2&STS_CTS_MASK)!=0){
-                if(global_data->uart1_modem_state.events_waiting == false) {
-                    global_data->uart1_modem_state.clear_to_send = true;
-                    return;
-                }else {
-                    global_data->uart1_modem_state.clear_to_send = false;
-                    global_data->uart1_modem_state.events_waiting = false;
-                    interrupt_index = UART1_TRANSMIT_EVENT;
-                    //fall through to release events
-                }
-            }else{
+        if((val&STS_DCTS_MASK)!=0 && (val&STS_CTS_MASK)!=0){
+            if(global_data->uart1_modem_state.events_waiting == false) {
+                global_data->uart1_modem_state.clear_to_send = true;
                 return;
+            }else {
+                global_data->uart1_modem_state.clear_to_send = false;
+                global_data->uart1_modem_state.events_waiting = false;
+                interrupt_index = UART1_TRANSMIT_EVENT;
+                //fall through to release events
             }
-            
         }else{
             return;
         }
