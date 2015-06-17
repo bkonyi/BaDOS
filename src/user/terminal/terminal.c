@@ -7,6 +7,7 @@
 #include <terminal/terminal_control.h>
 #include <ring_buffer.h>
 
+#define RIGHT_BAR_COL             75
 #define TERM_SENSORS_ROW          4
 #define TERM_SENSORS_DATA_ROW     TERM_SENSORS_ROW + 3
 #define TERM_SENSORS_DATA_WIDTH   4
@@ -21,7 +22,8 @@
 #define TERM_SWITCHES_ROW_HEIGHT     3
 #define TERM_INPUT_ROW               TERM_SENSORS_ROW + 16
 #define TERM_INPUT_COORDS            10, TERM_INPUT_ROW
-#define TERM_STATUS_COORDS           11, (TERM_INPUT_ROW-2)
+#define TERM_STATUS_ROW              (TERM_INPUT_ROW-2)
+#define TERM_STATUS_COORDS           11, TERM_STATUS_ROW
 
 #define NUM_RECENT_SENSORS           10
 #define RECENT_SENSORS_DATA_ROW      TERM_SENSORS_DATA_ROW 
@@ -282,12 +284,21 @@ void status_message(char* fmt, ...){
     va_start(va,fmt);
     vprintf(COM2,fmt,va);
     va_end(va);
+    term_move_cursor(RIGHT_BAR_COL,TERM_STATUS_ROW);
+    printf(COM2,"┃");
 
     clear_user_input();
 }
 void clear_user_input(void) {
+
+    //Clear the line
     term_move_cursor(TERM_INPUT_COORDS);
     term_clear_rest_line();
+    //Rewrite the bar
+    term_move_cursor(RIGHT_BAR_COL,TERM_INPUT_ROW);
+    printf(COM2,"┃");
+    //Return the cursor
+    term_move_cursor(TERM_INPUT_COORDS);
     term_show_cursor();
 }
 void handle_train_command(int32_t num,int32_t speed){
