@@ -13,8 +13,8 @@ void command_server(void) {
 	RegisterAs(COMMAND_SERVER);
 	char byte;
 	char input_buffer[USER_INPUT_BUFFER_SIZE];
-	char*input_iterator = input_buffer;
-	terminal_data_t terminal_data;
+	char*input_iterator = input_buffer; // keep track of the end of the user input
+	//terminal_data_t terminal_data;
 	FOREVER {
 		byte = Getc(COM2);
 		if(input_iterator< (input_buffer+USER_INPUT_BUFFER_SIZE)) {
@@ -25,11 +25,8 @@ void command_server(void) {
 				//Start inserting chars from the beginning
 				input_iterator = input_buffer;
 			} else if (byte == BACKSPACE) {
-				//TODO: Send server command to backspace
 				if(input_iterator>input_buffer) {
 					input_iterator--;
-					terminal_data.command = TERMINAL_BACKSPACE;
-					Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this stuff in terminal.h
 				}
 			} else {
 				*input_iterator = byte;

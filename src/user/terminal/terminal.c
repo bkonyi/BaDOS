@@ -39,6 +39,7 @@ static void status_message(char* fmt, ...);
 void terminal_server(void) {
     int sending_tid;
     int result;
+    int buffer_char_count =0;   //keep track of how many chars are in the user in buff
     terminal_data_t data;
 
     char previous_sensors[10];
@@ -95,14 +96,20 @@ void terminal_server(void) {
                 handle_update_terminal_clock(data.num1);
                 break;
             case TERMINAL_ECHO_INPUT:
-                if(data.byte1 != CARRIAGE_RETURN && data.byte1 != TERMINAL_BACKSPACE) {
-                    putc(COM2, data.byte1);
+                if(data.byte1 != CARRIAGE_RETURN  ) {
+                    if(data.byte1 == BACKSPACE){
+                        if(buffer_char_count>0){
+                            buffer_char_count--; 
+                            printf(COM2,"%c %c",BACKSPACE,BACKSPACE);
+                        }//otherwise we don't need to do anything
+                        continue;
+                    }else{
+                        buffer_char_count++;
+                        putc(COM2, data.byte1);
+                    }
+                }else{
+                    buffer_char_count=0;
                 }
-                break;
-            case TERMINAL_BACKSPACE:
-                //IMPORTANT: Can we guarantee that TERMINAL_BACKSPACE happens right after TERMINAL_ECHO_INPUT for a BACKSPACE? 
-                //TODO: Add state to handle that case?
-                printf(COM2," %c",BACKSPACE);
                 break;
             case TERMINAL_TRAIN_COMMAND:
                 handle_train_command(data.num1,data.num2);

@@ -42,7 +42,7 @@ void initialize_interrupts(global_data_t* global_data) {
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK;
 
 
-    //we need to initialize the transmit pin DCTS  value.
+    //we need to initialize the transmit pin DCTS value.
     volatile uint32_t* modem_sts = (volatile uint32_t *)( UART1_BASE + UART_MDMSTS_OFFSET );
     //Read the Modem status register
     volatile uint32_t tmp = *modem_sts;
