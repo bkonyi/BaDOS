@@ -159,14 +159,6 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
         case UART2_TRANSMIT_EVENT:
             *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= TIEN_MASK;
             break;
-        case UART1_STATUS_EVENT:
-            //reenable the status interrupt so we can catch timeouts
-            //*(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART1_STATUS_MASK;
-            break;
-        case UART2_STATUS_EVENT:
-            //reenable the status interrupt so we can catch timeouts
-            *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_UART2_STATUS_MASK;
-            break;  
         default:
             break;
     }

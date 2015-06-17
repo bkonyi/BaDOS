@@ -92,10 +92,7 @@ void handle_interrupt(global_data_t* global_data) {
         if(global_data->uart1_modem_state.clear_to_send == true) {
             global_data->uart1_modem_state.events_waiting = false;
             global_data->uart1_modem_state.clear_to_send = false;
-            //bwprintf(COM2,"\033[KSENDING 2\r\n");
         }else {
-            //bwprintf(COM2,"\033                                [Kevents_waiting\r\n");
-
             global_data->uart1_modem_state.events_waiting = true;
             return;
         }
@@ -106,20 +103,16 @@ void handle_interrupt(global_data_t* global_data) {
         volatile uint32_t* modem_sts = (volatile uint32_t *)( UART1_BASE + UART_MDMSTS_OFFSET );
         uart1_status_handle();
         uint32_t val = *modem_sts;
-        //bwprintf(COM2,"V1 0x%x\r\n",val);
         if((val&STS_DCTS_MASK)!=0 ){
             uint32_t val2 = *modem_sts;
-            //bwprintf(COM2,"V2 0x%x\r\n",val2);
             if((val2&STS_CTS_MASK)!=0){
                 if(global_data->uart1_modem_state.events_waiting == false) {
                     global_data->uart1_modem_state.clear_to_send = true;
-                    //bwprintf(COM2,"\033[Kclear_to_send\r\n");
                     return;
                 }else {
                     global_data->uart1_modem_state.clear_to_send = false;
                     global_data->uart1_modem_state.events_waiting = false;
-                    interrupt_index =   UART1_TRANSMIT_EVENT;
-                    //bwprintf(COM2,"\033[KSENDING 1\r\n");
+                    interrupt_index = UART1_TRANSMIT_EVENT;
                     //fall through to release events
                 }
             }else{
@@ -131,10 +124,7 @@ void handle_interrupt(global_data_t* global_data) {
         }
         //We actually want to do nothing here. We don't want to check the modem until
             //we get a transmit
-        
 
-
-        
     } else if(vic2_status & VIC2_UART2_STATUS_MASK) {
         uart2_status_handle();
         return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
@@ -198,6 +188,7 @@ void uart1_status_handle(void){
 
 } 
 void uart2_status_handle(void){
-    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART2_STATUS_MASK;
+   //We don't need to turn off the interrupt for TIMEOUT.
+        //It will happen on it's own when the buffer is empty.
 } 
 
