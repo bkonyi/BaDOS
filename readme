@@ -12,7 +12,8 @@ To run the BADos kernel, follow these steps:
 
 2. Load the Kernel:
 	i. on one of the workstations in the realtime lab:
-		i. Reset the ARM boxy
+		i. Reset the ARM box and train controller. Skipping this step
+           may cause undefined behaviour (i.e., reverse not working).
 		ii Run the command:
 			load -b 0x00218000 -h 10.15.167.5 ARM/bados.elf
 
