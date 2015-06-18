@@ -24,8 +24,7 @@ typedef uint8_t priority_t;
 
 #define MAX_NUMBER_OF_TASKS 200 //TODO Arbitrary number for now
 #define SCHEDULER_NUM_QUEUES            32
-#define SCHEDULER_HIGHEST_PRIORITY      31
-#define SCHEDULER_LOWEST_PRIORITY       0
+
 
 #define ASSERT(cond)  if(!(cond)) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Exit(); } while(0)
 #define KASSERT(cond) if(!(cond)) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)

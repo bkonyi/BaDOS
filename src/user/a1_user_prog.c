@@ -4,7 +4,7 @@
 #include <global.h>
 
 void first_task(void) {
-    bwprintf(COM2, "First: Starting.\r\n");
+  /*  bwprintf(COM2, "First: Starting.\r\n");
     tid_t tid = Create(SCHEDULER_LOWEST_PRIORITY,  a1_user_task);
     bwprintf(COM2, "Created: %d\r\n", tid);
 
@@ -17,7 +17,7 @@ void first_task(void) {
     tid = Create(SCHEDULER_HIGHEST_PRIORITY, a1_user_task);
     bwprintf(COM2, "Created: %d\r\n", tid);
 
-    bwprintf(COM2, "First: Exiting.\r\n");
+    bwprintf(COM2, "First: Exiting.\r\n");*/
     Exit();
 }
 

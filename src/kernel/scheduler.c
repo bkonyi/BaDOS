@@ -1,6 +1,7 @@
 #include <scheduler.h>
 #include <bwio.h>
 #include <queue.h>
+#include <task_priorities.h>
 void init_scheduler(global_data_t* global_data) {
     scheduler_data_t* scheduler_data = &global_data->scheduler_data;
 
@@ -20,7 +21,7 @@ int schedule(global_data_t* global_data, task_descriptor_t* task) {
         return -1;
     }
 
-    if(task->priority > SCHEDULER_HIGHEST_PRIORITY) {
+    if(task->priority > TASK_HIGHEST_PRIORITY) {
         //Invalid priority
         return -2;
     }

@@ -4,6 +4,7 @@
 #include <servers.h>
 #include <syscalls.h>
 #include <terminal/terminal.h>
+#include <task_priorities.h>
 
 #define REVERSE_DELAY_TICKS 350 //3500ms
 
@@ -73,10 +74,10 @@ void train_controller_commander_server(void) {
 
     //TODO should change priority of this probably...
     //Create the server responsible for creating the delay when reversing trains
-    int train_reverse_server_tid = Create(SCHEDULER_HIGHEST_PRIORITY - 1, train_reverse_delay_server);
+    int train_reverse_server_tid = Create(TRAIN_REVERSE_DELAY_SERVER_PRIORITY, train_reverse_delay_server);
     
     //Create the task responsible for requesting sensor querys and handling the responses
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, sensor_query_server);
+    Create(SENSOR_QUERY_SERVER, sensor_query_server);
 
     //Since we turn the controller off when we start, we might as well turn it back on.
     handle_start_controller();

@@ -7,7 +7,7 @@
 #include <queue.h>
 #include <global.h>
 #include <ring_buffer.h>
-
+#include <task_priorities.h>
 typedef struct delayed_task_t{
     tid_t tid;
     uint32_t ticks;
@@ -52,7 +52,7 @@ void clock_server_task(void) {
     //We are the CLOCK_SERVER
     RegisterAs(CLOCK_SERVER);
 
-    CLOCK_NOTIFIER_TID = Create(SCHEDULER_HIGHEST_PRIORITY, clock_notifier_task);
+    CLOCK_NOTIFIER_TID = Create(CLOCK_NOTIFIER_TASK_PRIORITY, clock_notifier_task);
 
     //NOTE: each tick is 10 milli seconds
     FOREVER {

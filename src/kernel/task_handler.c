@@ -2,6 +2,7 @@
 #include <scheduler.h>
 #include "common.h"
 #include <bwio.h>
+#include <task_priorities.h>
 
 #define NUMBER_USER_REGS_ON_STACK 13
 
@@ -17,7 +18,7 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
         return -2;
     }
 
-    if(priority > SCHEDULER_HIGHEST_PRIORITY) {
+    if(priority > TASK_HIGHEST_PRIORITY) {
         //Invalid priority
         return -1;
     }

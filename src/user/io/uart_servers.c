@@ -9,6 +9,7 @@
 #include <syscalls.h>
 #include <io/uart_notifier.h>
 #include <io/uart_courrier.h>
+#include <task_priorities.h>
 
 #define OUTPUT_BUFFER_SIZE 4096
 #define INPUT_BUFFER_SIZE  2048
@@ -73,12 +74,12 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
 }
 
 void uart1_transmit_server(void) {
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_transmit_notifier);
+    Create(UART1_TRANSMIT_NOTIFIER_PRIORITY, uart1_transmit_notifier);
     uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
 void uart2_transmit_server(void) {
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_transmit_notifier);
+    Create(UART2_TRANSMIT_NOTIFIER_PRIORITY, uart2_transmit_notifier);
     uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
@@ -188,13 +189,13 @@ void unbuffered_receive_server(char* name,uint32_t buffer_size) {
 }
 
 void uart1_receive_server(void) {
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart1_receive_notifier);
+    Create(UART1_RECEIVE_NOTIFIER_PRIORITY, uart1_receive_notifier);
     buffered_receive_server(UART1_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 }
 void uart2_receive_server(void) {
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_receive_notifier);
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart_courrier);
-    Create(SCHEDULER_HIGHEST_PRIORITY - 1, uart2_timeout_notifier);
+    Create(UART2_RECEIVE_NOTIFIER_PRIORITY, uart2_receive_notifier);
+    Create(UART_COURRIER_PRIORITY, uart_courrier);
+    Create(UART2_TIMEOUT_NOTIFIER, uart2_timeout_notifier);
     unbuffered_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 
 }

@@ -6,6 +6,7 @@
 #include <io/io_common.h>
 #include <terminal/terminal_control.h>
 #include <ring_buffer.h>
+#include <task_priorities.h>
 
 #define RIGHT_BAR_COL             75
 #define TERM_SENSORS_ROW          4
@@ -89,7 +90,7 @@ void terminal_server(void) {
     printf(COM2, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");
     term_fmt_clr();
 
-    Create(SCHEDULER_HIGHEST_PRIORITY / 2, terminal_tick_notifier);
+    Create(TERMINAL_TICK_NOTIFIER, terminal_tick_notifier);
 
     //IMPORTANT: This needs to be the last coord we set so user input is in the right place
     term_move_cursor(TERM_INPUT_COORDS);

@@ -8,6 +8,7 @@
 #include <timer3.h>
 #include <task_handler.h>
 #include <user_prog.h>
+#include <task_priorities.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 #define IRQ_INTERRUPT_HANDLER      ((volatile uint32_t*)0x38)
@@ -71,7 +72,7 @@ void initialize(global_data_t* global_data) {
     timer3_start(5080); // 10 milli Seconds
 
     //First User Task
-    create_task(global_data, SCHEDULER_HIGHEST_PRIORITY, first_user_task);
+    create_task(global_data, FIRST_USER_TASK_PRIORITY, first_user_task);
 
     global_data->uart1_modem_state.clear_to_send = false;
     global_data->uart1_modem_state.events_waiting = false;
