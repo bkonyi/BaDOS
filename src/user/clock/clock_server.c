@@ -54,6 +54,7 @@ void clock_server_task(void) {
 
     CLOCK_NOTIFIER_TID = Create(SCHEDULER_HIGHEST_PRIORITY, clock_notifier_task);
 
+    //NOTE: each tick is 10 milli seconds
     FOREVER {
         //Receive messages from the clock_notifier_task or tasks that are asking
         // for Delay,DelayUntil or Time
