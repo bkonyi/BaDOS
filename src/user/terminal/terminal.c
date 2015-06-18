@@ -181,6 +181,7 @@ void handle_update_terminal_clock(int32_t ticks) {
     term_save_cursor();
     term_hide_cursor();
     term_move_cursor(TERM_TIME_COL,TERM_TIME_ROW);
+    ticks = Time();
     printf(COM2, "%d:%d.%d ", (ticks / 100) / 60, (ticks / 100) % 60, (ticks / 10) % 10);
     term_restore_cursor();
     term_show_cursor();
