@@ -234,13 +234,11 @@ void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sens
                         //into a buffer of most recently triggered sensors
                         recent_sensors[*recent_sensors_index] = i * 8 + (7 - j);
                         *recent_sensors_index = (*recent_sensors_index + 1) % 10;
-                        update_map_sensor(sensor_chars,group, index-1,true);
-                    }else {
-                        update_map_sensor(sensor_chars,group, index-1,false);
                     }
                     
                     //Update the sensor label
                     printf(COM2, "%c%d", 'A' + group, index);
+                    update_map_sensor(sensor_chars, group, index-1, (new_sensor_data & 0x1));
                     
                     if(new_sensor_data & 0x1) {
                         term_fmt_clr();
@@ -376,15 +374,13 @@ void draw_initial_track_map(void){
 }
 
 void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state) {
-    sensor_map_chars_t* data = &sensor_chars[MAP_DRAW_COORDS(group,index)];
-     term_save_cursor();
+     sensor_map_chars_t* data = &sensor_chars[MAP_DRAW_COORDS(group,index)];
      term_move_cursor(MAP_COL + data->x,MAP_ROW + data->y);
-     if (state == true) {
+     if(state == true) {
         putc(COM2,data->activated);
-     }else if (state == false) {
+     } else if (state == false) {
         putc(COM2,data->original);
      }
-     term_restore_cursor();
 }
 void track_a_sensor_char_init(sensor_map_chars_t* sensor_chars){
     //inialize mem
