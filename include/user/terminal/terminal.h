@@ -15,6 +15,7 @@ typedef enum {
     TERMINAL_START_CTRL      =  9,
     TERMINAL_STOP_CTRL       = 10,
     TERMINAL_SET_TRACK       = 11,
+    TERMINAL_STOP_TRAIN_ON_SWITCH_COMMAND = 12,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
