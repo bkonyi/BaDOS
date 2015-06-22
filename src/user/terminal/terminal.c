@@ -47,10 +47,11 @@ static void handle_switch_command(int32_t num,char state);
 static void handle_quit_command(void);
 static void handle_start_command(void);
 static void handle_stop_command(void);
-static void handle_set_track(char track);
+static void handle_set_track(sensor_map_chars_t* sensor_display_info, char track);
 static void clear_user_input(void);
 static void status_message(char* fmt, ...);
-static void draw_initial_track_map(void);
+static void clear_track_map(void);
+static void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]);
 static void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state);
 
 
@@ -104,9 +105,9 @@ void terminal_server(void) {
 
     Create(TERMINAL_TICK_NOTIFIER, terminal_tick_notifier);
 
-    draw_initial_track_map();
+    //draw_initial_track_map();
     sensor_map_chars_t sensor_chars[16*16];
-    track_b_sensor_char_init(sensor_chars);
+    //track_b_sensor_char_init(sensor_chars);
     //IMPORTANT: This needs to be the last coord we set so user input is in the right place
     term_move_cursor(TERM_INPUT_COORDS);
 
@@ -156,10 +157,10 @@ void terminal_server(void) {
                 handle_stop_command();
                 break;
             case TERMINAL_UPDATE_SENSORS:
-                handle_update_sensors(sensor_chars,previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
+                handle_update_sensors(sensor_chars, previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
                 break;
             case TERMINAL_SET_TRACK:
-                handle_set_track(data.byte1);
+                handle_set_track(sensor_chars, data.byte1);
                 break;
             case TERMINAL_COMMAND_ERROR:
                 status_message("Input Error");
@@ -364,12 +365,23 @@ void handle_stop_command(void) {
     status_message("STOPPING TRAINS AND TURNING OFF CONTROLLER");
 }
 
-void handle_set_track(char track) {
+void handle_set_track(sensor_map_chars_t* sensor_display_info, char track) {
     //TODO actually set track info
+
+    clear_track_map();
+
     if(track == 'A') {
+        char track_display[TRACK_SIZE_Y][TRACK_SIZE_X] = TRACKA_STR_ARRAY;
+
+        track_a_sensor_char_init(sensor_display_info);
         status_message("Setting active track to track A");
+        draw_initial_track_map(track_display);
     } else if(track == 'B') {
+        char track_display[TRACK_SIZE_Y][TRACK_SIZE_X] = TRACKB_STR_ARRAY;
+
+        track_b_sensor_char_init(sensor_display_info);
         status_message("Setting active track to track B");
+        draw_initial_track_map(track_display);
     } else {
         //This shouldn't happen
         ASSERT(0);
@@ -377,6 +389,7 @@ void handle_set_track(char track) {
 
     term_save_cursor();
     term_hide_cursor();
+
     term_move_cursor(TERM_TRACK_SELECTION_COORDS);
 
     printf(COM2, "%c", track);
@@ -384,19 +397,37 @@ void handle_set_track(char track) {
     term_show_cursor();
 }
 
-void draw_initial_track_map(void){
-    char tracka[TRACK_SIZE_Y][TRACK_SIZE_X] = TRACKB_STR_ARRAY;
+void clear_track_map(void) {
+    term_save_cursor();
+    term_hide_cursor();
+    term_move_cursor(MAP_COORDS);
+
+    int i, j;
+    for(i = 0; i < TRACK_SIZE_Y; ++i) {
+        for(j = 0; j < TRACK_SIZE_X; ++j) {
+            putc(COM2, ' ');
+        }
+        printf(COM2, "\r\n");
+    }
+
+    term_show_cursor();
+    term_restore_cursor();
+}
+
+void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]) {
     int i = 0;
 
     term_save_cursor();
+    term_hide_cursor();
     term_move_cursor(MAP_COORDS);
     for(i = 0; i < TRACK_SIZE_Y; i++) {
         term_move_cursor(MAP_COL,MAP_ROW+i);
-        printf(COM2,"%s",tracka[i]);
+        printf(COM2,"%s",track_map[i]);
     }
 
 
     term_restore_cursor();
+    term_show_cursor();
 }
 
 void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state) {
