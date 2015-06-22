@@ -11,7 +11,7 @@ void clock_notifier_task(void) {
     CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
 
     FOREVER {
-        result = AwaitEvent(TIMER3_EVENT);
+        result = AwaitEvent(TIMER1_EVENT);
         ASSERT(result>=0);
 
         //Notify the clock server that we've ticked

@@ -174,9 +174,17 @@ int Getc( int channel ) {
 int Putc( int channel, char ch ) {
     return putc(channel, ch);
 }
-int Terminate(void){
+
+int Terminate(void) {
     request_t request;
 
     request.sys_code = SYS_CALL_TERMINATE;
+    return send_sys_call(&request);
+}
+
+int GetIdleTime(void) {
+    request_t request;
+
+    request.sys_code = SYS_CALL_GET_IDLE;
     return send_sys_call(&request);
 }

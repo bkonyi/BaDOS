@@ -4,6 +4,7 @@
 #include <task_handler.h>
 #include <bwio.h>
 #include <events.h>
+#include <timers.h>
 
 static int handle_Create(global_data_t* global_data, priority_t priority, void (*code)()) {
     return create_task(global_data, priority, code);
@@ -142,14 +143,13 @@ static int handle_Reply(global_data_t* global_data, int tid, char* reply, int re
 }
 
 static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
-
     //Check to see if the event id is valid 
-    if(eventid != TIMER3_EVENT && eventid != UART1_TRANSMIT_EVENT &&
+    if(eventid != TIMER1_EVENT && eventid != UART1_TRANSMIT_EVENT &&
         eventid != UART1_RECEIVE_EVENT && eventid != UART2_TRANSMIT_EVENT &&
         eventid != UART2_RECEIVE_EVENT && eventid != UART1_STATUS_EVENT && eventid != UART2_STATUS_EVENT) {
         return -1;
     }
-    
+
     switch(eventid) {
         case UART1_TRANSMIT_EVENT:
             //Re-enable transmit ready interrupts. Only enabling it here will prevent the
@@ -171,6 +171,14 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
 
     //Return -2 for now to represent an incomplete transaction. We'll set this later to a proper value
     return -2;
+}
+
+static int handle_GetIdleTime(global_data_t* global_data) {
+    uint32_t total_time = timer3_get_time();
+    uint32_t idle_time  = global_data->total_idle_time * 100;
+    uint32_t idle_percentage = idle_time / total_time;
+
+    return idle_percentage;
 }
 
 void initialize_syscall_handler(global_data_t* global_data) {
@@ -221,6 +229,9 @@ void handle(global_data_t* global_data, request_t* request) {
             break;
         case SYS_CALL_AWAIT_EVENT:
             active_task->return_code = handle_AwaitEvent(global_data, request->eventid);
+            break;
+        case SYS_CALL_GET_IDLE:
+            active_task->return_code = handle_GetIdleTime(global_data);
             break;
         default:
             bwprintf(COM2, "Task: %d Bad system call: %d\r\n", active_task->tid, request->sys_code);

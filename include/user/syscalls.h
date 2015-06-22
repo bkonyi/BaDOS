@@ -249,5 +249,7 @@ int Putc( int channel, char ch );
  */
 int Terminate(void);
 
+int GetIdleTime(void);
+
 #endif//__SYS_CALL_H__
 

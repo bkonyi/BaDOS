@@ -57,7 +57,7 @@ void first_user_task(void) {
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/
-    //tid = Create(SCHEDULER_LOWEST_PRIORITY + 1 , test_task);
+    //tid = Create(5 , test_task);
 
 
     Exit();

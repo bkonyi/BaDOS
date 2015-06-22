@@ -4,6 +4,7 @@
 #define NUMBER_OF_EVENTS 		64
 
 //Event codes
+#define TIMER1_EVENT             4
 #define TIMER3_EVENT  			51
 
 #define UART1_RECEIVE_EVENT   	23

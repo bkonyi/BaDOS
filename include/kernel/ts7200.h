@@ -106,6 +106,7 @@
 #define VICxVectAddr 		((uint32_t)0x30) 	//R/W 	Enables priority hardware
 
 //INTERRUPT MASKS
+#define VIC1_TC1UI_MASK                 (0x1 << (TIMER1_EVENT))
 #define VIC2_TC3UI_MASK 		        (0x1 << (TIMER3_EVENT-32))
 
 #define VIC1_UART1_RECEIVE_MASK			(0x1 << (UART1_RECEIVE_EVENT))

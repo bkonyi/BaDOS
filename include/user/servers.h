@@ -4,6 +4,7 @@
 #define CLOCK_SERVER               "CLOCK_SERVER"
 #define RAND_SERVER                "RAND_SERVER"
 #define RPS_SERVER                 "RPS_SERVER"
+#define IDLE_TASK_ID             4
 
 #define UART1_RECEIVE_SERVER       "UART1_RECEIVE_SVR"
 #define UART1_RECEIVE_SERVER_ID    5

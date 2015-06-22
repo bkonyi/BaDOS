@@ -27,6 +27,7 @@
 #define TERM_STATUS_ROW              (TERM_INPUT_ROW-2)
 #define TERM_STATUS_COORDS           11, TERM_STATUS_ROW
 #define TERM_TRACK_SELECTION_COORDS  10, TERM_STATUS_ROW - 2
+#define TERM_IDLE_PERCENTAGE_COORDS  25, TERM_STATUS_ROW - 2
 
 #define MAP_ROW                      TERM_INPUT_ROW+2
 #define MAP_COL                      3
@@ -78,24 +79,24 @@ void terminal_server(void) {
     //printf(COM2, "Time:");
 
     term_move_cursor(1, 1);
-    printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
-    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃\r\n");
-    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃\r\n");
-    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃\r\n");
-    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃A1  A2  A3  A4  A5  A6  A7  A8  ┃          ┃  1  2  3  4  5  6  7  8  9  ┃\r\n");
-    printf(COM2, "┃A9  A10 A11 A12 A13 A14 A15 A16 ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┃\r\n");
-    printf(COM2, "┃B1  B2  B3  B4  B5  B6  B7  B8  ┃          ┃                             ┃\r\n");
-    printf(COM2, "┃B9  B10 B11 B12 B13 B14 B15 B16 ┃          ┃  10 11 12 13 14 15 16 17 18 ┃\r\n");
-    printf(COM2, "┃C1  C2  C3  C4  C5  C6  C7  C8  ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┃\r\n");
-    printf(COM2, "┃C9  C10 C11 C12 C13 C14 C15 C16 ┃          ┃                             ┃\r\n");
-    printf(COM2, "┃D1  D2  D3  D4  D5  D6  D7  D8  ┃          ┃    153   154   155   156    ┃\r\n");
-    printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┃\r\n");
-    printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ \e[1;34mTIME:\e[0m                       ┃\r\n");
-    printf(COM2, "┣━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃ Track: ? ┃ Idle Time: XX.XX%% ┃                                          ┃\r\n");    
+    printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
+    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃                TRAIN                 ┃\r\n");
+    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃             INFORMATION              ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┫\r\n");         
+    printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃ NUMBER ┃ SPEED ┃ LANDMARK ┃ DISTANCE ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┻━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃A1  A2  A3  A4  A5  A6  A7  A8  ┃          ┃  1  2  3  4  5  6  7  8  9  ┃                                      ┃\r\n");
+    printf(COM2, "┃A9  A10 A11 A12 A13 A14 A15 A16 ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃B1  B2  B3  B4  B5  B6  B7  B8  ┃          ┃                             ┃                                      ┃\r\n");
+    printf(COM2, "┃B9  B10 B11 B12 B13 B14 B15 B16 ┃          ┃  10 11 12 13 14 15 16 17 18 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃C1  C2  C3  C4  C5  C6  C7  C8  ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┃                                      ┃\r\n");
+    printf(COM2, "┃C9  C10 C11 C12 C13 C14 C15 C16 ┃          ┃                             ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃D1  D2  D3  D4  D5  D6  D7  D8  ┃          ┃    153   154   155   156    ┃                                      ┃\r\n");
+    printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                      ┃\r\n");
+    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ TIME:                       ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┣━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                      ┃\r\n");
+    printf(COM2, "┃ Track: ? ┃ Idle Time: XX.X%%  ┃                                          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");   
     printf(COM2, "┣━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[33;1mResult:\e[0m                                                                 ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
@@ -202,6 +203,13 @@ void handle_update_terminal_clock(int32_t ticks) {
     term_move_cursor(TERM_TIME_COL,TERM_TIME_ROW);
     ticks = Time();
     printf(COM2, "%d:%d.%d ", (ticks / 100) / 60, (ticks / 100) % 60, (ticks / 10) % 10);
+
+    if((ticks / 10) % 10 == 0) {
+        int idle_percentage = GetIdleTime();
+        term_move_cursor(TERM_IDLE_PERCENTAGE_COORDS);
+        printf(COM2, "%d.%d", idle_percentage / 100, idle_percentage % 100);
+    }
+
     term_restore_cursor();
     term_show_cursor();
 }

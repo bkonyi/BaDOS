@@ -13,7 +13,8 @@ typedef enum {
     SYS_CALL_RECEIVE       = 6,
     SYS_CALL_REPLY         = 7,
     SYS_CALL_AWAIT_EVENT   = 8,
-    SYS_CALL_TERMINATE     = 9
+    SYS_CALL_TERMINATE     = 9,
+    SYS_CALL_GET_IDLE      = 10
 } sys_call_code_t;
 
 typedef struct {

@@ -1,14 +1,10 @@
 #include <interrupt_handler.h>
-#include <timer3.h>
+#include <timers.h>
 #include <global.h>
 #include <scheduler.h>
 #include <ts7200.h>
 
-
-
-
-
-static void timer3_handle(void);
+static void timer1_handle(void);
 static void uart1_receive_handle(void);
 static void uart1_transmit_handle(void);
 static void uart2_receive_handle(void);
@@ -38,8 +34,8 @@ void initialize_interrupts(global_data_t* global_data) {
     *(volatile uint32_t*)(UART1_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | MSIEN_MASK;
     *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) |= RIEN_MASK | RTIEN_MASK;
     
-    //Enable interrupts for timer 3
-    *(volatile uint32_t*)(VIC2_BASE + VICxIntEnable) |= VIC2_TC3UI_MASK;
+    //Enable interrupts for timer 1
+    *(volatile uint32_t*)(VIC1_BASE + VICxIntEnable) |= VIC1_TC1UI_MASK;
 
 
     //we need to initialize the transmit pin DCTS value.
@@ -61,6 +57,7 @@ void handle_interrupt(global_data_t* global_data) {
 
     //acquire the statuses here so that we don't look at interrupts
     //that show up as we handle the current status
+    //bwprintf(COM2, "Handling interrupt!\r\n");
 
     uint32_t vic1_status = *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus);
     uint32_t vic2_status = *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus);
@@ -70,11 +67,12 @@ void handle_interrupt(global_data_t* global_data) {
 
     int32_t interrupt_index = -1; 
     int return_code = 0;
-    if(vic2_status & VIC2_TC3UI_MASK) {
-    	timer3_handle();
+    if(vic1_status & VIC1_TC1UI_MASK) {
+        //bwprintf(COM2, "Interrupt before: 0x%x 0x%x\r\n", *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus), *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus));
+    	timer1_handle();
         //bwprintf(COM2, "Timer cleared\r\n");
         //bwprintf(COM2, "Interrupt: 0x%x 0x%x\r\n", *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus), *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus));
-    	interrupt_index = 	TIMER3_EVENT;
+    	interrupt_index = 	TIMER1_EVENT;
     } else if(vic1_status & VIC1_UART1_RECEIVE_MASK) {
         uart1_receive_handle();
         return_code = *(volatile int *)( UART1_BASE + UART_DATA_OFFSET );
@@ -135,9 +133,14 @@ void handle_interrupt(global_data_t* global_data) {
    	interrupt_waiting_tasks_queue_t *waiting_tasks_queue;
    	waiting_tasks_queue = &(global_data->syscall_handler_data.interrupt_waiting_tasks[interrupt_index]);
 
+    //bwprintf(COM2, "Event ID: %d Are tasks waiting: %d\r\n", interrupt_index, ARE_TASKS_WAITING((*waiting_tasks_queue)));
     //Schedule all tasks that were waiting for this event
+
+    //KASSERT(interrupt_index != TIMER1_EVENT);
+
    	while(ARE_TASKS_WAITING((*waiting_tasks_queue))) {
    		GET_NEXT_WAITING_TASK((*waiting_tasks_queue),td);
+        //bwprintf(COM2, "Waking up task: %d\r\n", td->tid);
         td->return_code = return_code; //Clear the return code since AwaitEvent was successful
         td->state = TASK_RUNNING_STATE_READY;
    		schedule(global_data, td);
@@ -145,8 +148,8 @@ void handle_interrupt(global_data_t* global_data) {
 }
 
 
-void timer3_handle(void) {
-	timer3_clear();
+void timer1_handle(void) {
+	timer1_clear();
 }
 
 void uart1_receive_handle(void){

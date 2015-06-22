@@ -120,6 +120,7 @@ typedef struct global_data_t {
     scheduler_data_t scheduler_data;
     syscall_handler_data_t syscall_handler_data;
     uart1_modem_state_t uart1_modem_state;
+    uint32_t total_idle_time;
 } global_data_t;
 
 

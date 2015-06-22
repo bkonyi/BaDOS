@@ -5,10 +5,11 @@
 #include <scheduler.h>
 #include <syscall_handler.h>
 #include <interrupt_handler.h>
-#include <timer3.h>
+#include <timers.h>
 #include <task_handler.h>
 #include <user_prog.h>
 #include <task_priorities.h>
+#include <servers.h>
 
 #define SOFTWARE_INTERRUPT_HANDLER ((volatile uint32_t*)0x28)
 #define IRQ_INTERRUPT_HANDLER      ((volatile uint32_t*)0x38)
@@ -59,7 +60,8 @@ void initialize(global_data_t* global_data) {
     //Explicitly disable interrupts
     __asm__ __volatile__("MSR cpsr_c, #0x93"); //TODO do we need this?
 
-    timer3_stop(); //Clear the timer, just in case
+    timer1_stop(); //Clear the timer, just in case
+    timer3_stop();
 
     initialize_interrupts(global_data);
 
@@ -69,7 +71,8 @@ void initialize(global_data_t* global_data) {
 
     initialize_syscall_handler(global_data);
 
-    timer3_start(5080); // 10 milli Seconds
+    timer1_start(5080); // 10 milli Seconds
+    timer3_freerun();
 
     //First User Task
     create_task(global_data, FIRST_USER_TASK_PRIORITY, first_user_task);
@@ -80,6 +83,7 @@ void initialize(global_data_t* global_data) {
 
 void cleanup(global_data_t* global_data) {
     //Stop the timer
+    timer1_stop();
     timer3_stop();
 
     //Clear the screen
@@ -101,6 +105,7 @@ int main(void)
     global_data_t global_data;
     initialize(&global_data);
     //bwprintf(COM2, "Starting...\r\n");
+    uint32_t idle_task_start_time = 0;
 
     request_t* request = NULL;
 
@@ -112,14 +117,24 @@ int main(void)
             return 0;
         }
 
+        if(next_task->tid == IDLE_TASK_ID) {
+            idle_task_start_time = timer3_get_time();
+        }
+
         request = switch_context(next_task);
 
         if(request->sys_code == SYS_CALL_TERMINATE) { 
             // We have politely been asked to terminate
             break;
         }
+
+        if(next_task->tid == IDLE_TASK_ID) {
+            global_data.total_idle_time += timer3_get_time() - idle_task_start_time;
+        }
+
         handle(&global_data, request);
     }
+
     cleanup(&global_data);
     return 0;
 }

@@ -8,6 +8,14 @@ void test_task(void) {
 	//Delay(500);
 
 	FOREVER {
-        //printf(COM2, "Hello!");
+        int idle_percentage = GetIdleTime();
+        printf(COM2, "Idle Time: %d\r\n", idle_percentage);
+
+        int i;
+        for(i = 0; i < 10000; ++i) {
+            Time();
+        }
+
+        Delay(100);
 	}
 }
