@@ -29,7 +29,7 @@ SRCS = $(shell find $(SOURCEDIR) -name '*.c')
 
 # define any directories containing header files
 #
-INCLUDES = -I. -I../include $(foreach dir, $(wildcard ../include/**), -I$(dir)) 
+INCLUDES = -I. -I../track -I../include $(foreach dir, $(wildcard ../include/**), -I$(dir)) 
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify

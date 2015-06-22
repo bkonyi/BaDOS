@@ -7,6 +7,7 @@
 #include <terminal/terminal_control.h>
 #include <ring_buffer.h>
 #include <task_priorities.h>
+#include <track_maps.h>
 
 #define RIGHT_BAR_COL             75
 #define TERM_SENSORS_ROW          4
@@ -26,6 +27,10 @@
 #define TERM_STATUS_ROW              (TERM_INPUT_ROW-2)
 #define TERM_STATUS_COORDS           11, TERM_STATUS_ROW
 
+#define MAP_ROW                      TERM_INPUT_ROW+2
+#define MAP_COL                      3
+#define MAP_COORDS                   MAP_COL,MAP_ROW
+
 #define NUM_RECENT_SENSORS           10
 #define RECENT_SENSORS_DATA_ROW      TERM_SENSORS_DATA_ROW 
 #define RECENT_SENSORS_DATA_COLUMN   38
@@ -43,6 +48,7 @@ static void handle_start_command(void);
 static void handle_stop_command(void);
 static void clear_user_input(void);
 static void status_message(char* fmt, ...);
+static void draw_initial_track_map(void);
 
 void terminal_server(void) {
     int sending_tid;
@@ -91,6 +97,8 @@ void terminal_server(void) {
     term_fmt_clr();
 
     Create(TERMINAL_TICK_NOTIFIER, terminal_tick_notifier);
+
+    draw_initial_track_map();
 
     //IMPORTANT: This needs to be the last coord we set so user input is in the right place
     term_move_cursor(TERM_INPUT_COORDS);
@@ -342,3 +350,17 @@ void handle_stop_command(void) {
     status_message("STOPPING TRAINS AND TURNING OFF CONTROLLER");
 }
 
+void draw_initial_track_map(void){
+    char tracka[TRACK_SIZE_Y][TRACK_SIZE_X] = TRACKA_STR_ARRAY;
+    int i = 0;
+
+    term_save_cursor();
+    term_move_cursor(MAP_COORDS);
+    for(i = 0; i < TRACK_SIZE_Y; i++) {
+        term_move_cursor(MAP_COL,MAP_ROW+i);
+        printf(COM2,"%s",tracka[i]);
+    }
+    
+
+    term_restore_cursor();
+}
