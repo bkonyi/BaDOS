@@ -113,6 +113,16 @@ void process_input(char* input) {
 				printf(COM2,"INVTR %d", target_train_number);
 				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
+		} else if(strcmp(argv[0], "track") == 0) {
+			char track = char_to_upper(argv[1][0]);
+
+			if(track != 'A' && track != 'B') {
+				//TODO error
+				return;
+			} else {
+				terminal_data.command = TERMINAL_SET_TRACK;
+				terminal_data.byte1 = track;
+			}
 		} else {
 			//term_set_status(t,"ERROR: Invalid command");
 		}

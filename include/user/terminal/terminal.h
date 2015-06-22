@@ -14,6 +14,7 @@ typedef enum {
     TERMINAL_UPDATE_SENSORS  =  8,
     TERMINAL_START_CTRL      =  9,
     TERMINAL_STOP_CTRL       = 10,
+    TERMINAL_SET_TRACK       = 11,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;

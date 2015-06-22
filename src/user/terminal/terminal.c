@@ -22,10 +22,11 @@
 #define TERM_SWITCHES_COL_WIDTH      3
 #define TERM_SWITCHES_BIG_COL_WIDTH  6
 #define TERM_SWITCHES_ROW_HEIGHT     3
-#define TERM_INPUT_ROW               TERM_SENSORS_ROW + 16
+#define TERM_INPUT_ROW               TERM_SENSORS_ROW + 18
 #define TERM_INPUT_COORDS            10, TERM_INPUT_ROW
 #define TERM_STATUS_ROW              (TERM_INPUT_ROW-2)
 #define TERM_STATUS_COORDS           11, TERM_STATUS_ROW
+#define TERM_TRACK_SELECTION_COORDS  10, TERM_STATUS_ROW - 2
 
 #define MAP_ROW                      TERM_INPUT_ROW+2
 #define MAP_COL                      3
@@ -46,6 +47,7 @@ static void handle_switch_command(int32_t num,char state);
 static void handle_quit_command(void);
 static void handle_start_command(void);
 static void handle_stop_command(void);
+static void handle_set_track(char track);
 static void clear_user_input(void);
 static void status_message(char* fmt, ...);
 static void draw_initial_track_map(void);
@@ -92,7 +94,9 @@ void terminal_server(void) {
     printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┃\r\n");
     printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ \e[1;34mTIME:\e[0m                       ┃\r\n");
-    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┣━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃ Track: ? ┃ Idle Time: XX.XX%% ┃                                          ┃\r\n");    
+    printf(COM2, "┣━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[33;1mResult:\e[0m                                                                 ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[32;1mInput:\e[0m                                                                  ┃\r\n");
@@ -154,6 +158,9 @@ void terminal_server(void) {
                 break;
             case TERMINAL_UPDATE_SENSORS:
                 handle_update_sensors(sensor_chars,previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
+                break;
+            case TERMINAL_SET_TRACK:
+                handle_set_track(data.byte1);
                 break;
             case TERMINAL_COMMAND_ERROR:
                 status_message("Input Error");
@@ -356,6 +363,26 @@ void handle_start_command(void) {
 
 void handle_stop_command(void) {
     status_message("STOPPING TRAINS AND TURNING OFF CONTROLLER");
+}
+
+void handle_set_track(char track) {
+    //TODO actually set track info
+    if(track == 'A') {
+        status_message("Setting active track to track A");
+    } else if(track == 'B') {
+        status_message("Setting active track to track B");
+    } else {
+        //This shouldn't happen
+        ASSERT(0);
+    }
+
+    term_save_cursor();
+    term_hide_cursor();
+    term_move_cursor(TERM_TRACK_SELECTION_COORDS);
+
+    printf(COM2, "%c", track);
+    term_restore_cursor();
+    term_show_cursor();
 }
 
 void draw_initial_track_map(void){
