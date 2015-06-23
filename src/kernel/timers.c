@@ -91,8 +91,8 @@ static void timer3_init(uint32_t preload) {
     buf = *line;
     buf = buf & ~T3_CTRL_ENABLE_MASK;
     
-    //set to 508kHz
-    buf = buf | T3_CTRL_CLKSEL_MASK;
+    //set to 2kHz
+    buf = buf & ~T3_CTRL_CLKSEL_MASK;
    
     //set to periodic 
     buf = buf | T3_CTRL_MODE_MASK;
