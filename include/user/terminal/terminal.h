@@ -16,6 +16,10 @@ typedef enum {
     TERMINAL_STOP_CTRL       = 10,
     TERMINAL_SET_TRACK       = 11,
     TERMINAL_STOP_TRAIN_ON_SWITCH_COMMAND = 12,
+    TERMINAL_REGISTER_TRAIN  = 13,
+    TERMINAL_UPDATE_TRAIN_SLOT = 14,
+    TERMINAL_INIT_TRAIN_SLOT = 15,
+    TERMINAL_CLEAR_TRAIN_SLOT = 16,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -51,5 +55,9 @@ void update_terminal_clock(int32_t ticks);
  * @param sensors An array of 10 bytes which represent the sensor states of the 80 track sensors.
  */
 void update_terminal_sensors_display(int8_t* sensors);
+
+void initialize_terminal_train_slot(int8_t train, int8_t slot);
+void update_terminal_train_slot(int8_t train, int8_t slot, int8_t speed);
+void clear_terminal_train_slot(int8_t slot);
 
 #endif //__TERMINAL_H__

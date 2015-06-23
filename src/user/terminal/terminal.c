@@ -29,6 +29,13 @@
 #define TERM_TRACK_SELECTION_COORDS  10, TERM_STATUS_ROW - 2
 #define TERM_IDLE_PERCENTAGE_COORDS  25, TERM_STATUS_ROW - 2
 
+#define TERM_TRAIN_STATE_START_ROW   TERM_SWITCHES_DATA_ROW - 1
+#define TERM_TRAIN_STATE_START_COL   76
+#define TERM_TRAIN_STATE_TRAIN_OFF   3
+#define TERM_TRAIN_STATE_SPEED_OFF   TERM_TRAIN_STATE_TRAIN_OFF + 8
+#define TERM_TRAIN_STATE_LANDM_OFF   TERM_TRAIN_STATE_SPEED_OFF + 10
+#define TERM_TRAIN_STATE_DIST_OFF    TERM_TRAIN_STATE_LANDM_OFF + 11
+
 #define MAP_ROW                      TERM_INPUT_ROW+2
 #define MAP_COL                      3
 #define MAP_COORDS                   MAP_COL,MAP_ROW
@@ -36,6 +43,7 @@
 #define NUM_RECENT_SENSORS           10
 #define RECENT_SENSORS_DATA_ROW      TERM_SENSORS_DATA_ROW 
 #define RECENT_SENSORS_DATA_COLUMN   38
+
 CREATE_NON_POINTER_BUFFER_TYPE(recent_sensors_buffer_t, int, NUM_RECENT_SENSORS);
 
 
@@ -49,6 +57,10 @@ static void handle_quit_command(void);
 static void handle_start_command(void);
 static void handle_stop_command(void);
 static void handle_set_track(sensor_map_chars_t* sensor_display_info, char track);
+static void handle_register_train(int8_t train, int8_t slot);
+static void handle_init_train_slot(int8_t train, int8_t slot);
+static void handle_update_train_slot(int8_t slot, int8_t speed);
+static void handle_clear_train_slot(int8_t slot);
 static void clear_user_input(void);
 static void status_message(char* fmt, ...);
 static void clear_track_map(void);
@@ -163,6 +175,18 @@ void terminal_server(void) {
             case TERMINAL_SET_TRACK:
                 handle_set_track(sensor_chars, data.byte1);
                 break;
+            case TERMINAL_REGISTER_TRAIN:
+                handle_register_train(data.num1, data.num2);
+                break;
+            case TERMINAL_INIT_TRAIN_SLOT:
+                handle_init_train_slot(data.num1, data.num2);
+                break;
+            case TERMINAL_UPDATE_TRAIN_SLOT:
+                handle_update_train_slot(data.num2, data.byte1);
+                break;
+            case TERMINAL_CLEAR_TRAIN_SLOT:
+                handle_clear_train_slot(data.num2);
+                break;
             case TERMINAL_COMMAND_ERROR:
                 status_message("Input Error");
                 clear_user_input();
@@ -196,6 +220,34 @@ void update_terminal_sensors_display(int8_t* sensors) {
 
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
+
+void initialize_terminal_train_slot(int8_t train, int8_t slot) {
+    terminal_data_t request;
+    request.command = TERMINAL_INIT_TRAIN_SLOT;
+    request.num1 = train;
+    request.num2 = slot;
+
+    Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
+}
+
+void update_terminal_train_slot(int8_t train, int8_t slot, int8_t speed) {
+    terminal_data_t request;
+    request.command = TERMINAL_UPDATE_TRAIN_SLOT;
+    request.num1 = train;
+    request.num2 = slot;
+    request.byte1 = speed;
+
+    Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
+}
+
+void clear_terminal_train_slot(int8_t slot) {
+    terminal_data_t request;
+    request.command = TERMINAL_CLEAR_TRAIN_SLOT;
+    request.num2 = slot;
+
+    Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
+}
+
 
 void handle_update_terminal_clock(int32_t ticks) {
     term_save_cursor();
@@ -272,7 +324,7 @@ void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sens
     }
 
     //If the sensor hasn't changed, we have nothing to update
-    if(sensor_changed) {
+    /*if(sensor_changed) {
         int value;
         int index = (*recent_sensors_index - 1) % 10; //We increment whenever we push into the buffer, so just subtract 1
                                                       //To find the first element of the buffer
@@ -302,7 +354,7 @@ void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sens
             //Print the sensor label
             printf(COM2, "%c%d ", letter, number); //Extra space is to overwrite any two digit numbers previously there
         }
-    }
+    }*/
     term_restore_cursor();
     term_show_cursor();
 }
@@ -405,6 +457,43 @@ void handle_set_track(sensor_map_chars_t* sensor_display_info, char track) {
     printf(COM2, "%c", track);
     term_restore_cursor();
     term_show_cursor();
+}
+
+void handle_register_train(int8_t train, int8_t slot) {
+    status_message("TRAIN: %d REGISTERED TO SLOT: %d", train, slot);
+}
+
+void handle_init_train_slot(int8_t train, int8_t slot) {
+    term_save_cursor();
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "%d ", train);
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "??");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "??");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "?");
+    term_restore_cursor();
+}
+
+void handle_update_train_slot(int8_t slot, int8_t speed) {
+    term_save_cursor();
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "%d ", speed);
+    term_restore_cursor();
+}
+
+void handle_clear_train_slot(int8_t slot) {
+    term_save_cursor();
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "  ");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "    ");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "    ");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    printf(COM2, "    ");
+    term_restore_cursor();
 }
 
 void clear_track_map(void) {

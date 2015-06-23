@@ -94,6 +94,19 @@ void process_input(char* input) {
 			} else {
 				//term_set_status(t,"ERROR: SW, INVALID switch number");
 			}
+		} else if(strcmp(argv[0], "register") == 0) {
+			terminal_data.command = TERMINAL_REGISTER_TRAIN;
+			target_train_number = strtoi(argv[1]);
+			int8_t slot = strtoi(argv[2]);
+
+			terminal_data.num1 = target_train_number;
+			terminal_data.num2 = slot;
+
+			result = register_train(target_train_number, slot);
+
+			if(result != 0) {
+				terminal_data.command = TERMINAL_COMMAND_ERROR;
+			}		
 		} else {
 			//term_set_status(t,"ERROR: Invalid command");
 		}

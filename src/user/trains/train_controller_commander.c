@@ -33,6 +33,7 @@ typedef enum {
     SENSOR_QUERY_REQUEST, 
     START_CONTROLLER,
     STOP_CONTROLLER,
+    TRAIN_REGISTER,
     TRAIN_CONTROLLER_UKNOWN_COMMAND
 } train_controller_command_t;
 
@@ -48,6 +49,11 @@ typedef struct {
     int32_t reverse_time;
 } reverse_delay_t;
 
+typedef struct {
+    int16_t speed;
+    int16_t slot;
+} train_data_t;
+
 static void train_reverse_delay_server(void);
 static void send_reverse_delay(int server_id, int8_t train);
 
@@ -62,14 +68,22 @@ static void handle_start_track_query(void);
 static void handle_start_controller(void);
 static void handle_stop_controller(void);
 
+static void handle_train_register(train_data_t* trains, int16_t* train_slots, int8_t train, int8_t slot);
+
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
-    int8_t train_speeds[MAX_TRAIN_NUM + 1];
+    train_data_t trains[MAX_TRAIN_NUM + 1];
+    int16_t train_slots[6];
 
     int i;
     for(i = 0; i < MAX_TRAIN_NUM + 1; ++i) {
-        train_speeds[i] = 0;
+        trains[i].speed = -1;
+        trains[i].slot = -1;
+    }
+
+    for(i = 0; i < 6; ++i) {
+        train_slots[i] = -1;
     }
 
     //TODO should change priority of this probably...
@@ -91,19 +105,35 @@ void train_controller_commander_server(void) {
         switch(data.command) {
             case TRAIN_SET_SPEED:
                 handle_train_set_speed((int8_t)data.var1, data.var2);
-                train_speeds[data.var1] = data.var2;
+                trains[data.var1].speed = data.var2;
+
+                if(trains[data.var1].slot != -1) {
+                    update_terminal_train_slot(data.var1, trains[data.var1].slot, data.var2);
+                }
+
                 break;
             case TRAIN_REVERSE_BEGIN:
                 //If the train isn't moving, we can just send the reverse command now
-                if(train_speeds[data.var1] == 0) {
+                if(trains[data.var1].speed == 0) {
                     handle_train_set_speed((int8_t)data.var1, REVERSE_COMMAND);
                 } else {
                     handle_train_reverse_begin((int8_t)data.var1);
+
+                    if(trains[data.var1].slot != -1) {
+                        update_terminal_train_slot(data.var1, trains[data.var1].slot, 0);
+                    }
+
                     send_reverse_delay(train_reverse_server_tid, (int8_t)data.var1);
                 }
+
                 break;
             case TRAIN_REVERSE_REACCEL:
-                handle_train_reverse_end((int8_t)data.var1, train_speeds[data.var1]);
+                handle_train_reverse_end((int8_t)data.var1, trains[data.var1].speed);
+
+                if(trains[data.var1].slot != -1) {
+                    update_terminal_train_slot(data.var1, trains[data.var1].slot, trains[data.var1].speed);
+                }
+
                 break;
             case SWITCH_DIRECTION:
                 handle_switch_set_direction(data.var1, data.var2);
@@ -116,6 +146,9 @@ void train_controller_commander_server(void) {
                 break;
             case STOP_CONTROLLER:
                 handle_stop_controller();
+                break;
+            case TRAIN_REGISTER:
+                handle_train_register(trains, train_slots, data.var1, data.var2);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -184,6 +217,22 @@ void stop_controller(void) {
     train_controller_data_t data;
     data.command = STOP_CONTROLLER;
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+}
+
+int register_train(int8_t train, int8_t slot) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    } else if(slot <= 0 || slot > 6) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = TRAIN_REGISTER;
+    data.var1 = train;
+    data.var2 = slot;
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+
+    return 0;
 }
 
 void train_reverse_delay_server(void) {
@@ -273,4 +322,23 @@ void handle_start_controller(void) {
 
 void handle_stop_controller(void) {
     putc(COM1, STOP_CONTROLLER_COMMAND);
+}
+
+void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t train, int8_t slot) {
+    if(train_slot[(int16_t)slot] != -1) {
+        trains[train_slot[(int16_t)slot]].slot = -1;
+    }
+
+    if(trains[(uint16_t)train].slot != -1) {
+        clear_terminal_train_slot(trains[(int16_t)train].slot);
+    }
+
+    train_slot[(int16_t)slot] = train;
+    trains[(int16_t)train].slot = slot;
+
+    initialize_terminal_train_slot(train, slot);
+
+    if(trains[(uint16_t)train].speed != -1) {
+        update_terminal_train_slot(train, slot, trains[(uint16_t)train].speed);
+    }
 }

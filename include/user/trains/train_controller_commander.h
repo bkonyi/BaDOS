@@ -58,4 +58,13 @@ void start_controller(void);
  */
 void stop_controller(void);
 
+/**
+ * @brief Registers a train
+ * @details [long description]
+ * 
+ * @param train The train to be registered
+ * @param slot The slot the train will occupy
+ */
+int register_train(int8_t train, int8_t slot);
+
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__
