@@ -2,6 +2,8 @@
 #define __INTERRUPT_HANDLER_H__
 #include <global.h>
 
+void cleanup_interrupts(void);
+
 void initialize_interrupts(global_data_t* global_data);
 
 /**

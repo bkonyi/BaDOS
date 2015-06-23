@@ -25,6 +25,29 @@
 int Create( int priority, void (*code) () );
 
 /**
+ * @brief instantiate a task
+ * @details Create allocates and initializes a task descriptor, using the
+ * given priority, and the given function pointer as a pointer to the entry
+ * point of executable code, essentially a function with no arguments and no
+ * return value. When Create returns the task descriptor has all the state
+ * needed to run the task, the task’s stack has been suitably initialized, and
+ * the task has been entered into its ready queue so that it will run the next
+ * time it is scheduled.
+ * 
+ * @param priority The priority to assign to the newly created task. should be a value in the range [0,31]
+ * @param code Pointer to the location in memory where the tasks code is located. This is the address that the Task will start executing at when it runs for the first time.
+ * @param name The name to be assigned to the task
+ * 
+ * @return
+ *  id – the positive integer task id of the newly created task. The task id 
+ *      must be unique, in the sense that no task has, will have or has had the
+ *      same task id.
+ *  -1 – if the priority is invalid.
+ *  -2 – if the kernel is out of task descriptors.
+ */
+int CreateName( int priority, void (*code) () , char *name);
+
+/**
  * @brief find my task id.
  * @return 
  * tid – the positive integer task id of the task that calls it.
@@ -249,6 +272,9 @@ int Putc( int channel, char ch );
  */
 int Terminate(void);
 
+/**
+ * @brief Gets the average idle time percentage * 100
+ */
 int GetIdleTime(void);
 
 #endif//__SYS_CALL_H__

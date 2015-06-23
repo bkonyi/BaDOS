@@ -23,6 +23,7 @@ typedef struct {
     //Fields for Create()
     uint32_t priority;
     void (*func) ();
+    char* name;
 
     //Fields for Send(), Receive(), Reply()
     char* msg_buffer;

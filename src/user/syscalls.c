@@ -7,11 +7,16 @@
 #include <clock/clock_server.h>
 
 int Create( int priority, void (*code) () ) {
+    return CreateName(priority, code, "UNKNOWN");
+}
+
+int CreateName( int priority, void (*code) (), char* name ) {
     request_t request;
 
     request.sys_code = SYS_CALL_CREATE;
     request.priority = priority;
     request.func     = code;
+    request.name     = name;
 
     return send_sys_call(&request);
 }

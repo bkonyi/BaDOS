@@ -12,15 +12,17 @@ static void uart2_transmit_handle(void);
 static void uart1_status_handle(void);
 static void uart2_status_handle(void);
 
-
-void initialize_interrupts(global_data_t* global_data) {
-	    //TODO enable ICU
+void cleanup_interrupts(void) {
     *(volatile uint32_t*)(VIC1_BASE + VICxIntSelect) = 0;
     *(volatile uint32_t*)(VIC2_BASE + VICxIntSelect) = 0;
 
     //Clear the enabled interrupts
     *(volatile uint32_t*)(VIC1_BASE + VICxIntEnClear) = ~0;
     *(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = ~0;
+}
+
+void initialize_interrupts(global_data_t* global_data) {
+    cleanup_interrupts();
 
     //Enable the interrupts on the VIC1 for UARTS
      *(volatile uint32_t*)(VIC1_BASE + VICxIntEnable) |=  VIC1_UART1_RECEIVE_MASK 
@@ -73,6 +75,9 @@ void handle_interrupt(global_data_t* global_data) {
         //bwprintf(COM2, "Timer cleared\r\n");
         //bwprintf(COM2, "Interrupt: 0x%x 0x%x\r\n", *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus), *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus));
     	interrupt_index = 	TIMER1_EVENT;
+
+        //Increment the counter for calculating average idle time
+        ++(global_data->clock_interrupt_count);
     } else if(vic1_status & VIC1_UART1_RECEIVE_MASK) {
         uart1_receive_handle();
         return_code = *(volatile int *)( UART1_BASE + UART_DATA_OFFSET );

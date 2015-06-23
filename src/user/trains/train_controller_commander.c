@@ -74,10 +74,10 @@ void train_controller_commander_server(void) {
 
     //TODO should change priority of this probably...
     //Create the server responsible for creating the delay when reversing trains
-    int train_reverse_server_tid = Create(TRAIN_REVERSE_DELAY_SERVER_PRIORITY, train_reverse_delay_server);
+    int train_reverse_server_tid = CreateName(TRAIN_REVERSE_DELAY_SERVER_PRIORITY, train_reverse_delay_server, TRAIN_REVERSE_DELAY_SERVER);
     
     //Create the task responsible for requesting sensor querys and handling the responses
-    Create(SENSOR_QUERY_SERVER, sensor_query_server);
+    CreateName(SENSOR_QUERY_SERVER_PRIORITY, sensor_query_server, SENSOR_QUERY_SERVER);
 
     //Since we turn the controller off when we start, we might as well turn it back on.
     handle_start_controller();

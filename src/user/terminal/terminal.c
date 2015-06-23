@@ -104,7 +104,7 @@ void terminal_server(void) {
     printf(COM2, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");
     term_fmt_clr();
 
-    Create(TERMINAL_TICK_NOTIFIER, terminal_tick_notifier);
+    CreateName(TERMINAL_TICK_NOTIFIER_PRIORITY, terminal_tick_notifier, TERMINAL_TICK_NOTIFIER);
 
     //draw_initial_track_map();
     sensor_map_chars_t sensor_chars[16*16];
@@ -207,7 +207,7 @@ void handle_update_terminal_clock(int32_t ticks) {
     if((ticks / 10) % 10 == 0) {
         int idle_percentage = GetIdleTime();
         term_move_cursor(TERM_IDLE_PERCENTAGE_COORDS);
-        printf(COM2, "%d.%d", idle_percentage / 100, idle_percentage % 100);
+        printf(COM2, "%d.%d%%", idle_percentage / 100, idle_percentage % 100);
     }
 
     term_restore_cursor();
@@ -235,6 +235,8 @@ void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sens
                 if((previous_sensor_data & 0x1) != (new_sensor_data & 0x1)) {
                     //Find the location of the sensor in the display
                     //Note: it's 7 - j since we're going from most significant to least
+                    ASSERT(2 + (7 - j) * TERM_SENSORS_DATA_WIDTH >= 0);
+                    ASSERT(TERM_SENSORS_DATA_ROW + i >= 0);
                     term_move_cursor(2 + (7 - j) * TERM_SENSORS_DATA_WIDTH, TERM_SENSORS_DATA_ROW + i);
 
                     group = (i / 2);
@@ -440,11 +442,15 @@ void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]) {
 
 void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state) {
      sensor_map_chars_t* data = &sensor_chars[MAP_DRAW_COORDS(group,index)];
-     term_move_cursor(MAP_COL + data->x,MAP_ROW + data->y);
+     (void) data;
+     (void) state;
+     //ASSERT(MAP_COL + data->x >= 0);
+     //ASSERT(MAP_ROW + data->y >= 0);
+     /*term_move_cursor(MAP_COL + data->x,MAP_ROW + data->y);
      if(state == true) {
         putc(COM2,data->activated);
      } else if (state == false) {
         putc(COM2,data->original);
-     }
+     }*/
 }
 

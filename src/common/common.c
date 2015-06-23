@@ -22,10 +22,18 @@ char* strlcpy(char* dest, char* src,uint32_t maxlen) {
     if(maxlen == 0) {
         return strcpy(dest,src);
     }
-    //TODO: this always copues the maxlen even in \0 is hit.
-    memcpy(dest,src,maxlen);
-    return dest;
 
+    size_t len = strlen(src);
+
+    if(len >= maxlen) {
+        memcpy(dest, src, maxlen - 1);
+        dest[maxlen - 1] = '\0';
+    } else {
+        memcpy(dest, src, len);
+        dest[len] = '\0';
+    }
+
+    return dest;
 }
 
 size_t strlen(char* str) {
@@ -33,6 +41,7 @@ size_t strlen(char* str) {
     size_t count =0;
     while(*s != '\0') {
         count++;
+        s++;
     }
     return count;
 }

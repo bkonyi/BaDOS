@@ -55,13 +55,19 @@ void timer3_start(uint32_t preload);
  * @brief Returns the current tick count on timer 3
  * @details Returns the current tick count on timer 3
  */
-uint32_t timer3_get_time(void);
+uint32_t timer3_get_ticks(void);
 
 /**
  * @brief Gets the TIMER3 tick value and produces the number of microseconds elapsed
  * @return the number of microseconds that have elapsed since time_start.
  */
 uint32_t timer3_stop(void);
+
+/**
+ * @brief Restarts the timer with current configuration
+ * @details Restarts the timer with current configuration
+ */
+void timer3_restart(void);
 
 /**
  * @brief Clears the interrupt bit from the timer3 registers

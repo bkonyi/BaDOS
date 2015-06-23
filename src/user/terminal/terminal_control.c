@@ -2,10 +2,10 @@
 #include <io.h>
 
 void term_hide_cursor(void) {
-  printf(COM2,"\033[?25l");
+  //printf(COM2,"\033[?25l");
 }
 void term_show_cursor(void) {
-  printf(COM2,"\033[?25h");
+  //printf(COM2,"\033[?25h");
 }
 
 void term_red_text(void) {
@@ -38,6 +38,9 @@ void term_clear_rest_line(void) {
 }
 
 void term_move_cursor(int col, int row) {
+   ASSERT(col >= 0);
+   ASSERT(row >= 0);
+   
    printf(COM2,"\033[%d;%dH",row,col);
 }
 

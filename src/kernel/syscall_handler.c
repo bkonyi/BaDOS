@@ -5,9 +5,10 @@
 #include <bwio.h>
 #include <events.h>
 #include <timers.h>
+#include <servers.h>
 
-static int handle_Create(global_data_t* global_data, priority_t priority, void (*code)()) {
-    return create_task(global_data, priority, code);
+static int handle_Create(global_data_t* global_data, priority_t priority, void (*code)(), char* name) {
+    return create_task(global_data, priority, code, name);
 }
 
 static int handle_MyTid(global_data_t* global_data) {
@@ -174,11 +175,7 @@ static int handle_AwaitEvent(global_data_t* global_data, int eventid) {
 }
 
 static int handle_GetIdleTime(global_data_t* global_data) {
-    uint32_t total_time = timer3_get_time();
-    uint32_t idle_time  = global_data->total_idle_time * 100;
-    uint32_t idle_percentage = idle_time / total_time;
-
-    return idle_percentage;
+    return global_data->idle_time_percentage;
 }
 
 void initialize_syscall_handler(global_data_t* global_data) {
@@ -201,7 +198,7 @@ void handle(global_data_t* global_data, request_t* request) {
 
     switch(request->sys_code) {
         case SYS_CALL_CREATE:
-            active_task->return_code = handle_Create(global_data, request->priority, request->func);
+            active_task->return_code = handle_Create(global_data, request->priority, request->func, request->name);
             break;
         case SYS_CALL_MY_TID:
             active_task->return_code = handle_MyTid(global_data);

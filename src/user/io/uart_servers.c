@@ -74,12 +74,12 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
 }
 
 void uart1_transmit_server(void) {
-    Create(UART1_TRANSMIT_NOTIFIER_PRIORITY, uart1_transmit_notifier);
+    CreateName(UART1_TRANSMIT_NOTIFIER_PRIORITY, uart1_transmit_notifier, UART1_TRANSMIT_NOTIFIER);
     uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
 void uart2_transmit_server(void) {
-    Create(UART2_TRANSMIT_NOTIFIER_PRIORITY, uart2_transmit_notifier);
+    CreateName(UART2_TRANSMIT_NOTIFIER_PRIORITY, uart2_transmit_notifier, UART2_TRANSMIT_NOTIFIER);
     uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
 }
 
@@ -189,13 +189,13 @@ void unbuffered_receive_server(char* name,uint32_t buffer_size) {
 }
 
 void uart1_receive_server(void) {
-    Create(UART1_RECEIVE_NOTIFIER_PRIORITY, uart1_receive_notifier);
+    CreateName(UART1_RECEIVE_NOTIFIER_PRIORITY, uart1_receive_notifier, UART1_RECEIVE_NOTIFIER);
     buffered_receive_server(UART1_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 }
 void uart2_receive_server(void) {
-    Create(UART2_RECEIVE_NOTIFIER_PRIORITY, uart2_receive_notifier);
-    Create(UART_COURRIER_PRIORITY, uart_courrier);
-    Create(UART2_TIMEOUT_NOTIFIER, uart2_timeout_notifier);
+    CreateName(UART2_RECEIVE_NOTIFIER_PRIORITY, uart2_receive_notifier, UART2_RECEIVE_NOTIFIER);
+    CreateName(UART_COURRIER_PRIORITY, uart_courrier, UART2_COURRIER);
+    CreateName(UART2_TIMEOUT_NOTIFIER_PRIORITY, uart2_timeout_notifier, UART2_TIMEOUT_NOTIFIER);
     unbuffered_receive_server(UART2_RECEIVE_SERVER,INPUT_BUFFER_SIZE);
 
 }

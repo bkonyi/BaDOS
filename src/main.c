@@ -72,13 +72,18 @@ void initialize(global_data_t* global_data) {
     initialize_syscall_handler(global_data);
 
     timer1_start(5080); // 10 milli Seconds
+
     timer3_freerun();
+    timer3_stop();
 
     //First User Task
-    create_task(global_data, FIRST_USER_TASK_PRIORITY, first_user_task);
+    create_task(global_data, FIRST_USER_TASK_PRIORITY, first_user_task, "FIRST USER TASK\0");
 
     global_data->uart1_modem_state.clear_to_send = false;
     global_data->uart1_modem_state.events_waiting = false;
+    global_data->clock_interrupt_count = 0;
+    global_data->total_idle_time = 0;
+    global_data->idle_time_percentage = 0;
 }
 
 void cleanup(global_data_t* global_data) {
@@ -86,14 +91,8 @@ void cleanup(global_data_t* global_data) {
     timer1_stop();
     timer3_stop();
 
-    //Clear the screen
-    bwprintf(COM2,"\e[2J");
-
-    //Move the cursor to the top left
-    bwprintf(COM2,"\e[1;1H");
-
     //Clears all interrupts  except timer3.
-    initialize_interrupts(global_data);
+    cleanup_interrupts();
 }
 
 request_t* switch_context(task_descriptor_t* td) {
@@ -104,22 +103,22 @@ int main(void)
 {
     global_data_t global_data;
     initialize(&global_data);
-    //bwprintf(COM2, "Starting...\r\n");
-    uint32_t idle_task_start_time = 0;
+
+    uint32_t time_difference = 0;
+    uint32_t idle_time = 0;
+    uint32_t last_clock_interrupt_count = ~0;
 
     request_t* request = NULL;
 
     FOREVER {
         task_descriptor_t* next_task = schedule_next_task(&global_data);
-        //bwprintf(COM2, "TID: %d\r\n", next_task->tid);
+
         if(next_task == NULL) {
             bwprintf(COM2, "Goodbye!\r\n");
             return 0;
         }
 
-        if(next_task->tid == IDLE_TASK_ID) {
-            idle_task_start_time = timer3_get_time();
-        }
+        timer3_start(~0);
 
         request = switch_context(next_task);
 
@@ -128,13 +127,35 @@ int main(void)
             break;
         }
 
+        time_difference = (((uint32_t)~0) - timer3_get_ticks());
+        next_task->running_time += time_difference;
+
         if(next_task->tid == IDLE_TASK_ID) {
-            global_data.total_idle_time += timer3_get_time() - idle_task_start_time;
+            idle_time += time_difference;
         }
 
         handle(&global_data, request);
+        if((global_data.clock_interrupt_count % 100) == 0 && global_data.clock_interrupt_count != last_clock_interrupt_count) {
+            global_data.idle_time_percentage = (idle_time * 100) / 508000;
+            global_data.total_idle_time = 0;
+            last_clock_interrupt_count = global_data.clock_interrupt_count;
+            idle_time = 0;
+        }
     }
 
+    uint32_t timer_end_time = timer3_get_ticks() / 508000;
     cleanup(&global_data);
+
+    tid_t next_tid = global_data.task_handler_data.next_tid;
+
+    bwprintf(COM2, "\e[2BEnding Time: %u\r\n", (timer_end_time + global_data.clock_interrupt_count * (5080)) / 508);
+
+    int i;
+    for(i = 0; i < next_tid; ++i) {
+        task_descriptor_t* task = get_task(&global_data, i);
+        uint32_t task_running_time = task->running_time;
+        bwprintf(COM2, "TID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u%%  \t%s\r\n", task->tid, task_running_time / 508, ((task_running_time * 100) / (timer_end_time + global_data.clock_interrupt_count * (5080))), task->task_name);
+    }
+
     return 0;
 }

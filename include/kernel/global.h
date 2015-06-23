@@ -12,6 +12,7 @@
 
 #define USER_TASK_MODE      0x50
 #define STACK_SIZE 1024 * 80 //80KiB
+#define MAX_TASK_NAME_SIZE 80
 
 typedef enum {
     TASK_RUNNING_STATE_ACTIVE              = 0,
@@ -61,6 +62,8 @@ typedef struct task_descriptor_t {
     uint32_t pc;
     uint32_t return_code;
 
+    char task_name[MAX_TASK_NAME_SIZE + 1];
+
     struct task_descriptor_t* next;
     struct task_descriptor_t* MESSAGE_WAITING_NEXT;
     struct task_descriptor_t* NEXT_WAITING_TASK;
@@ -70,6 +73,7 @@ typedef struct task_descriptor_t {
     tid_t tid;
     tid_t parent;
     priority_t priority;
+    uint32_t running_time;
 
     request_t* last_request;
     message_waiting_queue_t message_queue;
@@ -121,6 +125,8 @@ typedef struct global_data_t {
     syscall_handler_data_t syscall_handler_data;
     uart1_modem_state_t uart1_modem_state;
     uint32_t total_idle_time;
+    uint16_t  clock_interrupt_count;
+    uint32_t idle_time_percentage;
 } global_data_t;
 
 

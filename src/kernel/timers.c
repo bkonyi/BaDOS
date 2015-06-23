@@ -92,7 +92,7 @@ static void timer3_init(uint32_t preload) {
     buf = buf & ~T3_CTRL_ENABLE_MASK;
     
     //set to 508kHz
-    //buf = buf | T3_CTRL_CLKSEL_MASK;
+    buf = buf | T3_CTRL_CLKSEL_MASK;
    
     //set to periodic 
     buf = buf | T3_CTRL_MODE_MASK;
@@ -125,19 +125,18 @@ void timer3_clear(void) {
     *TIMER3_CLEAR_ADDR = 1;
 }
 
-uint32_t timer3_get_time(void){
-    uint32_t* line, time;
+uint32_t timer3_get_ticks(void){
+    volatile uint32_t* line; 
+    volatile uint32_t time;
     line = (unsigned int*)TIMER3_VALUE;
     time = *line;
-
-    uint32_t ticks = (TIMER3_MAXCOUNT-time);
     
     //we have 508kHz but want 1000kHz so multiply to account for that
-    return ticks * TIMER_508_TO_MICRO;
+    return time;
 }
 
 uint32_t timer3_stop(void){
-    uint32_t* line, time, buf;
+    volatile uint32_t* line, time, buf;
     line = (unsigned int*)TIMER3_VALUE;
     time = *line;
     
@@ -152,4 +151,17 @@ uint32_t timer3_stop(void){
     
     //we have 508kHz but want 1000kHz so multiply to account for that
     return ticks * TIMER_508_TO_MICRO;
+}
+
+void timer3_restart(void) {
+    uint32_t* line, time, buf;
+    line = (unsigned int*)TIMER3_VALUE;
+    time = *line;
+
+    //stop/disable timer
+    line = (unsigned int*)TIMER3_CTRL;
+    buf = *line;
+    buf = buf | T3_CTRL_ENABLE_MASK;
+    *line = buf;
+    buf = *line;
 }

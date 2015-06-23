@@ -52,7 +52,7 @@ void clock_server_task(void) {
     //We are the CLOCK_SERVER
     RegisterAs(CLOCK_SERVER);
 
-    CLOCK_NOTIFIER_TID = Create(CLOCK_NOTIFIER_TASK_PRIORITY, clock_notifier_task);
+    CLOCK_NOTIFIER_TID = CreateName(CLOCK_NOTIFIER_TASK_PRIORITY, clock_notifier_task, CLOCK_NOTIFIER);
 
     //NOTE: each tick is 10 milli seconds
     FOREVER {

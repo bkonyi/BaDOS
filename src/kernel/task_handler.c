@@ -10,7 +10,7 @@ void init_task_handler(global_data_t* global_data) {
     global_data->task_handler_data.next_tid = 0;
 }
 
-int create_task(global_data_t* global_data, priority_t priority, void (*code) ()) {
+int create_task(global_data_t* global_data, priority_t priority, void (*code) (), char* name) {
     task_handler_data_t* task_handler_data = &global_data->task_handler_data;
 
     if(task_handler_data->next_tid >= MAX_NUMBER_OF_TASKS) {
@@ -28,6 +28,8 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
     task_descriptor_t* next_descriptor = &(task_handler_data->tasks[task_handler_data->next_tid]);
     next_descriptor->state   = TASK_RUNNING_STATE_READY;
     next_descriptor->tid     = task_handler_data->next_tid;
+    next_descriptor->running_time = 0;
+    strlcpy(next_descriptor->task_name, name, MAX_TASK_NAME_SIZE);
 
     if(active_task != NULL) {
         next_descriptor->parent  = active_task->tid;
@@ -48,7 +50,6 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
     QUEUE_INIT(next_descriptor->message_queue);
 
     int result = schedule(global_data, next_descriptor);
-
     KASSERT(result == 0);
 
     //Return our TID and and then increment next_tid

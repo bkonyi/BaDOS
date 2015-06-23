@@ -17,6 +17,8 @@
 #include <command_server.h>
 #include <a3_user_prog.h>
 #include <task_priorities.h>
+#include <servers.h>
+
 #define SET_DELAY_INFO(delay, iterations) (((uint64_t)(delay)) << 32) | ((uint32_t)(iterations))
 
 void first_user_task(void) {
@@ -26,34 +28,35 @@ void first_user_task(void) {
 
     //IMPORTANT:
     //The nameserver need to be the first task created so that is has TID of NAMESERVER_TID
-    tid_t tid = Create(NAME_SERVER_PRIORITY,  nameserver_task);
+    tid_t tid = CreateName(NAME_SERVER_PRIORITY,  nameserver_task, NAME_SERVER);
     ASSERT(tid == NAMESERVER_TID);
 
     //Create the clock server
-    Create(CLOCK_SERVER_PRIORITY, clock_server_task);
+    CreateName(CLOCK_SERVER_PRIORITY, clock_server_task, CLOCK_SERVER);
     //Create the random number generation server
-    Create(RAND_SERVER_PRIORITY, rand_server_task);
+    CreateName(RAND_SERVER_PRIORITY, rand_server_task, RAND_SERVER);
     //Create the idle task which keeps the kernel running even when every other task is blocked.
-    Create(IDLE_TASK_PRIORITY, idle_task);
+    CreateName(IDLE_TASK_PRIORITY, idle_task, IDLE_TASK);
 
     //Create the IO servers
-    tid = Create(UART1_RECEIVE_SERVER_PRIORITY, uart1_receive_server);
+    tid = CreateName(UART1_RECEIVE_SERVER_PRIORITY, uart1_receive_server, UART1_RECEIVE_SERVER);
     ASSERT(tid == UART1_RECEIVE_SERVER_ID);
-    tid = Create(UART1_TRANSMIT_SERVER_PRIORITY, uart1_transmit_server);
+    tid = CreateName(UART1_TRANSMIT_SERVER_PRIORITY, uart1_transmit_server, UART1_TRANSMIT_SERVER);
     ASSERT(tid == UART1_TRANSMIT_SERVER_ID);
-    tid = Create(UART2_RECEIVE_SERVER_PRIORITY, uart2_receive_server);
+    tid = CreateName(UART2_RECEIVE_SERVER_PRIORITY, uart2_receive_server, UART2_RECEIVE_SERVER);
     ASSERT(tid == UART2_RECEIVE_SERVER_ID);
-    tid = Create(UART2_TRANSMIT_SERVER_PRIORITY, uart2_transmit_server);
+    tid = CreateName(UART2_TRANSMIT_SERVER_PRIORITY, uart2_transmit_server, UART2_TRANSMIT_SERVER);
     ASSERT(tid == UART2_TRANSMIT_SERVER_ID);
 
-    tid = Create(COMMAND_SERVER_PRIORITY, command_server);
+    tid = CreateName(COMMAND_SERVER_PRIORITY, command_server, COMMAND_SERVER);
     ASSERT(tid == COMMAND_SERVER_ID);
 
-    tid = Create(TERMINAL_SERVER_PRIORITY, terminal_server);
+    tid = CreateName(TERMINAL_SERVER_PRIORITY, terminal_server, TERMINAL_SERVER);
     ASSERT(tid == TERMINAL_SERVER_ID);
 
-    tid = Create(TRAIN_CONTROLLER_COMMAND_SERVER, train_controller_commander_server);
+    tid = CreateName(TRAIN_CONTROLLER_COMMAND_SERVER, train_controller_commander_server, TRAIN_CONTROLLER_SERVER);
     ASSERT(tid == TRAIN_CONTROLLER_SERVER_ID);
+    
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/
