@@ -136,7 +136,7 @@ int main(void)
 
         handle(&global_data, request);
         if((global_data.clock_interrupt_count % 100) == 0 && global_data.clock_interrupt_count != last_clock_interrupt_count) {
-            global_data.idle_time_percentage = (idle_time * 100) / 508000;
+            global_data.idle_time_percentage = (idle_time * 100) / 508000; //508000 = 5080 ticks * 100 interrupts
             global_data.total_idle_time = 0;
             last_clock_interrupt_count = global_data.clock_interrupt_count;
             idle_time = 0;

@@ -8,7 +8,7 @@
  * @details Sets the TIMEMR1 timer with the following values
  * 		- PERIODIC
  * 		- 508 kHz
- * 		- 0xFFFF initial tick value (behaves just like freerun)
+ * 		- preload initial tick value (behaves just like freerun)
  */
 static void timer1_init(uint16_t preload) {
     /*
@@ -131,7 +131,6 @@ uint32_t timer3_get_ticks(void){
     line = (unsigned int*)TIMER3_VALUE;
     time = *line;
     
-    //we have 508kHz but want 1000kHz so multiply to account for that
     return time;
 }
 
