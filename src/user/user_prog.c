@@ -18,7 +18,7 @@
 #include <a3_user_prog.h>
 #include <task_priorities.h>
 #include <servers.h>
-
+#include <trains/track_position_server.h>
 #define SET_DELAY_INFO(delay, iterations) (((uint64_t)(delay)) << 32) | ((uint32_t)(iterations))
 
 void first_user_task(void) {
@@ -56,6 +56,8 @@ void first_user_task(void) {
 
     tid = CreateName(TRAIN_CONTROLLER_COMMAND_SERVER, train_controller_commander_server, TRAIN_CONTROLLER_SERVER);
     ASSERT(tid == TRAIN_CONTROLLER_SERVER_ID);
+    tid = CreateName(TRAIN_POSITION_SERVER_PRIORITY, track_position_server, TRAIN_CONTROLLER_SERVER);
+    ASSERT(tid == TRAIN_POSITION_SERVER_ID);
     
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
