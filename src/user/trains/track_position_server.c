@@ -7,25 +7,34 @@
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
 
 #define NUM_SWITCHES_TO_STORE 32
+#define NUM_MESSAGE_BUFFER_ITEMS 4
+#define MESSAGE_BUFFER_SIZE (sizeof(uint32_t)*NUM_MESSAGE_BUFFER_ITEMS)  
+#define MAX_NUM_TRAINS 10
 void fill_track_branch_data(track_node* track_nodes, track_node** sensor_track_nodes);
 
 void track_position_server(void) {
 	//The two of these need to be of different sizes
-	ASSERT(TPS_SIGNAL_MESSAGE_SIZE != TPS_COVERSHEET_MESSAGE_SIZE && TPS_SIGNAL_MESSAGE_SIZE > TPS_COVERSHEET_MESSAGE_SIZE);
+	//we also need to make sure we have enough allocated to hold them
+	ASSERT(TPS_SIGNAL_MESSAGE_SIZE != TPS_COVERSHEET_MESSAGE_SIZE 
+		&& MESSAGE_BUFFER_SIZE > TPS_SIGNAL_MESSAGE_SIZE
+		&& MESSAGE_BUFFER_SIZE > TPS_COVERSHEET_MESSAGE_SIZE);
 	
 	int requester, size_received;
-	char message[30];
-	int8_t* signal_message = (int8_t*)message;
-	struct tps_cover_sheet_t* tps_message = (struct tps_cover_sheet_t*)message;
+	uint32_t message[NUM_MESSAGE_BUFFER_ITEMS];
 
-	bwprintf(COM2,"BEEEEFFFFF");
-	tps_message->num1 = 3; // THIS IS WHERE IT CRAPS OUT
-	bwprintf(COM2,"AAFFFFFTTTT");
-	//track_node* track_branch_nodes[NUM_SWITCHES_TO_STORE]; //merge nodes are attached through the .reverse member
-	//track_node track_nodes[TRACK_MAX];
+	//Set up our pointers so we can be sneaky
+	int8_t* signal_message = (int8_t*)message;
+	tps_cover_sheet_t* tps_message = (	tps_cover_sheet_t*)message;
+
+	track_node* track_branch_nodes[NUM_SWITCHES_TO_STORE]; //merge nodes are attached through the .reverse member
+	
+	track_node track_nodes[TRACK_MAX];
+
+	train_position_information_t trains[MAX_NUM_TRAINS];
+
 
 	FOREVER {
-		size_received = Receive(&requester,message,TPS_SIGNAL_MESSAGE_SIZE);
+		size_received = Receive(&requester,(char*)message,TPS_SIGNAL_MESSAGE_SIZE);
 		//printf(COM2,"GOTTI 0x%x",((struct tps_cover_sheet_t*)message)->num1);
 		Reply(requester,NULL,0);
 
@@ -36,35 +45,32 @@ void track_position_server(void) {
 				(void)signal_message;
 				break;
 			case TPS_COVERSHEET_MESSAGE_SIZE:
-			(void)tps_message;
-			//tps_message->num1 = 2;
-			printf(COM2, "EHEHEHEHEHEHHE addr 0x%x 0x%x 0x%x",(uint32_t)message,(uint32_t)tps_message,(uint32_t)signal_message);
-				/*switch(tps_message->command) {
+				switch(tps_message->command) {
 					case TPS_SET_TRACK:
-						//printf(COM2, "track 0x%x",'D');
-						
-						switch(TRACKA) {
+
+						switch(tps_message->num1) {
 							case TRACKA:
-								//printf(COM2, "                                                                     SETTING TRACKAAAAAAAAAAAAA");
-								
 								init_tracka(track_nodes);
 								break;
 							case TRACKB:
 								init_trackb(track_nodes);
 								break;
 							default:
-								//KASSERT(0);
+								KASSERT(0);
 								break;
 						}
 						fill_track_branch_data(track_nodes, track_branch_nodes);
 						break;
+					case TPS_INITIALIZE_TRAIN:
+
+						break;
 					default:
 						break;
-				}*/
+				}
 				break;
 			default:
-				//printf(COM2,"Invalid Message sent to TPS server\r\n");
-				//ASSERT(0);
+				bwprintf(COM2,"Invalid Message sent to TPS server\r\n");
+				ASSERT(0);
 				break;
 		}
 	}
