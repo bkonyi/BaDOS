@@ -5,6 +5,8 @@
 #include <io.h>
 #include <terminal/terminal.h>
 #include <trains/train_controller_commander.h>
+#include <trains/track_position_server.h>
+
 
 #define USER_INPUT_BUFFER_SIZE 32
 static void process_input(char* input);
@@ -135,6 +137,11 @@ void process_input(char* input) {
 			} else {
 				terminal_data.command = TERMINAL_SET_TRACK;
 				terminal_data.byte1 = track;
+				if(track == 'A') {
+					tps_set_track(TRACKA);
+				} else if ( track == 'B' ){
+					tps_set_track(TRACKB);
+				}
 			}
 		} else {
 			//term_set_status(t,"ERROR: Invalid command");
