@@ -20,6 +20,7 @@ typedef enum {
     TERMINAL_UPDATE_TRAIN_SLOT = 14,
     TERMINAL_INIT_TRAIN_SLOT = 15,
     TERMINAL_CLEAR_TRAIN_SLOT = 16,
+    TERMINAL_FIND_TRAIN      = 17,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -56,8 +57,32 @@ void update_terminal_clock(int32_t ticks);
  */
 void update_terminal_sensors_display(int8_t* sensors);
 
+/**
+ * @brief Sets a train status slot to display the train number and place ?? values in other fields
+ * @details Sets a train status slot to display the train number and place ?? values in other fields.
+ * Used when initially registering a train or moving a train to a different slot
+ * 
+ * @param train The train number to have information displayed for
+ * @param slot The slot for information to be shown in. Valid values: [1-6]
+ */
 void initialize_terminal_train_slot(int8_t train, int8_t slot);
+
+/**
+ * @brief Updates the speed for the train in a given slot.
+ * @details Updates the speed for the train in a given slot.
+ * 
+ * @param train The train for which information on screen needs to be updated
+ * @param slot The slot that the train currently occupies
+ * @param speed The new speed to display on screen.
+ */
 void update_terminal_train_slot(int8_t train, int8_t slot, int8_t speed);
+
+/**
+ * @brief Clears a train information slot on screen.
+ * @details Clears a train information slot on screen.
+ * 
+ * @param slot The train information slot to clear.
+ */
 void clear_terminal_train_slot(int8_t slot);
 
 #endif //__TERMINAL_H__

@@ -187,6 +187,9 @@ void terminal_server(void) {
             case TERMINAL_CLEAR_TRAIN_SLOT:
                 handle_clear_train_slot(data.num2);
                 break;
+            case TERMINAL_FIND_TRAIN:
+                status_message("FINDING REGISTERED TRAINS...");
+                break;
             case TERMINAL_COMMAND_ERROR:
                 status_message("Input Error");
                 clear_user_input();

@@ -17,9 +17,14 @@
 #define SWITCH_STRAIGHT   33
 #define SWITCH_CURVE      34
 
+#define INVALID_SPEED   -1
 #define MIN_SPEED        0
 #define MAX_SPEED       14
 #define REVERSE_COMMAND 15
+
+#define MAX_REGISTERED_TRAINS     6
+#define INVALID_REGISTERED_TRAIN -1
+#define INVALID_SLOT             -1
 
 #define QUERY_SENSORS_COMMAND 133
 
@@ -35,6 +40,7 @@ typedef enum {
     START_CONTROLLER,
     STOP_CONTROLLER,
     TRAIN_REGISTER,
+    FIND_TRAINS,
     TRAIN_CONTROLLER_UKNOWN_COMMAND
 } train_controller_command_t;
 
@@ -53,14 +59,15 @@ typedef struct {
 typedef struct {
     int16_t speed;
     int16_t slot;
+    bool is_reversing;
 } train_data_t;
 
 static void train_reverse_delay_server(void);
 static void send_reverse_delay(int server_id, int8_t train);
 
-static void handle_train_set_speed(int8_t train, int8_t speed);
-static void handle_train_reverse_begin(int8_t train);
-static void handle_train_reverse_end(int8_t train, int8_t speed);
+static void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed);
+static void handle_train_reverse_begin(train_data_t* trains, int8_t train);
+static void handle_train_reverse_end(train_data_t* trains, int8_t train, int8_t speed);
 static void handle_switch_set_direction(int16_t switch_num, char direction);
 
 static void sensor_query_server(void);
@@ -71,20 +78,23 @@ static void handle_stop_controller(void);
 
 static void handle_train_register(train_data_t* trains, int16_t* train_slots, int8_t train, int8_t slot);
 
+static void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
+
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
     train_data_t trains[MAX_TRAIN_NUM + 1];
-    int16_t train_slots[6];
+    int16_t registered_trains[MAX_REGISTERED_TRAINS];
 
     int i;
-    for(i = 0; i < MAX_TRAIN_NUM + 1; ++i) {
-        trains[i].speed = -1;
-        trains[i].slot = -1;
+    for(i = 0; i <= MAX_TRAIN_NUM; ++i) {
+        trains[i].speed = INVALID_SPEED;
+        trains[i].slot = INVALID_SLOT;
+        trains[i].is_reversing = false;
     }
 
-    for(i = 0; i < 6; ++i) {
-        train_slots[i] = -1;
+    for(i = 0; i < MAX_REGISTERED_TRAINS; ++i) {
+        registered_trains[i] = INVALID_REGISTERED_TRAIN;
     }
 
     //TODO should change priority of this probably...
@@ -105,36 +115,20 @@ void train_controller_commander_server(void) {
 
         switch(data.command) {
             case TRAIN_SET_SPEED:
-                handle_train_set_speed((int8_t)data.var1, data.var2);
-                trains[data.var1].speed = data.var2;
-
-                if(trains[data.var1].slot != -1) {
-                    update_terminal_train_slot(data.var1, trains[data.var1].slot, data.var2);
-                }
-
+                handle_train_set_speed(trains, (int8_t)data.var1, data.var2);
                 break;
             case TRAIN_REVERSE_BEGIN:
                 //If the train isn't moving, we can just send the reverse command now
                 if(trains[data.var1].speed == 0) {
-                    handle_train_set_speed((int8_t)data.var1, REVERSE_COMMAND);
+                    handle_train_set_speed(trains, (int8_t)data.var1, REVERSE_COMMAND);
                 } else {
-                    handle_train_reverse_begin((int8_t)data.var1);
-
-                    if(trains[data.var1].slot != -1) {
-                        update_terminal_train_slot(data.var1, trains[data.var1].slot, 0);
-                    }
-
+                    handle_train_reverse_begin(trains, (int8_t)data.var1);
                     send_reverse_delay(train_reverse_server_tid, (int8_t)data.var1);
                 }
 
                 break;
             case TRAIN_REVERSE_REACCEL:
-                handle_train_reverse_end((int8_t)data.var1, trains[data.var1].speed);
-
-                if(trains[data.var1].slot != -1) {
-                    update_terminal_train_slot(data.var1, trains[data.var1].slot, trains[data.var1].speed);
-                }
-
+                handle_train_reverse_end(trains, (int8_t)data.var1, trains[data.var1].speed);
                 break;
             case SWITCH_DIRECTION:
                 handle_switch_set_direction(data.var1, data.var2);
@@ -149,7 +143,10 @@ void train_controller_commander_server(void) {
                 handle_stop_controller();
                 break;
             case TRAIN_REGISTER:
-                handle_train_register(trains, train_slots, data.var1, data.var2);
+                handle_train_register(trains, registered_trains, data.var1, data.var2);
+                break;
+            case FIND_TRAINS:
+                handle_find_trains(trains, registered_trains);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -236,6 +233,13 @@ int register_train(int8_t train, int8_t slot) {
     return 0;
 }
 
+void find_trains(void) {
+    train_controller_data_t data;
+    data.command = FIND_TRAINS;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+}
+
 void train_reverse_delay_server(void) {
     int sending_tid;
     reverse_delay_t delay_request;
@@ -283,18 +287,33 @@ void sensor_query_server(void) {
     }
 }
 
-void handle_train_set_speed(int8_t train, int8_t speed) {
+void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
     putc(COM1, speed);
     putc(COM1, train);
+
+    if(!trains[(uint16_t)train].is_reversing) {
+        trains[(uint16_t)train].speed = speed;
+    }
+
+    if(trains[(uint16_t)train].slot != INVALID_SLOT && speed != REVERSE_COMMAND) {
+        update_terminal_train_slot(train, trains[(uint16_t)train].slot, speed);
+    }
+
+    if(speed == REVERSE_COMMAND) {
+        trains[(uint16_t)train].is_reversing = false;
+    }
+
 }
 
-void handle_train_reverse_begin(int8_t train) {
-    handle_train_set_speed(train, 0);
+void handle_train_reverse_begin(train_data_t* trains, int8_t train) {
+    trains[(uint16_t)train].is_reversing = true;
+
+    handle_train_set_speed(trains, train, 0);
 }
 
-void handle_train_reverse_end(int8_t train, int8_t speed) {
-    handle_train_set_speed(train, REVERSE_COMMAND);
-    handle_train_set_speed(train, speed);
+void handle_train_reverse_end(train_data_t* trains, int8_t train, int8_t speed) {
+    handle_train_set_speed(trains, train, REVERSE_COMMAND);
+    handle_train_set_speed(trains, train, speed);
 }
 
 void handle_switch_set_direction(int16_t switch_num, char direction) {
@@ -327,11 +346,11 @@ void handle_stop_controller(void) {
 }
 
 void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t train, int8_t slot) {
-    if(train_slot[(int16_t)slot] != -1) {
-        trains[train_slot[(int16_t)slot]].slot = -1;
+    if(train_slot[(int16_t)slot] != INVALID_SLOT) {
+        trains[train_slot[(int16_t)slot]].slot = INVALID_SLOT;
     }
 
-    if(trains[(uint16_t)train].slot != -1) {
+    if(trains[(uint16_t)train].slot != INVALID_SLOT) {
         clear_terminal_train_slot(trains[(int16_t)train].slot);
     }
 
@@ -340,7 +359,23 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
 
     initialize_terminal_train_slot(train, slot);
 
-    if(trains[(uint16_t)train].speed != -1) {
+    if(trains[(uint16_t)train].speed != INVALID_SPEED) {
         update_terminal_train_slot(train, slot, trains[(uint16_t)train].speed);
     }
 }
+
+void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {
+    //TODO update terminal status to respresent current state of find process
+    
+    int i;
+    for(i = 1; i < MAX_TRAIN_NUM; ++i) {
+        handle_train_set_speed(trains, i, 0);
+    }
+
+    for(i = 0; i < MAX_REGISTERED_TRAINS; ++i) {
+        if(registered_trains[i] != INVALID_SLOT) {
+            //TODO actually start find process for each registered train
+        }
+    }
+}
+

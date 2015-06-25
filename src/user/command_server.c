@@ -155,6 +155,9 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "g") == 0) {
 			start_controller();
 			terminal_data.command = TERMINAL_START_CTRL;
+		} else if(strcmp(argv[0], "find" == 0)) {
+			find_trains();
+			terminal_data.command = TERMINAL_FIND_TRAIN;
 		}
 	}
 	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this in terminal.h
