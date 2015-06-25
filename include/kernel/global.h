@@ -5,6 +5,7 @@
 #include <queue.h>
 #include <request.h>
 #include <events.h>
+#include <ring_buffer.h>
 
 /**
  *  TASKS DATA STRUCTURES
@@ -20,7 +21,8 @@ typedef enum {
     TASK_RUNNING_STATE_ZOMBIE              = 2,
     TASK_RUNNING_STATE_REPLY_BLOCKED       = 3,
     TASK_RUNNING_STATE_RECEIVE_BLOCKED     = 4,
-    TASK_RUNNING_STATE_AWAIT_EVENT_BLOCKED = 5
+    TASK_RUNNING_STATE_AWAIT_EVENT_BLOCKED = 5,
+    TASK_RUNNING_STATE_FREE                = 6
 } task_running_state_t;
 
 struct task_descriptor_t;
@@ -55,6 +57,9 @@ CREATE_QUEUE_TYPE(interrupt_waiting_tasks_queue_t, struct task_descriptor_t);
 
 #define ARE_TASKS_WAITING(Q) (!IS_QUEUE_EMPTY(Q))
 
+//Define the task recycling ring buffer
+CREATE_RING_BUFFER_TYPE(free_tasks_queue_t, struct task_descriptor_t, MAX_NUMBER_OF_TASKS);
+
 typedef struct task_descriptor_t {
     //Registers
     uint32_t sp;   //Stack pointer
@@ -70,7 +75,7 @@ typedef struct task_descriptor_t {
 
     char stack[STACK_SIZE];
     task_running_state_t state;
-    tid_t tid;
+    tid_t generational_tid;
     tid_t parent;
     priority_t priority;
     uint32_t running_time;
@@ -83,6 +88,7 @@ typedef struct task_descriptor_t {
 typedef struct {
     task_descriptor_t tasks[MAX_NUMBER_OF_TASKS];
     tid_t next_tid;
+    free_tasks_queue_t free_tasks;
 } task_handler_data_t;
 
 /**

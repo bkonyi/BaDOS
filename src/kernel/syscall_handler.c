@@ -11,9 +11,13 @@ static int handle_Create(global_data_t* global_data, priority_t priority, void (
     return create_task(global_data, priority, code, name);
 }
 
+static int handle_Destroy(global_data_t* global_data, int tid) {
+    return destroy_task(global_data, tid);
+}
+
 static int handle_MyTid(global_data_t* global_data) {
     task_descriptor_t* td = get_active_task(global_data);
-    return td->tid;
+    return td->generational_tid;
 } 
 
 static int handle_MyParentTid(global_data_t* global_data) {
@@ -55,7 +59,7 @@ static int handle_Send(global_data_t* global_data, int tid, char* msg, int msgle
         memcpy(last_request->msg_buffer, msg, copy_size);
 
         //Set the sending tid in Receiving tasks address space
-        *last_request->sending_tid = active_task->tid;
+        *last_request->sending_tid = active_task->generational_tid;
 
         //Set the return code to the length of the original message
         receiving_task->return_code = msglen;
@@ -93,7 +97,7 @@ static int handle_Receive(global_data_t* global_data, int* tid, char *msg, int m
         memcpy(msg, last_request->msg_buffer, copy_size);
 
         //Set the sending tid in the Receiving tasks address space
-        *tid = sending_task->tid;
+        *tid = sending_task->generational_tid;
 
         //Return the actual size of the sent message
         return last_request->msg_size;
@@ -230,8 +234,11 @@ void handle(global_data_t* global_data, request_t* request) {
         case SYS_CALL_GET_IDLE:
             active_task->return_code = handle_GetIdleTime(global_data);
             break;
+        case SYS_CALL_DESTROY:
+            active_task->return_code = handle_Destroy(global_data, request->receiving_tid);
+            break;
         default:
-            bwprintf(COM2, "Task: %d Bad system call: %d\r\n", active_task->tid, request->sys_code);
+            bwprintf(COM2, "Task: %d Bad system call: %d\r\n", active_task->generational_tid, request->sys_code);
             break;
     }
 

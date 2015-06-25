@@ -19,7 +19,7 @@ typedef int int32_t;
 typedef long long int64_t;
 typedef enum { false, true } bool;
 
-typedef int16_t tid_t;
+typedef int32_t tid_t;
 typedef uint8_t priority_t;
 
 #define MAX_NUMBER_OF_TASKS 200 //TODO Arbitrary number for now

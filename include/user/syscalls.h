@@ -48,6 +48,17 @@ int Create( int priority, void (*code) () );
 int CreateName( int priority, void (*code) () , char *name);
 
 /**
+ * @brief Destroys a task.
+ * @details Destroys a task. This task will not be rescheduled, and the tid will
+ * not be reused.
+ * 
+ * @param tid The task ID to destroy
+ * @return -1 if the tid is invalid, -2 if the tid is of the current task, 
+ * -3 if the task has already been destroyed, 0 otherwise
+ */
+int Destroy( int tid );
+
+/**
  * @brief find my task id.
  * @return 
  * tid – the positive integer task id of the task that calls it.

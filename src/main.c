@@ -138,7 +138,7 @@ int main(void)
         next_task->running_time += time_difference;
         user_task_run_time += time_difference;
 
-        if(next_task->tid == IDLE_TASK_ID) {
+        if(next_task->generational_tid == IDLE_TASK_ID) {
             idle_time += time_difference;
         }
 
@@ -163,8 +163,11 @@ int main(void)
     int i;
     for(i = 0; i < next_tid; ++i) {
         task_descriptor_t* task = get_task(&global_data, i);
-        uint32_t task_running_time = task->running_time;
-        bwprintf(COM2, "TID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u%%  \t%s\r\n", task->tid, task_running_time / 2, (task_running_time * 100) / user_task_run_time, task->task_name);
+
+        if(task->state != TASK_RUNNING_STATE_FREE) {
+            uint32_t task_running_time = task->running_time;
+            bwprintf(COM2, "TID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u%%  \t%s\r\n", task->generational_tid, task_running_time / 2, (task_running_time * 100) / user_task_run_time, task->task_name);
+        }
     }
 
     return 0;

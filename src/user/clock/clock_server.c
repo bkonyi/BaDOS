@@ -91,7 +91,7 @@ void clock_server_task(void) {
             case DELAY_UNTIL:
                 if(message.ticks <= ticks) {
                     result = ticks;
-                    Reply(next_delay_task->tid,(char*)&result,sizeof(int));
+                    Reply(next_delay_task->tid,(char*)&result,sizeof(int32_t));
                 }
                 if(next_delay_task == NULL) {    //We don't have any tasks delayed
                     //get a free delayed_task object and fill it for the next_delayed_task

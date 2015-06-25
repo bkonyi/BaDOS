@@ -21,6 +21,15 @@ int CreateName( int priority, void (*code) (), char* name ) {
     return send_sys_call(&request);
 }
 
+int Destroy( int tid ) {
+    request_t request;
+
+    request.sys_code = SYS_CALL_DESTROY;
+    request.receiving_tid = tid;
+
+    return send_sys_call(&request);
+}
+
 int MyTid( void ) {
     request_t request;
 

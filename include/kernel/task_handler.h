@@ -34,6 +34,18 @@ void init_task_handler(global_data_t* global_data);
 int create_task(global_data_t* global_data, priority_t priority, void (*code)(), char* name);
 
 /**
+ * @brief Destroys a task and frees its task descriptor for reuse.
+ * @details Destroys a task and frees its task descriptor for reuse. Also increments the generational
+ * tid of the task descriptor for when it's reused
+ * 
+ * @param tid The tid of the task to destroy and free
+ * 
+ * @return -1 if the tid is invalid, -2 if the tid is of the current task, 
+ * -3 if the task has already been destroyed, 0 otherwise
+ */
+int destroy_task(global_data_t* global_data, int tid);
+
+/**
  * @brief Get a task descriptor for a given tid.
  * @details Get a task descriptor for a given tid.
  * 
