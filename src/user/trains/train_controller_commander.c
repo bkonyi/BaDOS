@@ -280,13 +280,22 @@ void sensor_query_server(void) {
     FOREVER {
         Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 
+        printf(COM2, "\r\n\n\n\n");
+
         int i;
         for(i = 0; i < 10; ++i) {
             sensors[i] = getc(COM1);
+            printf(COM2, "Sensor[%d] = 0x%x\r\n",i, sensors[i]);
         }
 
         update_terminal_sensors_display(sensors);
-        Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, sizeof(int8_t)*10,NULL,0);
+        //TODO wrap this!!!
+        Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, sizeof(int8_t)*10, NULL, 0);
+
+        for(i = 0; i < 10; ++i) {
+            printf(COM2, "AFETER Sensor[%d] = 0x%x\r\n",i, sensors[i]);
+        }
+
     }
 }
 
@@ -366,7 +375,7 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     if(trains[(uint16_t)train].speed != INVALID_SPEED) {
         update_terminal_train_slot(train, slot, trains[(uint16_t)train].speed);
     }
-    tid_t  tid = Create(TRAIN_SERVER_PRIORITY,train_server); 
+    tid_t  tid = CreateName(TRAIN_SERVER_PRIORITY,train_server, "TRAIN_SERVER"); 
     train_server_specialize(tid,train );
 }
 void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {

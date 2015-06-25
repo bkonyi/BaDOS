@@ -3,6 +3,7 @@
 #include <track_data.h>
 #include <servers.h>
 #include <queue.h>
+#include <trains/train_server.h>
 
 #define TPS_SIGNAL_MESSAGE_SIZE (sizeof(int8_t)*10)
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
@@ -118,6 +119,8 @@ void track_position_server(void) {
 				ASSERT(0);
 				break;
 		}
+
+		Reply(requester, (char*)NULL, 0);
 	}
 }
 
@@ -185,8 +188,14 @@ bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_numb
 //Messaging the trains doesn't have a specific struct form yet
 void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
 	train_information_t* iterator; 
+	train_server_sensor_msg_t sensor_update;
+	sensor_update.command = TRAIN_SERVER_SENSOR_DATA;
+
+	//TODO make a macro for size of sensor request
+	memcpy(sensor_update.sensors, sensors, 10);
+
 	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
-		Send(iterator->server_tid,(char*)sensors,TPS_SIGNAL_MESSAGE_SIZE,NULL,0);
+		Send(iterator->server_tid, (char*)&sensor_update, sizeof(train_server_sensor_msg_t), NULL, 0);
 	}
 }
 void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
