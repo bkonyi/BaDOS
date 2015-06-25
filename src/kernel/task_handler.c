@@ -135,6 +135,5 @@ int is_valid_task(global_data_t* global_data, tid_t tid) {
         return -2;
     }
 
-
     return 0;
 }

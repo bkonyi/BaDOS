@@ -32,7 +32,8 @@ void first_user_task(void) {
     ASSERT(tid == NAMESERVER_TID);
 
     //Create the clock server
-    CreateName(CLOCK_SERVER_PRIORITY, clock_server_task, CLOCK_SERVER);
+    tid = CreateName(CLOCK_SERVER_PRIORITY, clock_server_task, CLOCK_SERVER);
+    ASSERT(tid == CLOCK_SERVER_ID);
     //Create the random number generation server
     CreateName(RAND_SERVER_PRIORITY, rand_server_task, RAND_SERVER);
     //Create the idle task which keeps the kernel running even when every other task is blocked.

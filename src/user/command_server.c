@@ -132,16 +132,16 @@ void process_input(char* input) {
 			char track = char_to_upper(argv[1][0]);
 
 			if(track != 'A' && track != 'B') {
-				//TODO error
+				ASSERT(0);
 				return;
 			} else {
 				terminal_data.command = TERMINAL_SET_TRACK;
 				terminal_data.byte1 = track;
-				if(track == 'A') {
+				/*if(track == 'A') {
 					tps_set_track(TRACKA);
 				} else if ( track == 'B' ){
 					tps_set_track(TRACKB);
-				}
+				}*/
 			}
 		} else {
 			//term_set_status(t,"ERROR: Invalid command");

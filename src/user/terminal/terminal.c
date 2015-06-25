@@ -48,7 +48,7 @@ CREATE_NON_POINTER_BUFFER_TYPE(recent_sensors_buffer_t, int, NUM_RECENT_SENSORS)
 
 
 static void handle_update_terminal_clock(int32_t ticks);
-static void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sensors, char* sensors, int* recent_sensors, int* recent_sensors_index);
+static void handle_update_sensors(bool map_initialized, sensor_map_chars_t* sensor_chars, char* previous_sensors, char* sensors, int* recent_sensors, int* recent_sensors_index);
 static void terminal_tick_notifier(void);
 static void handle_train_command(int32_t num,int32_t speed);
 static void handle_reverse_command(int32_t num);
@@ -77,6 +77,7 @@ void terminal_server(void) {
     char previous_sensors[10];
     int recent_sensors[NUM_RECENT_SENSORS];
     int recent_sensors_index = 0;
+    bool map_initialized = false;
 
     int i;
     for(i = 0; i < 10; ++i) {
@@ -170,9 +171,10 @@ void terminal_server(void) {
                 handle_stop_command();
                 break;
             case TERMINAL_UPDATE_SENSORS:
-                handle_update_sensors(sensor_chars, previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
+                handle_update_sensors(map_initialized, sensor_chars, previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
                 break;
             case TERMINAL_SET_TRACK:
+                map_initialized = true;
                 handle_set_track(sensor_chars, data.byte1);
                 break;
             case TERMINAL_REGISTER_TRAIN:
@@ -269,7 +271,7 @@ void handle_update_terminal_clock(int32_t ticks) {
     term_show_cursor();
 }
 
-void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sensors, char* sensors, int* recent_sensors, int* recent_sensors_index) {
+void handle_update_sensors(bool map_initialized, sensor_map_chars_t* sensor_chars, char* previous_sensors, char* sensors, int* recent_sensors, int* recent_sensors_index) {
     term_save_cursor();
     term_hide_cursor();
     int i;
@@ -310,8 +312,9 @@ void handle_update_sensors(sensor_map_chars_t* sensor_chars, char* previous_sens
                     
                     //Update the sensor label
                     printf(COM2, "%c%d", 'A' + group, index);
-                    update_map_sensor(sensor_chars, group, index-1, (new_sensor_data & 0x1));
-                    
+                    if(map_initialized) {
+                        update_map_sensor(sensor_chars, group, index-1, (new_sensor_data & 0x1));
+                    }
                     if(new_sensor_data & 0x1) {
                         term_fmt_clr();
                     }
@@ -432,7 +435,6 @@ void handle_stop_command(void) {
 
 void handle_set_track(sensor_map_chars_t* sensor_display_info, char track) {
     //TODO actually set track info
-
     clear_track_map();
 
     if(track == 'A') {
@@ -532,17 +534,16 @@ void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]) {
     term_show_cursor();
 }
 
-void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state) {
-     sensor_map_chars_t* data = &sensor_chars[MAP_DRAW_COORDS(group,index)];
-     (void) data;
-     (void) state;
-     //ASSERT(MAP_COL + data->x >= 0);
-     //ASSERT(MAP_ROW + data->y >= 0);
-     /*term_move_cursor(MAP_COL + data->x,MAP_ROW + data->y);
-     if(state == true) {
+void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index, bool state) {
+    sensor_map_chars_t* data = &sensor_chars[MAP_DRAW_COORDS(group,index)];
+    //bwprintf(COM2, "Group: %d Index: %d COORDS: %d\r\n", group, index, MAP_DRAW_COORDS(group,index));
+    ASSERT(MAP_COL + data->x >= 0);
+    ASSERT(MAP_ROW + data->y >= 0);
+    term_move_cursor(MAP_COL + data->x,MAP_ROW + data->y);
+    if(state == true) {
         putc(COM2,data->activated);
-     } else if (state == false) {
+    } else if (state == false) {
         putc(COM2,data->original);
-     }*/
+    }
 }
 

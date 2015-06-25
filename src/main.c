@@ -159,14 +159,14 @@ int main(void)
     cleanup(&global_data);
     tid_t next_tid = global_data.task_handler_data.next_tid;
 
-    bwprintf(COM2, "\e[2B\rUser Task Total Time: %u\r\n", user_task_run_time / 2);
+    bwprintf(COM2, "\e[2B\r\033[2KUser Task Total Time: %u\r\n", user_task_run_time / 2);
     int i;
     for(i = 0; i < next_tid; ++i) {
         task_descriptor_t* task = get_task(&global_data, i);
 
         if(task->state != TASK_RUNNING_STATE_FREE) {
             uint32_t task_running_time = task->running_time;
-            bwprintf(COM2, "TID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u%%  \t%s\r\n", task->generational_tid, task_running_time / 2, (task_running_time * 100) / user_task_run_time, task->task_name);
+            bwprintf(COM2, "\033[2KTID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u%%  \t%s\r\n", task->generational_tid, task_running_time / 2, (task_running_time * 100) / user_task_run_time, task->task_name);
         }
     }
 

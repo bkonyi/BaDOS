@@ -126,33 +126,27 @@ int AwaitEvent( int eventid ) {
 }
 
 int Time( void ) {
-    int32_t CLOCK_SERVER_TID;
     int32_t time_result;
     int32_t result;
-
-    CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
 
     clock_server_msg_t message;
     message.type = TIME;
 
-    result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&time_result, sizeof(int32_t));
+    result = Send(CLOCK_SERVER_ID, (char*)&message, sizeof(clock_server_msg_t), (char*)&time_result, sizeof(int32_t));
     ASSERT(result == sizeof(int32_t));
 
     return time_result;
 }
 
 int Delay( int ticks ) {
-    int32_t CLOCK_SERVER_TID;
     int32_t result;
     int32_t delay_result = 0;
-
-    CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
 
     clock_server_msg_t message;
     message.type = DELAY;
     message.ticks = ticks;
     
-    result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
+    result = Send(CLOCK_SERVER_ID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 
     ASSERT(result == sizeof(int32_t));
     ASSERT(delay_result >= 0);
@@ -161,17 +155,14 @@ int Delay( int ticks ) {
 }
 
 int DelayUntil( int ticks ) {
-    int32_t CLOCK_SERVER_TID;
     int32_t result;
     int32_t delay_result = 0;
-
-    CLOCK_SERVER_TID = WhoIs(CLOCK_SERVER);
 
     clock_server_msg_t message;
     message.type = DELAY_UNTIL;
     message.ticks = ticks;
 
-    result = Send(CLOCK_SERVER_TID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
+    result = Send(CLOCK_SERVER_ID, (char*)&message, sizeof(clock_server_msg_t), (char*)&delay_result, sizeof(int32_t));
 
     ASSERT(result > 0);
     ASSERT(delay_result >= 0);

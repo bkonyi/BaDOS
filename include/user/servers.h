@@ -3,6 +3,7 @@
 
 #define NAME_SERVER                "NAME SERVER"
 #define CLOCK_SERVER               "CLOCK_SERVER"
+#define CLOCK_SERVER_ID            2
 #define CLOCK_NOTIFIER             "CLOCK_NOTIFIER"
 #define RAND_SERVER                "RAND_SERVER"
 #define RPS_SERVER                 "RPS_SERVER"
