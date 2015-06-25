@@ -25,5 +25,6 @@ typedef struct train_server_sensor_msg_t {
  * @details [long description]
  */
 void train_server(void);
+void train_server_specialize(tid_t tid, uint32_t train_num);
 
 #endif // _TRAIN_SERVER_H_

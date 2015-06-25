@@ -30,7 +30,7 @@ void track_position_server(void) {
 	uint32_t message[NUM_MESSAGE_BUFFER_ITEMS];
 
 	//Set up our pointers so we can be sneaky
-	int8_t* signal_message = (int8_t*)message;
+	//int8_t* signal_message = (int8_t*)message;
 	tps_cover_sheet_t* tps_message = (	tps_cover_sheet_t*)message;
 	train_information_t* tpip;
 	uint32_t state = 0;
@@ -48,6 +48,7 @@ void track_position_server(void) {
 
 	FOREVER {
 		size_received = Receive(&requester,(char*)message,TPS_SIGNAL_MESSAGE_SIZE);
+
 		//printf(COM2,"GOTTI 0x%x",((struct tps_cover_sheet_t*)message)->num1);
 		if(! (size_received == TPS_COVERSHEET_MESSAGE_SIZE 
 			&& tps_message->command == TPS_ADD_TRAIN ) ){
@@ -58,7 +59,6 @@ void track_position_server(void) {
 		
 		switch (size_received) {
 			case TPS_SIGNAL_MESSAGE_SIZE:
-				(void)signal_message;
 				//make sure all trains get the sensor data
 				send_sensor_data_to_trains(&tpi_queue_filled,(int8_t*)message);
 				break;
@@ -121,6 +121,16 @@ void track_position_server(void) {
 	}
 }
 
+track_node* tps_add_train(uint32_t train_num) {
+	tps_cover_sheet_t tps_message;
+	uint32_t track_node_pointer;
+
+	tps_message.command = TPS_ADD_TRAIN;
+	tps_message.num1 = train_num;
+	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_cover_sheet_t),(char*)&track_node_pointer,sizeof(uint32_t));
+
+	return (track_node*)track_node_pointer;
+}
 void tps_set_track(uint32_t track) {
 	//these are the only types of tracks
 	ASSERT(track == TRACKA || track == TRACKB);
@@ -162,7 +172,7 @@ track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 	return NULL;
 }
 //Returns whether or not that switch exists on this track
-bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state){
+bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state) {
 	track_node* node = track_branch_nodes[switch_num_to_index(switch_number)];
 	if(node != NULL) {
 		node->state = state;

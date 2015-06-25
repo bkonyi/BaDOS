@@ -43,6 +43,6 @@ void track_position_server(void);
  * @param track should only ever be the TRACKA or TRACKB macro
  */
 void tps_set_track(uint32_t track);
-
+track_node* tps_add_train(uint32_t train_num) ;
 #endif //_TRACK_POSITION_SERVER_H_
 

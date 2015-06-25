@@ -6,6 +6,8 @@
 #include <terminal/terminal.h>
 #include <task_priorities.h>
 #include <trains/track_position_server.h>
+#include <task_priorities.h>
+#include <trains/train_server.h>
 
 #define REVERSE_DELAY_TICKS 350 //3500ms
 
@@ -60,6 +62,7 @@ typedef struct {
     int16_t speed;
     int16_t slot;
     bool is_reversing;
+    tid_t server_tid;
 } train_data_t;
 
 static void train_reverse_delay_server(void);
@@ -351,6 +354,7 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     }
 
     if(trains[(uint16_t)train].slot != INVALID_SLOT) {
+        Destroy(trains[(int16_t)train].server_tid);
         clear_terminal_train_slot(trains[(int16_t)train].slot);
     }
 
@@ -362,8 +366,9 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     if(trains[(uint16_t)train].speed != INVALID_SPEED) {
         update_terminal_train_slot(train, slot, trains[(uint16_t)train].speed);
     }
+    tid_t  tid = Create(TRAIN_SERVER_PRIORITY,train_server); 
+    train_server_specialize(tid,train );
 }
-
 void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {
     //TODO update terminal status to respresent current state of find process
     
