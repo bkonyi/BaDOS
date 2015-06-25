@@ -5,6 +5,7 @@
 #include <syscalls.h>
 #include <terminal/terminal.h>
 #include <task_priorities.h>
+#include <trains/track_position_server.h>
 
 #define REVERSE_DELAY_TICKS 350 //3500ms
 
@@ -278,6 +279,7 @@ void sensor_query_server(void) {
         }
 
         update_terminal_sensors_display(sensors);
+        Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, sizeof(int8_t)*10,NULL,0);
     }
 }
 

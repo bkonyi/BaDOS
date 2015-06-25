@@ -140,7 +140,7 @@ int Send( int tid, char *msg, int msglen, char *reply, int replylen );
  * @param tid The tid of the task which sent the message.
  * @param msg A buffer in which the message will be placed.
  * @param msglen The length of the message buffer.
- * @return The size of the message sent
+ * @return The size of the message received
  */
 int Receive( int *tid, char *msg, int msglen );
 
