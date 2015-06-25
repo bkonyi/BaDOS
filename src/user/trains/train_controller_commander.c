@@ -280,21 +280,14 @@ void sensor_query_server(void) {
     FOREVER {
         Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 
-        printf(COM2, "\r\n\n\n\n");
-
         int i;
         for(i = 0; i < 10; ++i) {
             sensors[i] = getc(COM1);
-            printf(COM2, "Sensor[%d] = 0x%x\r\n",i, sensors[i]);
         }
 
         update_terminal_sensors_display(sensors);
         //TODO wrap this!!!
-        Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, sizeof(int8_t)*10, NULL, 0);
-
-        for(i = 0; i < 10; ++i) {
-            printf(COM2, "AFETER Sensor[%d] = 0x%x\r\n",i, sensors[i]);
-        }
+       tps_send_sensor_data(sensors);
 
     }
 }

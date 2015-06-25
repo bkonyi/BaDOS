@@ -119,8 +119,6 @@ void track_position_server(void) {
 				ASSERT(0);
 				break;
 		}
-
-		Reply(requester, (char*)NULL, 0);
 	}
 }
 
@@ -133,6 +131,9 @@ track_node* tps_add_train(uint32_t train_num) {
 	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_cover_sheet_t),(char*)&track_node_pointer,sizeof(uint32_t));
 
 	return (track_node*)track_node_pointer;
+}
+void tps_send_sensor_data(int8_t* sensors) {
+	Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, sizeof(int8_t)*10, NULL, 0);
 }
 void tps_set_track(uint32_t track) {
 	//these are the only types of tracks
