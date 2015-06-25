@@ -2,21 +2,25 @@
 #define _TRACK_POSITION_SERVER_H_
 #include <common.h>
 #include <track_data.h>
-
+#include <queue.h>
 //Set some macros to distinguish the 2 tracks in TPS cover sheet messages for TPS_SET_TRACK
 #define TRACKA    0x14
 #define TRACKB 	  0x41
 
 typedef enum tps_command_t {
-	TPS_INITIALIZE_TRAIN 	= 1,
-	TPS_REMOVE_TRAIN 		= 2,
-	TPS_SET_TRACK			=3
+	TPS_ADD_TRAIN 	    = 1,
+	TPS_REMOVE_TRAIN    = 2,
+	TPS_SET_TRACK		= 3,
+	TPS_SWITCH_SET		= 4
 } tps_command_t;
 
-typedef struct train_position_information_t {
+typedef struct train_information_t {
 	track_node* track;
 	uint32_t train_num;
-}train_position_information_t;
+	tid_t	server_tid;
+
+	struct train_information_t* next;
+}train_information_t;
 
 
 typedef struct tps_cover_sheet_t {
@@ -25,7 +29,9 @@ typedef struct tps_cover_sheet_t {
 	uint32_t num2;
 } tps_cover_sheet_t; // Sorry i couldn't resist making this office space reference.
 
-//typedef tps_cover_sheet_t tps_message_t;
+typedef tps_cover_sheet_t tps_message_t;
+
+CREATE_QUEUE_TYPE(tps_tpi_queue_t,train_information_t);
 
 void track_position_server(void);
 

@@ -1,3 +1,6 @@
+#ifndef _TRACK_NODE_H_
+#define _TRACK_NODE_H_
+
 typedef enum {
   NODE_NONE,
   NODE_SENSOR,
@@ -29,3 +32,5 @@ struct track_node {
   track_edge edge[2];
   int state;
 };
+
+#endif //_TRACK_NODE_H_

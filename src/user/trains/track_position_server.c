@@ -2,6 +2,7 @@
 #include <io.h>
 #include <track_data.h>
 #include <servers.h>
+#include <queue.h>
 
 #define TPS_SIGNAL_MESSAGE_SIZE (sizeof(int8_t)*10)
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
@@ -10,8 +11,14 @@
 #define NUM_MESSAGE_BUFFER_ITEMS 4
 #define MESSAGE_BUFFER_SIZE (sizeof(uint32_t)*NUM_MESSAGE_BUFFER_ITEMS)  
 #define MAX_NUM_TRAINS 10
-void fill_track_branch_data(track_node* track_nodes, track_node** sensor_track_nodes);
+static void fill_track_branch_data(track_node* track_nodes, track_node** sensor_track_nodes);
+static void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, tps_tpi_queue_t* tpi_queue_filled);
 
+static track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number);
+static void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors); 
+static void notify_trains_switch_changed(tps_tpi_queue_t* train_queue);
+static uint32_t switch_num_to_index(uint32_t switch_num);
+static bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state);
 void track_position_server(void) {
 	//The two of these need to be of different sizes
 	//we also need to make sure we have enough allocated to hold them
@@ -25,24 +32,35 @@ void track_position_server(void) {
 	//Set up our pointers so we can be sneaky
 	int8_t* signal_message = (int8_t*)message;
 	tps_cover_sheet_t* tps_message = (	tps_cover_sheet_t*)message;
+	train_information_t* tpip;
+	uint32_t state = 0;
 
 	track_node* track_branch_nodes[NUM_SWITCHES_TO_STORE]; //merge nodes are attached through the .reverse member
 	
 	track_node track_nodes[TRACK_MAX];
 
-	train_position_information_t trains[MAX_NUM_TRAINS];
+	tps_tpi_queue_t tpi_queue_filled,tpi_queue_free;
+
+	train_information_t train_info[MAX_NUM_TRAINS];
+
+	tpi_init(train_info,&tpi_queue_free,&tpi_queue_filled);
 
 
 	FOREVER {
 		size_received = Receive(&requester,(char*)message,TPS_SIGNAL_MESSAGE_SIZE);
 		//printf(COM2,"GOTTI 0x%x",((struct tps_cover_sheet_t*)message)->num1);
-		Reply(requester,NULL,0);
-
+		if(! (size_received == TPS_COVERSHEET_MESSAGE_SIZE 
+			&& tps_message->command == TPS_ADD_TRAIN ) ){
+			//TPS_ADD_TRAIN requires a special  Reply
+			// For all others just reply right away
+			Reply(requester,NULL,0);
+		}
 		
 		switch (size_received) {
 			case TPS_SIGNAL_MESSAGE_SIZE:
-				printf(COM2,"GOT TPS MESSAGE\n");
 				(void)signal_message;
+				//make sure all trains get the sensor data
+				send_sensor_data_to_trains(&tpi_queue_filled,(int8_t*)message);
 				break;
 			case TPS_COVERSHEET_MESSAGE_SIZE:
 				switch(tps_message->command) {
@@ -61,8 +79,35 @@ void track_position_server(void) {
 						}
 						fill_track_branch_data(track_nodes, track_branch_nodes);
 						break;
-					case TPS_INITIALIZE_TRAIN:
+					case TPS_ADD_TRAIN:
+						//num1 = train number
+						//num2 = switch number
+						QUEUE_POP_FRONT(tpi_queue_free,tpip);
+						QUEUE_PUSH_BACK(tpi_queue_filled,tpip);
+						tpip->train_num = tps_message->num1;
+						tpip->server_tid = requester;
 
+						//We want to send back their starting position so they can navigate from there.
+						uint32_t literal_addr = (uint32_t)track_get_sensor(track_nodes,tps_message->num2);
+						Reply(requester,(char*)&literal_addr,sizeof(uint32_t));
+						break;
+					case TPS_SWITCH_SET:
+						//num1 = switch number
+						//num2 = switch state
+						
+						if (tps_message->num2 == 'S' || tps_message->num2 == 's') {
+							state = DIR_STRAIGHT;
+						}else if (tps_message->num2 == 'C' || tps_message->num2 == 'c') {
+							state = DIR_CURVED;
+						}else {
+							KASSERT(0);
+						}
+						//If that switch exists then change it and notify the trains that the
+							//track has changed
+						if(track_nodes_set_switch(track_branch_nodes,tps_message->num1,state)){
+							notify_trains_switch_changed(&tpi_queue_filled);
+						}
+						
 						break;
 					default:
 						break;
@@ -93,17 +138,62 @@ void fill_track_branch_data(track_node* track_nodes, track_node** track_branch_n
 
 			branch_index = track_nodes[i].num;
 			//Make sure to complain if we ever have any switches that are in a range that we haven't handled
-			ASSERT(!((branch_index>=(NUM_SWITCHES_TO_STORE -4 -1/* -1 for indexed val */)
-									 && branch_index < 153) 
-					|| branch_index > 156));
-
-			if(branch_index >= 153) {
-				//assume we aren't using indices 28,29,30,31
-					//put switches 153,154,155,156 in those spots
-				branch_index -= (156-31); 
-			}
+			branch_index = switch_num_to_index(branch_index);
 			track_branch_nodes[branch_index] = track_branch_nodes[branch_index];
 		}
 	}
 }
 
+void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, tps_tpi_queue_t* tpi_queue_filled) {
+	QUEUE_INIT(*tpi_queue_filled);
+	QUEUE_INIT(*tpi_queue_free);
+	int i;
+	for(i = 0; i < MAX_NUM_TRAINS; i++) {
+		QUEUE_PUSH_BACK(*tpi_queue_free,train_info+i);
+	}
+}
+track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
+	int i;
+	for(i = 0; i < MAX_NUM_TRAINS; i++) {
+		if(track_info[i].type == NODE_SENSOR && track_info[i].num == sensor_number) {
+			return track_info+i;
+		}
+	}
+	return NULL;
+}
+//Returns whether or not that switch exists on this track
+bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state){
+	track_node* node = track_branch_nodes[switch_num_to_index(switch_number)];
+	if(node != NULL) {
+		node->state = state;
+		return true;
+	}
+	return false;
+}
+
+
+//Messaging the trains doesn't have a specific struct form yet
+void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
+	train_information_t* iterator; 
+	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
+		Send(iterator->server_tid,(char*)sensors,TPS_SIGNAL_MESSAGE_SIZE,NULL,0);
+	}
+}
+void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
+	train_information_t* iterator; 
+	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
+		Send(iterator->server_tid,NULL,0,NULL,0);
+	}
+}
+uint32_t switch_num_to_index(uint32_t switch_num) {
+	
+	ASSERT(!((switch_num>=(NUM_SWITCHES_TO_STORE -4 -1/* -1 for indexed val */)
+									 && switch_num < 153) 
+					|| switch_num > 156));
+	if(switch_num >= 153) {
+		//assume we aren't using indices 28,29,30,31
+			//put switches 153,154,155,156 in those spots
+		switch_num -= (156-31); 
+	}
+	return switch_num;
+}
