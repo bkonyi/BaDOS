@@ -345,7 +345,7 @@ void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
     }
 
     if(trains[(uint16_t)train].slot != INVALID_SLOT && speed != REVERSE_COMMAND) {
-        update_terminal_train_slot(train, trains[(uint16_t)train].slot, speed);
+        update_terminal_train_slot_speed(train, trains[(uint16_t)train].slot, speed);
     }
 
     if(speed == REVERSE_COMMAND) {
@@ -410,11 +410,11 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     initialize_terminal_train_slot(train, slot);
 
     if(trains[(uint16_t)train].speed != INVALID_SPEED) {
-        update_terminal_train_slot(train, slot, trains[(uint16_t)train].speed);
+        update_terminal_train_slot_speed(train, slot, trains[(uint16_t)train].speed);
     }
     tid_t tid = CreateName(TRAIN_SERVER_PRIORITY,train_server, "TRAIN_SERVER"); 
     trains[(int16_t)train].server_tid = tid;
-    train_server_specialize(tid, train);
+    train_server_specialize(tid, train, slot);
 }
 void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {
     //TODO update terminal status to respresent current state of find process

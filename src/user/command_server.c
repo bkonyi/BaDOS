@@ -111,12 +111,7 @@ void process_input(char* input) {
 			}		
 		} else if(strcmp(argv[0], "sensor_stop") == 0) {
 			target_train_number = strtoi(argv[1]);
-			char sensor_letter = char_to_upper(argv[2][0]);
-			int8_t sensor_number = strtoi(&argv[2][1]) - 1;
-
-			sensor_number += 16 * (sensor_letter - 'A');
-
-			result = trigger_train_stop_on_sensor(target_train_number, sensor_number);
+			result = trigger_train_stop_on_sensor(target_train_number, sensor_to_id(argv[2]));
 
 			if(result != 0) {
 				terminal_data.command = TERMINAL_COMMAND_ERROR;

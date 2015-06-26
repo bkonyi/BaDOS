@@ -35,6 +35,7 @@
 #define TERM_TRAIN_STATE_SPEED_OFF   TERM_TRAIN_STATE_TRAIN_OFF + 8
 #define TERM_TRAIN_STATE_LANDM_OFF   TERM_TRAIN_STATE_SPEED_OFF + 10
 #define TERM_TRAIN_STATE_DIST_OFF    TERM_TRAIN_STATE_LANDM_OFF + 11
+#define TERM_TRAIN_STATE_NEXT_OFF    TERM_TRAIN_STATE_DIST_OFF  + 9
 
 #define MAP_ROW                      TERM_INPUT_ROW+2
 #define MAP_COL                      3
@@ -59,7 +60,9 @@ static void handle_stop_command(void);
 static void handle_set_track(sensor_map_chars_t* sensor_display_info, char track);
 static void handle_register_train(int8_t train, int8_t slot);
 static void handle_init_train_slot(int8_t train, int8_t slot);
-static void handle_update_train_slot(int8_t slot, int8_t speed);
+static void handle_update_train_slot_speed(int8_t slot, int8_t speed);
+static void handle_update_train_slot_current_location(int8_t slot, int8_t sensor_position);
+static void handle_update_train_slot_next_location(int8_t slot, int8_t sensor_position);
 static void handle_clear_train_slot(int8_t slot);
 static void clear_user_input(void);
 static void status_message(char* fmt, ...);
@@ -92,29 +95,30 @@ void terminal_server(void) {
     //printf(COM2, "Time:");
 
     term_move_cursor(1, 1);
-    printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
-    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃                TRAIN                 ┃\r\n");
-    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃             INFORMATION              ┃\r\n");
-    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┫\r\n");         
-    printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃ NUMBER ┃ SPEED ┃ LANDMARK ┃ DISTANCE ┃\r\n");
-    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┻━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃A1  A2  A3  A4  A5  A6  A7  A8  ┃          ┃  1  2  3  4  5  6  7  8  9  ┃                                      ┃\r\n");
-    printf(COM2, "┃A9  A10 A11 A12 A13 A14 A15 A16 ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃B1  B2  B3  B4  B5  B6  B7  B8  ┃          ┃                             ┃                                      ┃\r\n");
-    printf(COM2, "┃B9  B10 B11 B12 B13 B14 B15 B16 ┃          ┃  10 11 12 13 14 15 16 17 18 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃C1  C2  C3  C4  C5  C6  C7  C8  ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┃                                      ┃\r\n");
-    printf(COM2, "┃C9  C10 C11 C12 C13 C14 C15 C16 ┃          ┃                             ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃D1  D2  D3  D4  D5  D6  D7  D8  ┃          ┃    153   154   155   156    ┃                                      ┃\r\n");
-    printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                      ┃\r\n");
-    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ TIME:                       ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
-    printf(COM2, "┣━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                      ┃\r\n");
-    printf(COM2, "┃ Track: ? ┃ Idle Time: XX.X%%  ┃                                          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");   
+    printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
+    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃                    TRAIN                    ┃\r\n");
+    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃                 INFORMATION                 ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━┫\r\n");         
+    printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃ NUMBER ┃ SPEED ┃ LANDMARK ┃ DISTANCE ┃ NEXT ┃\r\n");
+    printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┻━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━┻━━━━━━┫\r\n");
+    printf(COM2, "┃A1  A2  A3  A4  A5  A6  A7  A8  ┃          ┃  1  2  3  4  5  6  7  8  9  ┃                                             ┃\r\n");
+    printf(COM2, "┃A9  A10 A11 A12 A13 A14 A15 A16 ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃B1  B2  B3  B4  B5  B6  B7  B8  ┃          ┃                             ┃                                             ┃\r\n");
+    printf(COM2, "┃B9  B10 B11 B12 B13 B14 B15 B16 ┃          ┃  10 11 12 13 14 15 16 17 18 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃C1  C2  C3  C4  C5  C6  C7  C8  ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┃                                             ┃\r\n");
+    printf(COM2, "┃C9  C10 C11 C12 C13 C14 C15 C16 ┃          ┃                             ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃D1  D2  D3  D4  D5  D6  D7  D8  ┃          ┃    153   154   155   156    ┃                                             ┃\r\n");
+    printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                             ┃\r\n");
+    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ TIME:                       ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┣━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                             ┃\r\n");
+    printf(COM2, "┃ Track: ? ┃ Idle Time: XX.X%%  ┃                                          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");   
     printf(COM2, "┣━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[33;1mResult:\e[0m                                                                 ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[32;1mInput:\e[0m                                                                  ┃\r\n");
     printf(COM2, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");
+
     term_fmt_clr();
 
     CreateName(TERMINAL_TICK_NOTIFIER_PRIORITY, terminal_tick_notifier, TERMINAL_TICK_NOTIFIER);
@@ -183,8 +187,14 @@ void terminal_server(void) {
             case TERMINAL_INIT_TRAIN_SLOT:
                 handle_init_train_slot(data.num1, data.num2);
                 break;
-            case TERMINAL_UPDATE_TRAIN_SLOT:
-                handle_update_train_slot(data.num2, data.byte1);
+            case TERMINAL_UPDATE_TRAIN_SLOT_SPEED:
+                handle_update_train_slot_speed(data.num2, data.byte1);
+                break;
+            case TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION:
+                handle_update_train_slot_current_location(data.num2, data.byte1);
+                break;
+            case TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION:
+                handle_update_train_slot_next_location(data.num2, data.byte1);
                 break;
             case TERMINAL_CLEAR_TRAIN_SLOT:
                 handle_clear_train_slot(data.num2);
@@ -235,12 +245,32 @@ void initialize_terminal_train_slot(int8_t train, int8_t slot) {
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
 
-void update_terminal_train_slot(int8_t train, int8_t slot, int8_t speed) {
+void update_terminal_train_slot_speed(int8_t train, int8_t slot, int8_t speed) {
     terminal_data_t request;
-    request.command = TERMINAL_UPDATE_TRAIN_SLOT;
+    request.command = TERMINAL_UPDATE_TRAIN_SLOT_SPEED;
     request.num1 = train;
     request.num2 = slot;
     request.byte1 = speed;
+
+    Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
+}
+
+void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int8_t sensor_location) {
+    terminal_data_t request;
+    request.command = TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION;
+    request.num1 = train;
+    request.num2 = slot;
+    request.byte1 = sensor_location;
+
+    Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
+}
+
+void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int8_t sensor_location) {
+    terminal_data_t request;
+    request.command = TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION;
+    request.num1 = train;
+    request.num2 = slot;
+    request.byte1 = sensor_location;
 
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
@@ -469,34 +499,62 @@ void handle_register_train(int8_t train, int8_t slot) {
 }
 
 void handle_init_train_slot(int8_t train, int8_t slot) {
+    int slot_offset = TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1));
+
     term_save_cursor();
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, slot_offset);
     printf(COM2, "%d ", train);
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, slot_offset);
     printf(COM2, "??");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, slot_offset);
     printf(COM2, "??");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, slot_offset);
     printf(COM2, "?");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_NEXT_OFF, slot_offset);
+    printf(COM2, "??");
     term_restore_cursor();
 }
 
-void handle_update_train_slot(int8_t slot, int8_t speed) {
+void handle_update_train_slot_speed(int8_t slot, int8_t speed) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
     printf(COM2, "%d ", speed);
     term_restore_cursor();
 }
 
-void handle_clear_train_slot(int8_t slot) {
+void handle_update_train_slot_current_location(int8_t slot, int8_t sensor_position) {
     term_save_cursor();
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
-    printf(COM2, "  ");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
-    printf(COM2, "    ");
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    char sensor_letter = sensor_id_to_letter(sensor_position);
+    int sensor_number = sensor_id_to_number(sensor_position);
+
+    printf(COM2, "%c%d ", sensor_letter, sensor_number);
+    term_restore_cursor();
+}
+
+void handle_update_train_slot_next_location(int8_t slot, int8_t sensor_position) {
+    term_save_cursor();
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_NEXT_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    char sensor_letter = sensor_id_to_letter(sensor_position);
+    int sensor_number = sensor_id_to_number(sensor_position);
+
+    printf(COM2, "%c%d ", sensor_letter, sensor_number);
+    term_restore_cursor();
+}
+
+void handle_clear_train_slot(int8_t slot) {
+    int slot_offset = TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1));
+
+    term_save_cursor();
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, slot_offset);
+    printf(COM2, "  ");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, slot_offset);
     printf(COM2, "    ");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, slot_offset);
+    printf(COM2, "    ");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, slot_offset);
+    printf(COM2, "    ");
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_NEXT_OFF, slot_offset);
     printf(COM2, "    ");
     term_restore_cursor();
 }

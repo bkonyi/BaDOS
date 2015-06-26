@@ -42,6 +42,10 @@ char* strlcpy(char* dest, char* src, uint32_t maxlen);
 size_t strlen(char* str);
 int32_t strcmp(char* a, char* b);
 
+int8_t sensor_to_id(char* sensor_name);
+char sensor_id_to_letter(int8_t id);
+int8_t sensor_id_to_number(int8_t id);
+
 /**
  * @brief modifies the given string so that words inside of it can be accessed as tokens
  * @details turns all whitespace into \0, and modifies argv so that it contains a list of
