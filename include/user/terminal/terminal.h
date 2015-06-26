@@ -17,10 +17,12 @@ typedef enum {
     TERMINAL_SET_TRACK       = 11,
     TERMINAL_STOP_TRAIN_ON_SWITCH_COMMAND = 12,
     TERMINAL_REGISTER_TRAIN  = 13,
-    TERMINAL_UPDATE_TRAIN_SLOT = 14,
-    TERMINAL_INIT_TRAIN_SLOT = 15,
-    TERMINAL_CLEAR_TRAIN_SLOT = 16,
-    TERMINAL_FIND_TRAIN      = 17,
+    TERMINAL_INIT_TRAIN_SLOT = 14,
+    TERMINAL_CLEAR_TRAIN_SLOT = 15,
+    TERMINAL_FIND_TRAIN      = 16,
+    TERMINAL_UPDATE_TRAIN_SLOT_SPEED = 17,
+    TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION = 18,
+    TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION    = 19,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -75,7 +77,27 @@ void initialize_terminal_train_slot(int8_t train, int8_t slot);
  * @param slot The slot that the train currently occupies
  * @param speed The new speed to display on screen.
  */
-void update_terminal_train_slot(int8_t train, int8_t slot, int8_t speed);
+void update_terminal_train_slot_speed(int8_t train, int8_t slot, int8_t speed);
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param train [description]
+ * @param slot [description]
+ * @param sensor_location [description]
+ */
+void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int8_t sensor_location);
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param train [description]
+ * @param slot [description]
+ * @param sensor_location [description]
+ */
+void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int8_t sensor_location);
 
 /**
  * @brief Clears a train information slot on screen.
