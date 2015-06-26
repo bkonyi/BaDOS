@@ -43,6 +43,7 @@ typedef enum {
     STOP_CONTROLLER,
     TRAIN_REGISTER,
     FIND_TRAINS,
+    TRAIN_TRIGGER_STOP_ON_SENSOR,
     TRAIN_CONTROLLER_UKNOWN_COMMAND
 } train_controller_command_t;
 
@@ -83,6 +84,8 @@ static void handle_train_register(train_data_t* trains, int16_t* train_slots, in
 
 static void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
 
+static void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num);
+
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -94,6 +97,7 @@ void train_controller_commander_server(void) {
         trains[i].speed = INVALID_SPEED;
         trains[i].slot = INVALID_SLOT;
         trains[i].is_reversing = false;
+        trains[i].server_tid = -1;
     }
 
     for(i = 0; i < MAX_REGISTERED_TRAINS; ++i) {
@@ -150,6 +154,9 @@ void train_controller_commander_server(void) {
                 break;
             case FIND_TRAINS:
                 handle_find_trains(trains, registered_trains);
+                break;
+            case TRAIN_TRIGGER_STOP_ON_SENSOR:
+                handle_trigger_train_stop_on_sensor(trains, data.var1, data.var2);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -243,6 +250,23 @@ void find_trains(void) {
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 }
 
+int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    } else if(sensor_num >= 80) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = TRAIN_TRIGGER_STOP_ON_SENSOR;
+    data.var1 = train;
+    data.var2 = sensor_num;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+
+    return 0;
+}
+
 void train_reverse_delay_server(void) {
     int sending_tid;
     reverse_delay_t delay_request;
@@ -286,9 +310,7 @@ void sensor_query_server(void) {
         }
 
         update_terminal_sensors_display(sensors);
-        //TODO wrap this!!!
-       tps_send_sensor_data(sensors);
-
+        tps_send_sensor_data(sensors);
     }
 }
 
@@ -368,8 +390,9 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     if(trains[(uint16_t)train].speed != INVALID_SPEED) {
         update_terminal_train_slot(train, slot, trains[(uint16_t)train].speed);
     }
-    tid_t  tid = CreateName(TRAIN_SERVER_PRIORITY,train_server, "TRAIN_SERVER"); 
-    train_server_specialize(tid,train );
+    tid_t tid = CreateName(TRAIN_SERVER_PRIORITY,train_server, "TRAIN_SERVER"); 
+    trains[(int16_t)train].server_tid = tid;
+    train_server_specialize(tid, train);
 }
 void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {
     //TODO update terminal status to respresent current state of find process
@@ -383,6 +406,12 @@ void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGI
         if(registered_trains[i] != INVALID_SLOT) {
             //TODO actually start find process for each registered train
         }
+    }
+}
+
+void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num) {
+    if(trains[(int16_t)train].server_tid != -1) {
+        train_trigger_stop_on_sensor(trains[(int16_t)train].server_tid, sensor_num);
     }
 }
 

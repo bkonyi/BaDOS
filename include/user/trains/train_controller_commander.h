@@ -74,4 +74,6 @@ int register_train(int8_t train, int8_t slot);
  */
 void find_trains(void);
 
+int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num);
+
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__
