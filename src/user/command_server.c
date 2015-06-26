@@ -85,7 +85,7 @@ void process_input(char* input) {
 					terminal_data.num1 = target_train_number;
 					terminal_data.byte1= argv[2][0];
 
-					result = switch_set_direction(target_train_number, argv[2][0]);
+					result = tcs_switch_set_direction(target_train_number, argv[2][0]);
 
 					if(result != 0) {
 						terminal_data.command = TERMINAL_COMMAND_ERROR;
@@ -154,6 +154,7 @@ void process_input(char* input) {
 				} else if ( track == 'B' ){
 					tps_set_track(TRACKB);
 				}
+				tcs_initialize_track_switches();
 			}
 		} else {
 			//term_set_status(t,"ERROR: Invalid command");

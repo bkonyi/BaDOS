@@ -8,7 +8,7 @@
 #define TPS_SIGNAL_MESSAGE_SIZE (sizeof(int8_t)*10)
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
 
-#define NUM_SWITCHES_TO_STORE 32
+#define NUM_SWITCHES_TO_STORE (32+4+4)
 #define NUM_MESSAGE_BUFFER_ITEMS 4
 #define MESSAGE_BUFFER_SIZE (sizeof(uint32_t)*NUM_MESSAGE_BUFFER_ITEMS)  
 #define MAX_NUM_TRAINS 10
@@ -35,7 +35,7 @@ void track_position_server(void) {
 	tps_cover_sheet_t* tps_message = (	tps_cover_sheet_t*)message;
 	train_information_t* tpip;
 	uint32_t state = 0;
-
+	char character;
 	track_node* track_branch_nodes[NUM_SWITCHES_TO_STORE]; //merge nodes are attached through the .reverse member
 	
 	track_node track_nodes[TRACK_MAX];
@@ -93,15 +93,17 @@ void track_position_server(void) {
 						break;
 					case TPS_SWITCH_SET:
 						//num1 = switch number
-						//num2 = switch state
-						
-						if (tps_message->num2 == 'S' || tps_message->num2 == 's') {
+						//num2 = switch state (char)
+						character = (char)tps_message->num2 ;
+						//bwprintf(COM2,"\r\nTPS Set a switch %d %c\r\n",tps_message->num1,character);
+						if (character == 'S' || character == 's') {
 							state = DIR_STRAIGHT;
-						}else if (tps_message->num2 == 'C' || tps_message->num2 == 'c') {
+						}else if (character == 'C' || character == 'c') {
 							state = DIR_CURVED;
 						}else {
 							KASSERT(0);
 						}
+
 						//If that switch exists then change it and notify the trains that the
 							//track has changed
 						if(track_nodes_set_switch(track_branch_nodes,tps_message->num1,state)){
@@ -143,11 +145,21 @@ void tps_set_track(uint32_t track) {
 	tps_message.num1 = track;
 	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_message),NULL,0);
 }
+void tps_set_switch(uint32_t sw, char state) {
+	tps_cover_sheet_t tps_message;
+	tps_message.command = TPS_SWITCH_SET;
+	tps_message.num1 = sw;
+	tps_message.num2 = (uint32_t)state;
+	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_message),NULL,0);
+}
 
 void fill_track_branch_data(track_node* track_nodes, track_node** track_branch_nodes) {
 	int i,branch_index;
 	for(i = 0; i < NUM_SWITCHES_TO_STORE; i++) {
 		track_branch_nodes[i] = NULL;
+	}
+	for(i = 0; i < TRACK_MAX; i++) {
+		track_nodes[i].state = DIR_STRAIGHT;
 		if(track_nodes[i].type == NODE_BRANCH) {
 
 			branch_index = track_nodes[i].num;
@@ -170,7 +182,6 @@ void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, 
 track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 	int i;
 	for(i = 0; i < MAX_NUM_TRAINS; i++) {
-		bwprintf(COM2,"%s\r\n",track_info[i].name);
 		if(track_info[i].type == NODE_SENSOR && track_info[i].num == sensor_number) {
 			return track_info+i;
 		}
@@ -182,6 +193,7 @@ track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state) {
 	track_node* node = track_branch_nodes[switch_num_to_index(switch_number)];
 	if(node != NULL) {
+		//printf(COM2,"Setting branch %s to %d\r\n",node->name,(char)state );
 		set_track_node_state(node, state);
 		return true;
 	}
@@ -210,13 +222,13 @@ void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
 }
 uint32_t switch_num_to_index(uint32_t switch_num) {
 	
-	ASSERT(!((switch_num>=(NUM_SWITCHES_TO_STORE -4 -1/* -1 for indexed val */)
-									 && switch_num < 153) 
-					|| switch_num > 156));
+	ASSERT(is_valid_switch_number(switch_num));
 	if(switch_num >= 153) {
 		//assume we aren't using indices 28,29,30,31
 			//put switches 153,154,155,156 in those spots
-		switch_num -= (156-31); 
+		switch_num -= (153-31); 
+	}else if (switch_num >= 0x99) {
+		switch_num -=(0x99-31+4);
 	}
 	return switch_num;
 }

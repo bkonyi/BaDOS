@@ -45,5 +45,6 @@ void track_position_server(void);
 void tps_set_track(uint32_t track);
 track_node* tps_add_train(uint32_t train_num) ;
 void tps_send_sensor_data(int8_t* sensors);
+void tps_set_switch(uint32_t sw, char state);
 #endif //_TRACK_POSITION_SERVER_H_
 

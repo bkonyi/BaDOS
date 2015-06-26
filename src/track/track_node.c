@@ -1,21 +1,30 @@
 #include <track_node.h>
 
 track_node* get_next_track_node(track_node* node) {
-	track_node* next = node->edge[node->state].dest;
+
 	//We can add conditions for getting the next node here
 	// like if we only ever want to allow passing over a merge
 	// if the switch is set correctly
-	return next;
+	return node->edge[node->state].dest;
 }
-
+bool is_valid_switch_number(uint32_t sw_num) {
+	return (1<=sw_num && sw_num <=32)
+            ||(0x99 <= sw_num && sw_num <=0x9c)
+            ||(146 <= sw_num && sw_num <=148);
+}
 void set_track_node_state(track_node* node, uint32_t state) {
-	KASSERT(state == DIR_AHEAD 
+	ASSERT(state == DIR_AHEAD 
 		|| state == DIR_STRAIGHT 
 		|| state ==  DIR_CURVED);
 	ASSERT(node != NULL);
-
-	node->state = state;
-	node->reverse->state = state;
+	//The only nodes where the state matters are BRANCH
+		//Only ever modify those
+	if(node->type == NODE_BRANCH) {
+		node->state = state;
+	} else if(node->type == NODE_MERGE) {
+		node->reverse->state = state;
+	}
+	
 }
 track_node* get_next_sensor( track_node* node) {
 	track_node* iterator_node;

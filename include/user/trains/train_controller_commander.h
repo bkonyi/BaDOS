@@ -44,7 +44,7 @@ int train_reverse(int8_t train);
  * 
  * @return -1 if the switch number is invalid, -2 if the direction is invalid, 0 otherwise.
  */
-int switch_set_direction(int16_t switch_num, char direction);
+int tcs_switch_set_direction(int16_t switch_num, char direction);
 
 /**
  * @brief Sends a requeste to the train controller server to turn on the controller.
@@ -75,5 +75,5 @@ int register_train(int8_t train, int8_t slot);
 void find_trains(void);
 
 int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num);
-
+void tcs_initialize_track_switches(void);
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__

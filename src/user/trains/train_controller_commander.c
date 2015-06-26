@@ -44,7 +44,8 @@ typedef enum {
     TRAIN_REGISTER,
     FIND_TRAINS,
     TRAIN_TRIGGER_STOP_ON_SENSOR,
-    TRAIN_CONTROLLER_UKNOWN_COMMAND
+    TRAIN_CONTROLLER_UKNOWN_COMMAND,
+    SWITCH_INITIALIZE_DIRECTIONS
 } train_controller_command_t;
 
 typedef struct {
@@ -85,6 +86,7 @@ static void handle_train_register(train_data_t* trains, int16_t* train_slots, in
 static void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
 
 static void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num);
+static void handle_initialize_track_switches(void);
 
 void train_controller_commander_server(void) {
     int sending_tid;
@@ -139,6 +141,9 @@ void train_controller_commander_server(void) {
                 break;
             case SWITCH_DIRECTION:
                 handle_switch_set_direction(data.var1, data.var2);
+                break;
+            case SWITCH_INITIALIZE_DIRECTIONS:
+                handle_initialize_track_switches();
                 break;
             case SENSOR_QUERY_REQUEST:
                 handle_start_track_query();
@@ -197,7 +202,7 @@ int train_reverse(int8_t train) {
     return 0;
 }
 
-int switch_set_direction(int16_t switch_num, char direction) {
+int tcs_switch_set_direction(int16_t switch_num, char direction) {
     if(switch_num < MIN_SWITCH || switch_num > MAX_SWITCH) {
         return -1;
     } else if(direction != 'C' && direction != 'c' &&
@@ -214,6 +219,23 @@ int switch_set_direction(int16_t switch_num, char direction) {
 
     return 0;
 }
+void tcs_initialize_track_switches(void) {
+    train_controller_data_t data;
+    data.command = SWITCH_INITIALIZE_DIRECTIONS;
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+}
+void handle_initialize_track_switches(void) {
+    int i;
+    for( i = 0; i < 200; i++ ) {
+        if((1<=i && i <=32)
+            ||(0x99 <= i && i <=0x9c)
+            ||(146 <= i && i <=148)){
+            handle_switch_set_direction(i,'C');
+        }
+        
+    }
+}
+
 
 void start_controller(void) {
     train_controller_data_t data;
@@ -354,7 +376,7 @@ void handle_switch_set_direction(int16_t switch_num, char direction) {
         ASSERT(0);
         return;
     }
-
+    tps_set_switch(switch_num,direction);
     putc(COM1, direction_code);
     putc(COM1, switch_num);
     putc(COM1, SWITCH_DEACTIVATE);

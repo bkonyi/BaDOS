@@ -29,7 +29,7 @@ void train_server(void) {
     }
 
 
-    track_node* last_sensor_track_node;
+    track_node* last_sensor_track_node = NULL;
 
     //CURRENTLY A STEM CELL TRAIN,
     //need to obtain train info
@@ -43,6 +43,7 @@ void train_server(void) {
 
     train_number = ((train_server_msg_t*)message)->num1; 
     last_sensor_track_node = tps_add_train(train_number);
+    KASSERT(last_sensor_track_node != NULL);
 
 	FOREVER {
 		Receive(&requester, message, message_size);
@@ -113,23 +114,25 @@ void handle_sensor_data(int train, int8_t* sensor_data, int8_t* stop_sensors,tra
     
     
     next_sensor = get_next_sensor(*last_sensor_track_node);
-
+    //bwprintf(COM2,"CURSENSOR %s state %d next pointer 0x%x\r\n",(*last_sensor_track_node)->name,(*last_sensor_track_node)->state,(uint32_t)next_sensor);
+    KASSERT(next_sensor != NULL);
     group = next_sensor->num /8;
     index = next_sensor->num - group*8;
     
     for(i = 0; i < 10; ++i) {
-        //printf(COM2,"Stop Bits[%d]: 0x%x\r\n", i, stop_sensors[i]);
-        bwprintf(COM2,"LOOKING FOR SENSOR %s group %d index %d\r\n",next_sensor->name,group,index);
+        //bwprintf(COM2,"LOOKING FOR SENSOR %s group %d index %d\r\n",next_sensor->name,group,index);
+        //printf(COM2,"GETNEXT cur(state): %s(%d), next: %s\r\n ",*last_sensor_track_node,(*last_sensor_track_node)->state, next_sensor->name);
         if(group == i && (sensor_data[group] & 1<<(7-index)) !=0) {
             //we have now passed our next sensor
-            bwprintf(COM2,"We hit our next sensor %d\r\n",next_sensor->num);
+           // bwprintf(COM2,"We hit our next sensor %d\r\n",next_sensor->num);
              *last_sensor_track_node = next_sensor;
             if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                 //we have have hit our stop sensor
                
                 train_set_speed(train, 0);
-                break;
+                
             }
+            break;
         }
         
         
