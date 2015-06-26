@@ -1,6 +1,6 @@
 #ifndef _TRACK_NODE_H_
 #define _TRACK_NODE_H_
-
+#include <common.h>
 typedef enum {
   NODE_NONE,
   NODE_SENSOR,
@@ -33,4 +33,7 @@ struct track_node {
   int state;
 };
 
+track_node* get_next_track_node(track_node* start_node);
+void set_track_node_state(track_node* node, uint32_t state);
+track_node* get_next_sensor( track_node* node);
 #endif //_TRACK_NODE_H_
