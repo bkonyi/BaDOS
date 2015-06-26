@@ -170,7 +170,6 @@ void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, 
 track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 	int i;
 	for(i = 0; i < MAX_NUM_TRAINS; i++) {
-		bwprintf(COM2,"%s\r\n",track_info[i].name);
 		if(track_info[i].type == NODE_SENSOR && track_info[i].num == sensor_number) {
 			return track_info+i;
 		}

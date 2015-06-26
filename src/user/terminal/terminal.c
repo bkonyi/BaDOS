@@ -525,20 +525,20 @@ void handle_update_train_slot_speed(int8_t slot, int8_t speed) {
 void handle_update_train_slot_current_location(int8_t slot, int8_t sensor_position) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
-    char sensor_letter = sensor_position / 16;
-    int sensor_number = (sensor_position % 16) + 1;
+    char sensor_letter = sensor_id_to_letter(sensor_position);
+    int sensor_number = sensor_id_to_number(sensor_position);
 
-    printf(COM2, "%c%d ", sensor_letter, sensor_position);
+    printf(COM2, "%c%d ", sensor_letter, sensor_number);
     term_restore_cursor();
 }
 
 void handle_update_train_slot_next_location(int8_t slot, int8_t sensor_position) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_NEXT_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
-    char sensor_letter = sensor_position / 16;
-    int sensor_number = (sensor_position % 16) + 1;
+    char sensor_letter = sensor_id_to_letter(sensor_position);
+    int sensor_number = sensor_id_to_number(sensor_position);
 
-    printf(COM2, "%c%d ", sensor_letter, sensor_position);
+    printf(COM2, "%c%d ", sensor_letter, sensor_number);
     term_restore_cursor();
 }
 

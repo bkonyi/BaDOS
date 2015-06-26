@@ -392,7 +392,7 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     }
     tid_t tid = CreateName(TRAIN_SERVER_PRIORITY,train_server, "TRAIN_SERVER"); 
     trains[(int16_t)train].server_tid = tid;
-    train_server_specialize(tid, train);
+    train_server_specialize(tid, train, slot);
 }
 void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {
     //TODO update terminal status to respresent current state of find process

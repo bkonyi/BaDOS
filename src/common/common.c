@@ -91,6 +91,22 @@ int32_t strcmp(char* a, char* b) {
     }
 }
 
+int8_t sensor_to_id(char* sensor) {
+    char sensor_letter = char_to_upper((sensor)[0]);
+    int8_t sensor_number = strtoi(&(sensor[1])) - 1;
+    sensor_number += 16 * (sensor_letter - 'A');
+
+    return sensor_number;
+}
+
+char sensor_id_to_letter(int8_t id) {
+    return (id / 16) + 'A';
+}
+
+int8_t sensor_id_to_number(int8_t id) {
+    return (id % 16) + 1;
+}
+
 int max(int val1, int val2) {
     if(val1 > val2) {
         return val1;

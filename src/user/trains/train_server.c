@@ -2,13 +2,14 @@
 #include <trains/track_position_server.h>
 #include <trains/train_controller_commander.h>
 #include <io/io.h>
+#include <terminal/terminal.h>
 
 #define TRAIN_SERVER_MSG_SIZE (sizeof(train_server_msg_t))
 #define TRAIN_SERVER_SENSOR_MSG_SIZE (sizeof(train_server_sensor_msg_t))
 
 
 
-static void handle_sensor_data(int train, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node); 
+static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node); 
 static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
 
 
@@ -20,14 +21,14 @@ void train_server(void) {
                         TRAIN_SERVER_SENSOR_MSG_SIZE);
 	int requester;
 	char message[message_size]; 
-    int train_number = -1;
-    int8_t stop_sensors[10];
+    int16_t train_number = -1;
+    int16_t train_slot   = -1;
+    int8_t  stop_sensors[10];
 
     int i;
     for(i = 0; i < 10; ++i) {
         stop_sensors[i] = 0;
     }
-
 
     track_node* last_sensor_track_node;
 
@@ -37,29 +38,22 @@ void train_server(void) {
     Reply(requester,NULL,0);
     if(((train_server_msg_t*)message)->command != TRAIN_SERVER_INIT) {
         //Our train hasn't been initialized
-        bwprintf(COM2,"cmd : %d \r\n", ((train_server_msg_t*)message)->command);
         ASSERT(0);
     }
 
     train_number = ((train_server_msg_t*)message)->num1; 
+    train_slot   = ((train_server_msg_t*)message)->num2;
     last_sensor_track_node = tps_add_train(train_number);
+
+    update_terminal_train_slot_current_location(train_number, train_slot, sensor_to_id((char*)last_sensor_track_node->name));
+    update_terminal_train_slot_next_location(train_number, train_slot, sensor_to_id((char*)((get_next_sensor(last_sensor_track_node))->name)));
 
 	FOREVER {
 		Receive(&requester, message, message_size);
-        int i;
         switch (((train_server_msg_t*)message)->command) {
             case TRAIN_SERVER_SENSOR_DATA:
-
-
-                
-                //printf(COM2, "\r\n\r\n");
-                for(i = 0; i < 10; ++i) {
-                    //printf(COM2,"FIRST Stop Bits[%d]: 0x%x\r\n", i, stop_sensors[i]);
-                }
-                            //Do calculations for our train.
-                handle_sensor_data(train_number, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&last_sensor_track_node);
-
-
+                //Do calculations for our train.
+                handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&last_sensor_track_node);
                 break;
             case TRAIN_SERVER_SWITCH_CHANGED :
                 //Invalidate any predictions we made
@@ -68,14 +62,6 @@ void train_server(void) {
                 break;
             case TRAIN_SERVER_REGISTER_STOP_SENSOR:
                 handle_register_stop_sensor(stop_sensors, ((train_server_msg_t*)message)->num1);
-                /*printf(COM2, "\r\nSTOP SENSOR TRAIN: %d SENSOR: %d\r\n", train_number, ((train_server_msg_t*)message)->num1);
-
-                int i;
-                for(i = 0; i < 10; ++i) {
-                    printf(COM2, "\r\nStop[%d]: 0x%x\r\n", i, stop_sensors[i]);
-                }*/
-
-                //getc(COM2);
                 break;
             default:
                 //Invalid command
@@ -89,10 +75,11 @@ void train_server(void) {
 }
 
 
-void train_server_specialize(tid_t tid, uint32_t train_num) {
+void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_INIT;
     msg.num1 = train_num;
+    msg.num2 = slot;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
 }
 
@@ -105,34 +92,31 @@ void train_trigger_stop_on_sensor(tid_t tid, int8_t sensor_num) {
 }
 
 
-void handle_sensor_data(int train, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node) {
-   // track_node* our_sensor = *last_sensor_track_node;
+void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node) {
     track_node* next_sensor = NULL;
     int i;
     uint32_t group,index;
     
-    
     next_sensor = get_next_sensor(*last_sensor_track_node);
 
-    group = next_sensor->num /8;
-    index = next_sensor->num - group*8;
+    group = next_sensor->num / 8;
+    index = next_sensor->num - group * 8;
     
     for(i = 0; i < 10; ++i) {
-        //printf(COM2,"Stop Bits[%d]: 0x%x\r\n", i, stop_sensors[i]);
-        bwprintf(COM2,"LOOKING FOR SENSOR %s group %d index %d\r\n",next_sensor->name,group,index);
-        if(group == i && (sensor_data[group] & 1<<(7-index)) !=0) {
+        if(group == i && (sensor_data[group] & (1 << (7-index))) != 0) {
             //we have now passed our next sensor
-            bwprintf(COM2,"We hit our next sensor %d\r\n",next_sensor->num);
-             *last_sensor_track_node = next_sensor;
+            *last_sensor_track_node = next_sensor;
+
+            //Update the terminal display
+            update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)next_sensor->name));
+            update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)((get_next_sensor(next_sensor))->name)));
+            
             if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                 //we have have hit our stop sensor
-               
                 train_set_speed(train, 0);
                 break;
             }
         }
-        
-        
     }
 }
 
