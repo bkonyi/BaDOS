@@ -120,7 +120,7 @@ void handle_sensor_data(int train, int8_t* sensor_data, int8_t* stop_sensors,tra
     for(i = 0; i < 10; ++i) {
         //printf(COM2,"Stop Bits[%d]: 0x%x\r\n", i, stop_sensors[i]);
         bwprintf(COM2,"LOOKING FOR SENSOR %s group %d index %d\r\n",next_sensor->name,group,index);
-        if(group == i && (sensor_data[group] & 1<<index) !=0) {
+        if(group == i && (sensor_data[group] & 1<<(7-index)) !=0) {
             //we have now passed our next sensor
             bwprintf(COM2,"We hit our next sensor %d\r\n",next_sensor->num);
              *last_sensor_track_node = next_sensor;
