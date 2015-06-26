@@ -156,16 +156,16 @@ void process_input(char* input) {
 		}
 	} else if( argc == 1) {
 		if(strcmp(argv[0],"q")==0){
-			terminal_data.command = TERMINAL_QUIT;
+			send_term_quit_msg();
 		} else if(strcmp(argv[0], "x") == 0) {
 			stop_controller();
-			terminal_data.command = TERMINAL_STOP_CTRL;
+			send_term_stop_msg();
 		} else if(strcmp(argv[0], "g") == 0) {
 			start_controller();
-			terminal_data.command = TERMINAL_START_CTRL;
+			send_term_start_msg();
 		} else if(strcmp(argv[0], "find" == 0)) {
 			find_trains();
-			terminal_data.command = TERMINAL_FIND_TRAIN;
+			send_term_find_msg();
 		}
 	}
 	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this in terminal.h

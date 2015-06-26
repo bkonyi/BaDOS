@@ -107,4 +107,10 @@ void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int8_t 
  */
 void clear_terminal_train_slot(int8_t slot);
 
+void term_quit_msg (void);
+void send_term_start_msg(void);
+void send_term_stop_msg(void);
+void send_term_quit_msg (void);
+void send_term_find_msg(void);
+
 #endif //__TERMINAL_H__

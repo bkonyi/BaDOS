@@ -69,6 +69,7 @@ static void status_message(char* fmt, ...);
 static void clear_track_map(void);
 static void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]);
 static void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state);
+static void handle_find_command(void);
 
 
 void terminal_server(void) {
@@ -200,7 +201,7 @@ void terminal_server(void) {
                 handle_clear_train_slot(data.num2);
                 break;
             case TERMINAL_FIND_TRAIN:
-                status_message("FINDING REGISTERED TRAINS...");
+                handle_find_command();
                 break;
             case TERMINAL_COMMAND_ERROR:
                 status_message("Input Error");
@@ -454,13 +455,36 @@ void handle_quit_command(void){
     status_message("CMD QUIT");
     Terminate();
 }
+void send_term_quit_msg (void) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_QUIT;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
 
 void handle_start_command(void) {
     status_message("ENABLING TRAIN CONTROLLER");
 }
+void send_term_start_msg(void) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_START_CTRL;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
 
 void handle_stop_command(void) {
     status_message("STOPPING TRAINS AND TURNING OFF CONTROLLER");
+}
+void send_term_stop_msg(void) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_STOP_CTRL;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
+void handle_find_command(void) {
+    status_message("FINDING REGISTERED TRAINS...");
+}
+void send_term_find_msg(void) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_FIND_TRAIN;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 
 void handle_set_track(sensor_map_chars_t* sensor_display_info, char track) {

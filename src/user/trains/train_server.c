@@ -30,7 +30,6 @@ void train_server(void) {
         stop_sensors[i] = 0;
     }
 
-
     track_node* last_sensor_track_node = NULL;
 
 
@@ -102,7 +101,9 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
     
     next_sensor = get_next_sensor(*last_sensor_track_node);
 
-      KASSERT(next_sensor != NULL);
+
+    KASSERT(next_sensor != NULL);
+
     group = next_sensor->num / 8;
     index = next_sensor->num - group * 8;
     
