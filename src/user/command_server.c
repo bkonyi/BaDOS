@@ -149,11 +149,11 @@ void process_input(char* input) {
 			} else {
 				terminal_data.command = TERMINAL_SET_TRACK;
 				terminal_data.byte1 = track;
-				/*if(track == 'A') {
+				if(track == 'A') {
 					tps_set_track(TRACKA);
 				} else if ( track == 'B' ){
 					tps_set_track(TRACKB);
-				}*/
+				}
 			}
 		} else {
 			//term_set_status(t,"ERROR: Invalid command");

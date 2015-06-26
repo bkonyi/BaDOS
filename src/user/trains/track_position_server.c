@@ -57,7 +57,7 @@ void track_position_server(void) {
 			// For all others just reply right away
 			Reply(requester,NULL,0);
 		}
-		
+
 		switch (size_received) {
 			case TPS_SIGNAL_MESSAGE_SIZE:
 				//make sure all trains get the sensor data
@@ -66,7 +66,6 @@ void track_position_server(void) {
 			case TPS_COVERSHEET_MESSAGE_SIZE:
 				switch(tps_message->command) {
 					case TPS_SET_TRACK:
-
 						switch(tps_message->num1) {
 							case TRACKA:
 								init_tracka(track_nodes);
@@ -75,7 +74,7 @@ void track_position_server(void) {
 								init_trackb(track_nodes);
 								break;
 							default:
-								KASSERT(0);
+								ASSERT(0);
 								break;
 						}
 						fill_track_branch_data(track_nodes, track_branch_nodes);
@@ -128,6 +127,7 @@ track_node* tps_add_train(uint32_t train_num) {
 
 	tps_message.command = TPS_ADD_TRAIN;
 	tps_message.num1 = train_num;
+	tps_message.num2 = 0 ; // TODO: FIND GOES HERE
 	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_cover_sheet_t),(char*)&track_node_pointer,sizeof(uint32_t));
 
 	return (track_node*)track_node_pointer;
@@ -146,14 +146,14 @@ void tps_set_track(uint32_t track) {
 
 void fill_track_branch_data(track_node* track_nodes, track_node** track_branch_nodes) {
 	int i,branch_index;
-	for(i = 0; i < TRACK_MAX; i++) {
+	for(i = 0; i < NUM_SWITCHES_TO_STORE; i++) {
 		track_branch_nodes[i] = NULL;
 		if(track_nodes[i].type == NODE_BRANCH) {
 
 			branch_index = track_nodes[i].num;
 			//Make sure to complain if we ever have any switches that are in a range that we haven't handled
 			branch_index = switch_num_to_index(branch_index);
-			track_branch_nodes[branch_index] = track_branch_nodes[branch_index];
+			track_branch_nodes[branch_index] = track_nodes+i;
 		}
 	}
 }
@@ -166,20 +166,23 @@ void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, 
 		QUEUE_PUSH_BACK(*tpi_queue_free,train_info+i);
 	}
 }
+
 track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 	int i;
 	for(i = 0; i < MAX_NUM_TRAINS; i++) {
+		bwprintf(COM2,"%s\r\n",track_info[i].name);
 		if(track_info[i].type == NODE_SENSOR && track_info[i].num == sensor_number) {
 			return track_info+i;
 		}
 	}
 	return NULL;
 }
+
 //Returns whether or not that switch exists on this track
 bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state) {
 	track_node* node = track_branch_nodes[switch_num_to_index(switch_number)];
 	if(node != NULL) {
-		node->state = state;
+		set_track_node_state(node, state);
 		return true;
 	}
 	return false;
