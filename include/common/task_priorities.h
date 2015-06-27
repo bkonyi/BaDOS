@@ -17,7 +17,11 @@
 #define UART2_RECEIVE_SERVER_PRIORITY	TASK_HIGHEST_PRIORITY - 1
 #define UART2_TRANSMIT_SERVER_PRIORITY	TASK_HIGHEST_PRIORITY - 1
 #define COMMAND_SERVER_PRIORITY			TASK_HIGHEST_PRIORITY - 3
-#define TRAIN_CONTROLLER_COMMAND_SERVER	TASK_HIGHEST_PRIORITY - 2
+/**
+ * Train controller is the only task here so that when it asks for the timestamp when
+ * it receives the sensor data, it will be as accurate as possible
+ */
+#define TRAIN_CONTROLLER_COMMAND_SERVER	TASK_HIGHEST_PRIORITY - 2 
 #define TERMINAL_SERVER_PRIORITY		TASK_HIGHEST_PRIORITY - 3
 
 

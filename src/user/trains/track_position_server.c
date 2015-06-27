@@ -5,11 +5,11 @@
 #include <queue.h>
 #include <trains/train_server.h>
 
-#define TPS_SENSOR_MESSAGE_SIZE (sizeof(int8_t)*10 + sizeof(uint32_t))
+#define TPS_SENSOR_MESSAGE_SIZE SENSOR_MESSAGE_SIZE
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
 
 #define NUM_SWITCHES_TO_STORE (32+4+4)
-#define NUM_MESSAGE_BUFFER_ITEMS 4
+#define NUM_MESSAGE_BUFFER_ITEMS 5
 #define MESSAGE_BUFFER_SIZE (sizeof(uint32_t)*NUM_MESSAGE_BUFFER_ITEMS)  
 #define MAX_NUM_TRAINS 10
 static void fill_track_branch_data(track_node* track_nodes, track_node** sensor_track_nodes);

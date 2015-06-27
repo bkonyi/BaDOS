@@ -319,7 +319,7 @@ void sensor_query_server(void) {
     train_controller_data_t data;
     data.command = SENSOR_QUERY_REQUEST;
 
-    int8_t sensors[10+sizeof(uint32_t)]; // to hold tick data
+    int8_t sensors[SENSOR_MESSAGE_SIZE]; // to hold tick data
 
     FOREVER {
         Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
@@ -331,8 +331,8 @@ void sensor_query_server(void) {
         for(i = 0; i < 10; ++i) {
             sensors[i] = getc(COM1);
         }
-        uint32_t t = 0xDDDD;//Time();
-        memcpy(sensors+10,(char*)&t,sizeof(uint32_t));
+        uint32_t t = Time();
+        memcpy(sensors+12,(char*)&t,sizeof(uint32_t));
         update_terminal_sensors_display(sensors);
         tps_send_sensor_data(sensors);
     }

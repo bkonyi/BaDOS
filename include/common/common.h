@@ -25,6 +25,7 @@ typedef uint8_t priority_t;
 #define MAX_NUMBER_OF_TASKS 200 //TODO Arbitrary number for now
 #define SCHEDULER_NUM_QUEUES            32
 
+#define SENSOR_MESSAGE_SIZE (sizeof(int8_t)*10 + 2+ sizeof(uint32_t))
 //\e[2J \e[1;1H
 
 #define ASSERT(cond)  if(!(cond)) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Terminate(); } while(0)
