@@ -227,9 +227,7 @@ void tcs_initialize_track_switches(void) {
 void handle_initialize_track_switches(void) {
     int i;
     for( i = 0; i < 200; i++ ) {
-        if((1<=i && i <=32)
-            ||(0x99 <= i && i <=0x9c)
-            ||(146 <= i && i <=148)){
+        if(is_valid_switch_number(i)){
             handle_switch_set_direction(i,'C');
         }
         

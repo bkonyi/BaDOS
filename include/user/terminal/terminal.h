@@ -23,6 +23,7 @@ typedef enum {
     TERMINAL_UPDATE_TRAIN_SLOT_SPEED = 17,
     TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION = 18,
     TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION    = 19,
+    TERMINAL_INIT_ALL_SWITCHES                  =20,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -118,4 +119,5 @@ void send_term_register_train_msg(int8_t train, int8_t slot);
 void send_term_switch_msg(int32_t train_num,char state) ;
 void send_term_train_msg(int32_t num,int32_t speed);
 void send_term_error_msg(char*message,...);
+void send_term_initialize_track_switches(void);
 #endif //__TERMINAL_H__

@@ -79,7 +79,7 @@ void process_input(char* input) {
 				//Set type to SW
 				if((strcmp(argv[2],"C") == 0) || (strcmp(argv[2],"S") == 0) ||
 					(strcmp(argv[2], "c") == 0) || (strcmp(argv[2], "s") == 0)) {
-
+					
 					send_term_switch_msg( target_train_number,argv[2][0]);
 					result = tcs_switch_set_direction(target_train_number, argv[2][0]);
 
@@ -141,6 +141,7 @@ void process_input(char* input) {
 				} else if ( track == 'B' ){
 					tps_set_track(TRACKB);
 				}
+				send_term_initialize_track_switches();
 				tcs_initialize_track_switches();
 			}
 		} else {

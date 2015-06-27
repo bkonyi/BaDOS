@@ -8,7 +8,7 @@
 #include <ring_buffer.h>
 #include <task_priorities.h>
 #include <track_maps.h>
-
+#include <track/track_node.h>
 #define RIGHT_BAR_COL             75
 #define TERM_SENSORS_ROW          4
 #define TERM_SENSORS_DATA_ROW     TERM_SENSORS_ROW + 3
@@ -70,6 +70,7 @@ static void clear_track_map(void);
 static void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]);
 static void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state);
 static void handle_find_command(void);
+void handle_initialize_track_switches(void);
 
 #define MAX_RECEIVE_LENGTH (sizeof(terminal_data_t)+100)
 
@@ -204,6 +205,9 @@ void terminal_server(void) {
                 break;
             case TERMINAL_FIND_TRAIN:
                 handle_find_command();
+                break;
+            case TERMINAL_INIT_ALL_SWITCHES:
+                handle_initialize_track_switches();
                 break;
             case TERMINAL_COMMAND_ERROR:
                 //Null terminate it just in case
@@ -479,7 +483,9 @@ void handle_switch_command(int32_t num,char state){
     //We've got 4 switches with weird assignments, so we need to have a special case for them
     if(num <= 17) {
         term_move_cursor(TERM_SWITCHES_DATA_COLUMN + TERM_SWITCHES_COL_WIDTH * (num % 9), TERM_SWITCHES_DATA_ROW + TERM_SWITCHES_ROW_HEIGHT * (num / 9));
-    } else {
+    }else if (146-1 <= num && num <=148-1) {
+        //TODO: include these?
+    } else if(0x99-1 <= num && num <=0x9c-1){
         num -= 152;
         term_move_cursor((TERM_SWITCHES_DATA_COLUMN + 3) + TERM_SWITCHES_BIG_COL_WIDTH * num, TERM_SWITCHES_DATA_ROW + TERM_SWITCHES_ROW_HEIGHT * 2);
     }
@@ -493,8 +499,22 @@ void send_term_switch_msg(int32_t train_num,char state) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_SWITCH_COMMAND;
     terminal_data.num1 = train_num;
-    terminal_data.num2 = state;
+    terminal_data.byte1 = state;
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
+void send_term_initialize_track_switches(void) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_INIT_ALL_SWITCHES;
+
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
+void handle_initialize_track_switches(void) {
+    int i;
+    for(i = 0; i < 200; i ++){
+        if(is_valid_switch_number(i)){
+            handle_switch_command(i,'C');
+        }
+    }
 }
 void handle_quit_command(void){
     status_message("CMD QUIT");
