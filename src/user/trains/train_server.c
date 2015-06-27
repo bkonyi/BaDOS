@@ -9,7 +9,7 @@
 
 
 
-static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node); 
+static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node,train_position_info_t* train_position_info); 
 static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
 
 
@@ -29,6 +29,9 @@ void train_server(void) {
     for(i = 0; i < 10; ++i) {
         stop_sensors[i] = 0;
     }
+
+    train_position_info_t train_position_info;
+    train_position_info_init(&train_position_info);
 
     track_node* last_sensor_track_node = NULL;
 
@@ -55,7 +58,7 @@ void train_server(void) {
         switch (((train_server_msg_t*)message)->command) {
             case TRAIN_SERVER_SENSOR_DATA:
                 //Do calculations for our train.
-                handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&last_sensor_track_node);
+                handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&last_sensor_track_node,&train_position_info);
                 break;
             case TRAIN_SERVER_SWITCH_CHANGED :
                 //Invalidate any predictions we made
@@ -94,11 +97,11 @@ void train_trigger_stop_on_sensor(tid_t tid, int8_t sensor_num) {
 }
 
 
-void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node) {
+void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node,train_position_info_t* train_position_info) {
     track_node* next_sensor = NULL;
     int i;
-    uint32_t group,index;
-    
+    uint32_t group,index, distance;
+    volatile uint32_t* time;
     next_sensor = get_next_sensor(*last_sensor_track_node);
 
 
@@ -107,11 +110,28 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
     group = next_sensor->num / 8;
     index = next_sensor->num - group * 8;
 
-    //Get the timestamp from the sensor data
-    //volatile uint32_t* time = (volatile uint32_t*)(sensor_data+12);
+    
     for(i = 0; i < 10; ++i) {
+        //The condition for hitting the sensor that we are expecting next
         if(group == i && (sensor_data[group] & (1 << (7-index))) != 0) {
-            //we have now passed our next sensor
+            //Get the timestamp from the sensor data
+            time = (volatile uint32_t*)(sensor_data+12);
+            
+            //Distance between the last sensor and the one we just hit
+            distance = distance_between_track_nodes(*last_sensor_track_node,next_sensor);
+            
+
+
+            //Send our time in mm / s
+            send_term_update_velocity_msg(slot,(distance*100)/(*time -train_position_info->ticks_at_last_sensor));
+             //CUrrently sends the distance between teh last 2 sensors that we just passed by, in mm
+            send_term_update_dist_msg(slot, distance );
+
+            train_position_info->ticks_at_last_sensor = *time;
+            //This may come in handy if we need error correction?
+            train_position_info->last_sensor = next_sensor;
+
+            //Set our most recent sensor to the sensor we just hit.
             *last_sensor_track_node = next_sensor;
 
             //Update the terminal display

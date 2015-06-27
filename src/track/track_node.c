@@ -1,5 +1,5 @@
 #include <track_node.h>
-
+#include <io.h>
 track_node* get_next_track_node(track_node* node) {
 
 	//We can add conditions for getting the next node here
@@ -25,6 +25,33 @@ void set_track_node_state(track_node* node, uint32_t state) {
 		node->reverse->state = state;
 	}
 	
+}
+uint32_t get_track_node_length(track_node* node) {
+	if(node == NULL){
+		return 0;
+	}else {
+		return node->edge[node->state].dist;
+	}
+
+}
+uint32_t distance_between_track_nodes(track_node* start, track_node * end){
+	if(start == NULL || end == NULL || start == end) {
+		return 0;
+	}
+	track_node* iterator_node; 
+	uint32_t dist =get_track_node_length(start);
+	uint32_t edge = 0;
+	for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
+		iterator_node = get_next_track_node(iterator_node)) {
+		if(iterator_node == start || iterator_node == NULL) { 
+			//We have a cycle and didn't find a sensor
+			return 0;
+		}
+		dist += get_track_node_length(iterator_node);
+		edge++;
+
+	}
+	return dist;
 }
 track_node* get_next_sensor( track_node* node) {
 	track_node* iterator_node;
