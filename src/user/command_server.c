@@ -55,7 +55,7 @@ void process_input(char* input) {
 	
 	//inst->type = NONE;
 	if(argc > 3) {
-		//ERROR too many args
+		send_term_error_msg("Too many args");
 	} else if(argc ==3){
 		target_train_number = strtoi(argv[1]);//TODO: add hex support
 		if(strcmp(argv[0],"tr")==0) {
@@ -158,6 +158,8 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "find" )== 0) {
 			find_trains();
 			send_term_find_msg();
+		}else{
+			send_term_error_msg("Invalid command");
 		}
 	}else{
 		send_term_error_msg("Invalid command");
