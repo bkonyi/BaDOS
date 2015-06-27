@@ -2,7 +2,7 @@
 #include <syscalls.h>
 #include <servers.h>
 #include <bwio.h>
-
+#include <io.h>
 void* memcpy(void* dest, void* src, size_t len) {
         char* dst_c = (char*)dest;
         char* src_c = (char*)src;
@@ -14,7 +14,7 @@ void* memcpy(void* dest, void* src, size_t len) {
         return dest;
 }
 char* strcpy(char* dest, char* src) {
-    memcpy(dest, src, strlen(src));
+    memcpy(dest, src, strlen(src)+1);
     return dest;
 }
 
@@ -187,4 +187,5 @@ uint32_t rand(void) {
 
     return rand_val;
 }
+
 

@@ -112,5 +112,10 @@ void send_term_start_msg(void);
 void send_term_stop_msg(void);
 void send_term_quit_msg (void);
 void send_term_find_msg(void);
-
+void send_term_set_track_msg(char track);
+void send_term_reverse_msg(uint32_t train_num);
+void send_term_register_train_msg(int8_t train, int8_t slot);
+void send_term_switch_msg(int32_t train_num,char state) ;
+void send_term_train_msg(int32_t num,int32_t speed);
+void send_term_error_msg(char*message,...);
 #endif //__TERMINAL_H__

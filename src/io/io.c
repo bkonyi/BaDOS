@@ -227,6 +227,111 @@ void format ( int channel, char *fmt, va_list va ) {
 
 	SEND_TRANSMIT_BUFFER();
 }
+void strformat ( char* dest, char *fmt, va_list va ) {
+	char bf[12];
+	char ch, lz;
+	int w;
+
+	char* msg_buffer = dest;
+	char* in_buff;
+	
+
+
+	while ( ( ch = *(fmt++) ) ) {
+		if ( ch != '%' ) {
+			*msg_buffer = ch;
+			msg_buffer++;
+		} else {
+			lz = 0; w = 0;
+			ch = *(fmt++);
+			switch ( ch ) {
+			case '0':
+				lz = 1; ch = *(fmt++);
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				ch = a2i( ch, &fmt, 10, &w );
+				break;
+			}
+			switch( ch ) {
+			case 0:
+				*msg_buffer = '\0';
+				msg_buffer++; 
+				return;
+			case 'c':
+				*msg_buffer = va_arg( va, char );
+				msg_buffer++;
+				break;
+			case 's':
+				in_buff = va_arg(va, char*);
+				strcpy(msg_buffer,in_buff);
+				msg_buffer+=strlen(in_buff);
+				/*do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, 0, va_arg(va, char*));
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);*/
+
+				break;
+			case 'u':
+				ui2a( va_arg( va, unsigned int ), 10, bf );
+				strcpy(msg_buffer,bf);
+				msg_buffer+=strlen(bf);
+				/* do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1); */
+				break;
+			case 'd':
+				i2a( va_arg( va, int ), bf );
+				strcpy(msg_buffer,bf);
+				msg_buffer+=strlen(bf);
+				/*do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);*/
+				break;
+			case 'x':
+				ui2a( va_arg( va, unsigned int ), 16, bf );
+				strcpy(msg_buffer,bf);
+				msg_buffer+=strlen(bf);
+				/*do {
+					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
+					if(result == -1) {
+						SEND_TRANSMIT_BUFFER();
+					} else {
+						msg_buffer_index += result;
+					}
+				} while(result == -1);*/
+				break;
+			case '%':
+				*msg_buffer = ch;
+				msg_buffer++;
+				break;
+			}
+		}
+	}
+	*msg_buffer = '\0';
+}
+
 
 void printf( int channel, char *fmt, ... ) {
         va_list va;
@@ -237,4 +342,15 @@ void printf( int channel, char *fmt, ... ) {
 }
 void vprintf(int channel, char* fmt, va_list va){
     format( channel, fmt, va );
+}
+
+void sprintf( char* dest, char *fmt, ... ) {
+        va_list va;
+
+        va_start(va,fmt);
+        strformat( dest, fmt, va );
+        va_end(va);
+}
+void vsprintf(char* dest, char* fmt, va_list va){
+    strformat( dest, fmt, va );
 }

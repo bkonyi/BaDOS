@@ -71,12 +71,14 @@ static void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]);
 static void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state);
 static void handle_find_command(void);
 
+#define MAX_RECEIVE_LENGTH (sizeof(terminal_data_t)+100)
 
 void terminal_server(void) {
     int sending_tid;
     int result;
     int buffer_char_count =0;   //keep track of how many chars are in the user in buff
-    terminal_data_t data;
+    char input_buffer[MAX_RECEIVE_LENGTH];
+    terminal_data_t* data = (terminal_data_t*)input_buffer;
 
     char previous_sensors[10];
     int recent_sensors[NUM_RECENT_SENSORS];
@@ -131,19 +133,19 @@ void terminal_server(void) {
     term_move_cursor(TERM_INPUT_COORDS);
 
     FOREVER {
-        result = Receive(&sending_tid, (char*)&data, sizeof(terminal_data_t));
+        result = Receive(&sending_tid, input_buffer, MAX_RECEIVE_LENGTH);
         ASSERT(result >= 0);
 
         //Just send a null reply for now
         Reply(sending_tid, (char*)NULL, 0);
 
-        switch(data.command) {
+        switch(data->command) {
             case TERMINAL_UPDATE_CLOCK:
-                handle_update_terminal_clock(data.num1);
+                handle_update_terminal_clock(data->num1);
                 break;
             case TERMINAL_ECHO_INPUT:
-                if(data.byte1 != CARRIAGE_RETURN  ) {
-                    if(data.byte1 == BACKSPACE){
+                if(data->byte1 != CARRIAGE_RETURN  ) {
+                    if(data->byte1 == BACKSPACE){
                         if(buffer_char_count>0){
                             buffer_char_count--; 
                             printf(COM2,"%c %c",BACKSPACE,BACKSPACE);
@@ -151,20 +153,20 @@ void terminal_server(void) {
                         continue;
                     }else{
                         buffer_char_count++;
-                        putc(COM2, data.byte1);
+                        putc(COM2, data->byte1);
                     }
                 }else{
                     buffer_char_count=0;
                 }
                 break;
             case TERMINAL_TRAIN_COMMAND:
-                handle_train_command(data.num1,data.num2);
+                handle_train_command(data->num1,data->num2);
                 break;
             case TERMINAL_SWITCH_COMMAND:
-                handle_switch_command(data.num1,data.byte1);
+                handle_switch_command(data->num1,data->byte1);
                 break;
             case TERMINAL_REVERSE_COMMAND:
-                handle_reverse_command(data.num1);
+                handle_reverse_command(data->num1);
                 break;
             case TERMINAL_QUIT:
                 handle_quit_command();
@@ -176,35 +178,39 @@ void terminal_server(void) {
                 handle_stop_command();
                 break;
             case TERMINAL_UPDATE_SENSORS:
-                handle_update_sensors(map_initialized, sensor_chars, previous_sensors, data.sensors, recent_sensors, &recent_sensors_index);
+                handle_update_sensors(map_initialized, sensor_chars, previous_sensors, data->sensors, recent_sensors, &recent_sensors_index);
                 break;
             case TERMINAL_SET_TRACK:
                 map_initialized = true;
-                handle_set_track(sensor_chars, data.byte1);
+                handle_set_track(sensor_chars, data->byte1);
                 break;
             case TERMINAL_REGISTER_TRAIN:
-                handle_register_train(data.num1, data.num2);
+                handle_register_train(data->num1, data->num2);
                 break;
             case TERMINAL_INIT_TRAIN_SLOT:
-                handle_init_train_slot(data.num1, data.num2);
+                handle_init_train_slot(data->num1, data->num2);
                 break;
             case TERMINAL_UPDATE_TRAIN_SLOT_SPEED:
-                handle_update_train_slot_speed(data.num2, data.byte1);
+                handle_update_train_slot_speed(data->num2, data->byte1);
                 break;
             case TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION:
-                handle_update_train_slot_current_location(data.num2, data.byte1);
+                handle_update_train_slot_current_location(data->num2, data->byte1);
                 break;
             case TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION:
-                handle_update_train_slot_next_location(data.num2, data.byte1);
+                handle_update_train_slot_next_location(data->num2, data->byte1);
                 break;
             case TERMINAL_CLEAR_TRAIN_SLOT:
-                handle_clear_train_slot(data.num2);
+                handle_clear_train_slot(data->num2);
                 break;
             case TERMINAL_FIND_TRAIN:
                 handle_find_command();
                 break;
             case TERMINAL_COMMAND_ERROR:
-                status_message("Input Error");
+                //Null terminate it just in case
+                input_buffer[MAX_RECEIVE_LENGTH-1] = '\0';
+                //place our error message
+
+                status_message(((char*)input_buffer)+(sizeof(terminal_data_t)));
                 clear_user_input();
                 break;
             default:
@@ -428,8 +434,40 @@ void clear_user_input(void) {
 void handle_train_command(int32_t num,int32_t speed){
     status_message("CMD: 'TR' #: '%d' Speed: '%d'",num,speed);
 }
+void send_term_train_msg(int32_t num,int32_t speed) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_TRAIN_COMMAND;
+    terminal_data.num1 = num;
+    terminal_data.num2 = speed;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
 void handle_reverse_command(int32_t num){
     status_message("CMD: 'RV' #: '%d'",num);
+}
+void send_term_error_msg(char*message,...) {
+    char err_msg[128];
+
+    va_list va;
+    va_start(va,message);
+    vsprintf(err_msg,message,va);
+    va_end(va);
+    
+    int input_len = strlen(err_msg)+1; // include nullus terminus (roman for null terminator....)
+    int msg_len = sizeof(terminal_data_t) + input_len*sizeof(char);
+    char msg_to_send[msg_len];
+
+    terminal_data_t* terminal_data = (terminal_data_t*)msg_to_send;
+    terminal_data->command = TERMINAL_COMMAND_ERROR;
+    strcpy(msg_to_send + sizeof(terminal_data_t),err_msg);
+    Send(TERMINAL_SERVER_ID,msg_to_send,msg_len, NULL,0);
+
+    
+}
+void send_term_reverse_msg(uint32_t train_num) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_REVERSE_COMMAND;
+    terminal_data.num1 = train_num;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_switch_command(int32_t num,char state){
     status_message("CMD 'SW' #: '%d' State: '%c'",num,state);
@@ -450,6 +488,13 @@ void handle_switch_command(int32_t num,char state){
 
     term_restore_cursor();
     term_show_cursor();
+}
+void send_term_switch_msg(int32_t train_num,char state) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_SWITCH_COMMAND;
+    terminal_data.num1 = train_num;
+    terminal_data.num2 = state;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_quit_command(void){
     status_message("CMD QUIT");
@@ -518,8 +563,22 @@ void handle_set_track(sensor_map_chars_t* sensor_display_info, char track) {
     term_show_cursor();
 }
 
+void send_term_set_track_msg(char track) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_SET_TRACK;
+    terminal_data.byte1 = track;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
+
 void handle_register_train(int8_t train, int8_t slot) {
     status_message("TRAIN: %d REGISTERED TO SLOT: %d", train, slot);
+}
+void send_term_register_train_msg(int8_t train, int8_t slot) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_REGISTER_TRAIN;
+    terminal_data.num1 = train;
+    terminal_data.num2 = slot;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 
 void handle_init_train_slot(int8_t train, int8_t slot) {

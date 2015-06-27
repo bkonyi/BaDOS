@@ -75,6 +75,10 @@ void to_upper(char* a);
 //TODO: this common file needs to be split into kcommon, common, and ucommon since rand uses a syscall
 uint32_t rand(void);
 
+void sprintf( char* dest, char *format, ... );
+
+void svprintf(char* dest, char* fmt, va_list va);
+
 /**
  * Structure necessary to represent a queue of task descriptors.
  */

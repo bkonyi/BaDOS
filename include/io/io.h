@@ -33,4 +33,7 @@ void printf( int channel, char *format, ... );
 
 void vprintf(int channel, char* fmt, va_list va);
 
+void sprintf( char* dest, char *fmt, ... ) ;
+void vsprintf(char* dest, char* fmt, va_list va);
+
 #endif //__IO_H__

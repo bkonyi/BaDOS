@@ -26,6 +26,7 @@ void command_server(void) {
 				process_input(input_buffer);
 				//Start inserting chars from the beginning
 				input_iterator = input_buffer;
+				
 			} else if (byte == BACKSPACE) {
 				if(input_iterator>input_buffer) {
 					input_iterator--;
@@ -50,9 +51,7 @@ void process_input(char* input) {
 	int32_t argc = strtokenize(input,argv,10);
 	//if(argc < 0); TODO: INPUT TOO LARGE
 
-	terminal_data_t terminal_data;
-	//Assume error, prove otherwise
-	terminal_data.command = TERMINAL_COMMAND_ERROR;
+	
 	
 	//inst->type = NONE;
 	if(argc > 3) {
@@ -61,78 +60,72 @@ void process_input(char* input) {
 		target_train_number = strtoi(argv[1]);//TODO: add hex support
 		if(strcmp(argv[0],"tr")==0) {
 			target_train_value = strtoi(argv[2]);
-			terminal_data.command = TERMINAL_TRAIN_COMMAND;
 
 			if(((target_train_number) != -1) 
 					&& (target_train_value) != -1) {
-				terminal_data.num1 = target_train_number;
-				terminal_data.num2 = target_train_value;
 
+				send_term_train_msg(target_train_number,target_train_value) ;
 				result = train_set_speed(target_train_number, target_train_value);
 
 				if(result != 0) {
-					terminal_data.command = TERMINAL_COMMAND_ERROR;
+					send_term_error_msg("Error setting train speed");
 				}
 			} else {
+				send_term_error_msg("CMD 'TR': invalid args");
 				//term_set_status(t,"ERROR: TR Args invalid");
 			}
 		} else if(strcmp(argv[0],"sw")==0) {
 			if(target_train_number >= 0 ) { //TODO: max train number?
 				//Set type to SW
-				terminal_data.command = TERMINAL_SWITCH_COMMAND;
 				if((strcmp(argv[2],"C") == 0) || (strcmp(argv[2],"S") == 0) ||
 					(strcmp(argv[2], "c") == 0) || (strcmp(argv[2], "s") == 0)) {
-					terminal_data.num1 = target_train_number;
-					terminal_data.byte1= argv[2][0];
 
+					send_term_switch_msg( target_train_number,argv[2][0]);
 					result = tcs_switch_set_direction(target_train_number, argv[2][0]);
 
 					if(result != 0) {
-						terminal_data.command = TERMINAL_COMMAND_ERROR;
+						send_term_error_msg("Error setting switch through train controller");
 					}
 				} else {
-					//term_set_status(t,"ERROR: SW, INVALID switch value");
+					send_term_error_msg("CMD SW, INVALID switch value");
 				}
 			} else {
-				//term_set_status(t,"ERROR: SW, INVALID switch number");
+				send_term_error_msg("CMD SW, INVALID switch number");
 			}
 		} else if(strcmp(argv[0], "register") == 0) {
-			terminal_data.command = TERMINAL_REGISTER_TRAIN;
 			target_train_number = strtoi(argv[1]);
 			int8_t slot = strtoi(argv[2]);
 
-			terminal_data.num1 = target_train_number;
-			terminal_data.num2 = slot;
-
+			send_term_register_train_msg(target_train_number,slot);
 			result = register_train(target_train_number, slot);
 
 			if(result != 0) {
-				terminal_data.command = TERMINAL_COMMAND_ERROR;
+				send_term_error_msg("Couldn't register train over train controller");
 			}		
 		} else if(strcmp(argv[0], "sensor_stop") == 0) {
 			target_train_number = strtoi(argv[1]);
 			result = trigger_train_stop_on_sensor(target_train_number, sensor_to_id(argv[2]));
 
 			if(result != 0) {
-				terminal_data.command = TERMINAL_COMMAND_ERROR;
+				send_term_error_msg("Error telling train controller about stop on sensor");
 			}
 		} else {
-			//term_set_status(t,"ERROR: Invalid command");
+			send_term_error_msg("Invalid Command");
 		}
 	} else if(argc ==2) {
 		
 		if(strcmp(argv[0],"rv")==0) {
 			target_train_number = strtoi(argv[1]);
 			if(target_train_number>0) {
-				terminal_data.command = TERMINAL_REVERSE_COMMAND;
-				terminal_data.num1 = target_train_number;
+				send_term_reverse_msg(target_train_number);
 				result = train_reverse(target_train_number);
 
 				if(result != 0) {
-					terminal_data.command = TERMINAL_COMMAND_ERROR;
+					send_term_error_msg("Error telling train controller about reverse");
 				}
 			} else {
 				printf(COM2,"INVTR %d", target_train_number);
+				send_term_error_msg("");
 				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
 		} else if(strcmp(argv[0], "track") == 0) {
@@ -142,8 +135,7 @@ void process_input(char* input) {
 				ASSERT(0);
 				return;
 			} else {
-				terminal_data.command = TERMINAL_SET_TRACK;
-				terminal_data.byte1 = track;
+				send_term_set_track_msg(track);
 				if(track == 'A') {
 					tps_set_track(TRACKA);
 				} else if ( track == 'B' ){
@@ -152,7 +144,7 @@ void process_input(char* input) {
 				tcs_initialize_track_switches();
 			}
 		} else {
-			//term_set_status(t,"ERROR: Invalid command");
+			send_term_error_msg("Invalid command");
 		}
 	} else if( argc == 1) {
 		if(strcmp(argv[0],"q")==0){
@@ -163,10 +155,12 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "g") == 0) {
 			start_controller();
 			send_term_start_msg();
-		} else if(strcmp(argv[0], "find" == 0)) {
+		} else if(strcmp(argv[0], "find" )== 0) {
 			find_trains();
 			send_term_find_msg();
 		}
+	}else{
+		send_term_error_msg("Invalid command");
 	}
-	Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0); //TODO wrap this in terminal.h
+	
 }

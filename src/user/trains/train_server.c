@@ -103,7 +103,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
 
     KASSERT(next_sensor != NULL);
-
+ 
     group = next_sensor->num / 8;
     index = next_sensor->num - group * 8;
     
@@ -116,11 +116,9 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)next_sensor->name));
             update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)((get_next_sensor(next_sensor))->name)));
             
-
             if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                 //we have have hit our stop sensor
-                train_set_speed(train, 0);
-                
+                train_set_speed(train, 0);   
             }
             break;
         }
