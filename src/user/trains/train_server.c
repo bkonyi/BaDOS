@@ -106,7 +106,10 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
  
     group = next_sensor->num / 8;
     index = next_sensor->num - group * 8;
-    
+
+    //Get the timestamp from the sensor data
+    //uint32_t time = *((uint32_t*)(sensor_data+10));
+    //printf(COM2,"train_timestamp 0x%x\n",time );
     for(i = 0; i < 10; ++i) {
         if(group == i && (sensor_data[group] & (1 << (7-index))) != 0) {
             //we have now passed our next sensor

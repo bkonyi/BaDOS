@@ -5,7 +5,7 @@
 #include <queue.h>
 #include <trains/train_server.h>
 
-#define TPS_SIGNAL_MESSAGE_SIZE (sizeof(int8_t)*10)
+#define TPS_SENSOR_MESSAGE_SIZE (sizeof(int8_t)*10 + sizeof(uint32_t))
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
 
 #define NUM_SWITCHES_TO_STORE (32+4+4)
@@ -23,8 +23,8 @@ static bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t swit
 void track_position_server(void) {
 	//The two of these need to be of different sizes
 	//we also need to make sure we have enough allocated to hold them
-	ASSERT(TPS_SIGNAL_MESSAGE_SIZE != TPS_COVERSHEET_MESSAGE_SIZE 
-		&& MESSAGE_BUFFER_SIZE > TPS_SIGNAL_MESSAGE_SIZE
+	ASSERT(TPS_SENSOR_MESSAGE_SIZE != TPS_COVERSHEET_MESSAGE_SIZE 
+		&& MESSAGE_BUFFER_SIZE > TPS_SENSOR_MESSAGE_SIZE
 		&& MESSAGE_BUFFER_SIZE > TPS_COVERSHEET_MESSAGE_SIZE);
 	
 	int requester, size_received;
@@ -48,7 +48,7 @@ void track_position_server(void) {
 
 
 	FOREVER {
-		size_received = Receive(&requester,(char*)message,TPS_SIGNAL_MESSAGE_SIZE);
+		size_received = Receive(&requester,(char*)message,TPS_SENSOR_MESSAGE_SIZE);
 
 		//printf(COM2,"GOTTI 0x%x",((struct tps_cover_sheet_t*)message)->num1);
 		if(! (size_received == TPS_COVERSHEET_MESSAGE_SIZE 
@@ -59,7 +59,7 @@ void track_position_server(void) {
 		}
 
 		switch (size_received) {
-			case TPS_SIGNAL_MESSAGE_SIZE:
+			case TPS_SENSOR_MESSAGE_SIZE:
 				//make sure all trains get the sensor data
 				send_sensor_data_to_trains(&tpi_queue_filled,(int8_t*)message);
 				break;
@@ -135,7 +135,9 @@ track_node* tps_add_train(uint32_t train_num) {
 	return (track_node*)track_node_pointer;
 }
 void tps_send_sensor_data(int8_t* sensors) {
-	Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, sizeof(int8_t)*10, NULL, 0);
+	//Sensor data has a timestamp tacked on to the end of it so that we can have more 
+		//consistent time measurements between trains
+	Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, TPS_SENSOR_MESSAGE_SIZE, NULL, 0);
 }
 void tps_set_track(uint32_t track) {
 	//these are the only types of tracks
@@ -208,8 +210,8 @@ void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
 	sensor_update.command = TRAIN_SERVER_SENSOR_DATA;
 
 	//TODO make a macro for size of sensor request
-	memcpy(sensor_update.sensors, sensors, 10);
-
+	memcpy(sensor_update.sensors, sensors, TPS_SENSOR_MESSAGE_SIZE);
+	//bwprintf(COM2,"GEEESH 0x%x\r\n",*((uint32_t*)(sensors+10) ));
 	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
 		Send(iterator->server_tid, (char*)&sensor_update, sizeof(train_server_sensor_msg_t), NULL, 0);
 	}

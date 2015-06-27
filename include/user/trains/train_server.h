@@ -17,7 +17,7 @@ typedef struct train_server_msg_t {
 
 typedef struct train_server_sensor_msg_t {
 	train_server_cmd_t command;
-    char sensors[10];
+    char sensors[10 + sizeof(uint32_t)];
 } train_server_sensor_msg_t;
 
 /**
