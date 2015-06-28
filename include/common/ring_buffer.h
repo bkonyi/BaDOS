@@ -3,7 +3,12 @@
 
 #define IS_BUFFER_EMPTY(BUFFER) ((BUFFER).start == (BUFFER).end)
 #define IS_BUFFER_FULL(BUFFER) ((((BUFFER).end + 1) % (BUFFER).size) == (BUFFER).start)
-#define BUFFER_LENGTH(BUFFER) ((BUFFER).end - (BUFFER).start)
+#define BUFFER_LENGTH(BUFFER) {                                             \
+                if((BUFFER).end < (BUFFER).start) {                         \
+                    return ((BUFFER).end + (BUFFER).size) - (BUFFER).start; \
+                }                                                           \
+                return ((BUFFER).end - (BUFFER).start);                     \
+            } while(0)
 
 #define CREATE_RING_BUFFER_TYPE(NAME, TYPE, SIZE) \
     typedef struct {                \

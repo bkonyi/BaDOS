@@ -446,7 +446,7 @@ void handle_update_sensors(bool map_initialized, sensor_map_chars_t* sensor_char
     }
 
     //If the sensor hasn't changed, we have nothing to update
-    /*if(sensor_changed) {
+    if(sensor_changed) {
         int value;
         int index = (*recent_sensors_index - 1) % 10; //We increment whenever we push into the buffer, so just subtract 1
                                                       //To find the first element of the buffer
@@ -476,7 +476,7 @@ void handle_update_sensors(bool map_initialized, sensor_map_chars_t* sensor_char
             //Print the sensor label
             printf(COM2, "%c%d ", letter, number); //Extra space is to overwrite any two digit numbers previously there
         }
-    }*/
+    }
     term_restore_cursor();
     term_show_cursor();
 }

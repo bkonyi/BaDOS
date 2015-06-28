@@ -7,19 +7,17 @@
 
 void uart_transmit_notifier(uint32_t com) {
     int send_server_tid= -1;
-    uint32_t event=0, base=0;
-
+    uint32_t event=0;
+    
     //Set up our values so that we can properly contact the right UART1 and servers
     switch (com){
         case COM1:
-            base = UART1_BASE;
             event = UART1_TRANSMIT_EVENT;
             do {
                 send_server_tid = WhoIs(UART1_TRANSMIT_SERVER);
             } while(send_server_tid == -2);
             break;
         case COM2:
-            base = UART2_BASE;
             event = UART2_TRANSMIT_EVENT;
             do {
                 send_server_tid = WhoIs(UART2_TRANSMIT_SERVER);
@@ -30,22 +28,13 @@ void uart_transmit_notifier(uint32_t com) {
     }    
     
     int result;
-
     ASSERT(send_server_tid >= 0);
-
-    //volatile int32_t* UART1_EVENT_REGISTER = (int32_t*)(UART1_BASE + UART_INTR_OFFSET);
-    volatile int32_t* UART_DATA_REGISTER  = (int32_t*)(base + UART_DATA_OFFSET);
 
     FOREVER {
         result = AwaitEvent(event);
         ASSERT(result >= 0);
 
-        //Get the byte to send
-        char byte;
-        Send(send_server_tid, (char*)NULL, 0, &byte, sizeof(char));
-
-        //Put the byte in the UART register
-        *UART_DATA_REGISTER = byte;
+        Send(send_server_tid, (char*)NULL, 0, (char*)NULL, 0);
     }
 }
 

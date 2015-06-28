@@ -16,13 +16,29 @@
 CREATE_NON_POINTER_BUFFER_TYPE(uart_buffer_t, char, OUTPUT_BUFFER_SIZE);
 CREATE_NON_POINTER_BUFFER_TYPE(uart_tid_buffer_t,tid_t,MAX_NUMBER_OF_TASKS);
 
-void uart_transmit_server(char* name,uint32_t buffer_size) {
+void uart_transmit_server(char* name, uint32_t buffer_size, int32_t com) {
     int sending_tid;
     char message[TRANSMIT_BUFFER_SIZE];
     int result;
     int size;
     bool output_ready = false;
     int output_notifier = -1;
+
+    uint32_t base = 0;
+
+    //Set up our values so that we can properly contact the right UART1 and servers
+    switch (com){
+        case COM1:
+            base = UART1_BASE;
+            break;
+        case COM2:
+            base = UART2_BASE;
+            break;
+        default: 
+            ASSERT(0);
+    }    
+    
+    volatile int32_t* UART_DATA_REGISTER  = (int32_t*)(base + UART_DATA_OFFSET);
 
     uart_buffer_t output_buffer;
     RING_BUFFER_INIT(output_buffer, buffer_size);
@@ -36,8 +52,18 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
         if(result == 0) {
             //If there's a character on the queue, send it to the notifier
             if(!IS_BUFFER_EMPTY(output_buffer)) {
-                POP_FRONT(output_buffer, message[0]);
-                Reply(sending_tid, message, sizeof(char));
+                
+                int i;
+                for(i = 0; i < 8; ++i) {
+                    POP_FRONT(output_buffer, message[0]);
+                    *UART_DATA_REGISTER = message[0];   
+
+                    if(IS_BUFFER_EMPTY(output_buffer) || com != COM2) {
+                        break;
+                    } 
+                }
+                
+                Reply(sending_tid, (char*)NULL, 0);
             } else {
                 //Otherwise, we wait to reply until later
                 output_ready = true;
@@ -58,8 +84,17 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
 
             //If the UART is waiting on an output, send the byte now.
             if(output_ready) {
-                POP_FRONT(output_buffer, message[0]);
-                Reply(output_notifier, message, sizeof(char));
+                int i;
+                for(i = 0; i < 8; ++i) {
+                    POP_FRONT(output_buffer, message[0]);
+                    *UART_DATA_REGISTER = message[0];   
+
+                    if(IS_BUFFER_EMPTY(output_buffer) || com != COM2) {
+                        break;
+                    } 
+                }
+
+                Reply(output_notifier, (char*)NULL, 0);
                 output_ready = false;
             }
 
@@ -75,12 +110,12 @@ void uart_transmit_server(char* name,uint32_t buffer_size) {
 
 void uart1_transmit_server(void) {
     CreateName(UART1_TRANSMIT_NOTIFIER_PRIORITY, uart1_transmit_notifier, UART1_TRANSMIT_NOTIFIER);
-    uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
+    uart_transmit_server(UART1_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE, COM1); 
 }
 
 void uart2_transmit_server(void) {
     CreateName(UART2_TRANSMIT_NOTIFIER_PRIORITY, uart2_transmit_notifier, UART2_TRANSMIT_NOTIFIER);
-    uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE); 
+    uart_transmit_server(UART2_TRANSMIT_SERVER,OUTPUT_BUFFER_SIZE, COM2); 
 }
 
 void buffered_receive_server(char* name,uint32_t buffer_size) {
