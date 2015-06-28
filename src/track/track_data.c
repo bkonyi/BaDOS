@@ -409,7 +409,7 @@ void init_tracka(track_node *track) {
   track[49].edge[DIR_AHEAD].reverse = &track[66].edge[DIR_AHEAD];
   track[49].edge[DIR_AHEAD].src = &track[49];
   track[49].edge[DIR_AHEAD].dest = &track[67];
-  track[49].edge[DIR_AHEAD].dist = 200
+  track[49].edge[DIR_AHEAD].dist = 200;
   track[50].name = "D3";
   track[50].type = NODE_SENSOR;
   track[50].num = 50;

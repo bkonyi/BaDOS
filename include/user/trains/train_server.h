@@ -20,11 +20,21 @@ typedef struct train_server_sensor_msg_t {
     char sensors[SENSOR_MESSAGE_SIZE];
 } train_server_sensor_msg_t;
 
+typedef struct {
+    uint32_t average_velocity;
+    uint32_t average_velocity_count;
+} avg_velocity_t;
+
 typedef struct train_position_info_t {
 	uint32_t dist_from_last_sensor;
 	uint32_t ticks_at_last_sensor;
 	track_node* last_sensor;
-}train_position_info_t;
+    uint32_t next_sensor_estimated_time;
+    uint32_t dist_to_next_sensor;
+    uint32_t average_velocity;
+    avg_velocity_t average_velocities[80][80];
+} train_position_info_t;
+
 void train_position_info_init(train_position_info_t* tpi);
 /**
  * @brief A server that is used to act as the controller for a train.

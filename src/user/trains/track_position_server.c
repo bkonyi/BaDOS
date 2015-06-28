@@ -123,12 +123,6 @@ void track_position_server(void) {
 	}
 }
 
-void train_position_info_init(train_position_info_t* tpi) {
-	tpi->dist_from_last_sensor = 0;
-	tpi->ticks_at_last_sensor = 0;
-	tpi->last_sensor = NULL;
-}
-
 track_node* tps_add_train(uint32_t train_num) {
 	tps_cover_sheet_t tps_message;
 	uint32_t track_node_pointer;

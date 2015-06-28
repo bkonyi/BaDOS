@@ -45,6 +45,10 @@ void train_server(void) {
         ASSERT(0);
     }
 
+    tcs_switch_set_direction(8,'s');
+    tcs_switch_set_direction(7,'s');    
+    tcs_switch_set_direction(14, 's');
+
     train_number = ((train_server_msg_t*)message)->num1; 
     train_slot   = ((train_server_msg_t*)message)->num2;
     last_sensor_track_node = tps_add_train(train_number);
@@ -79,6 +83,24 @@ void train_server(void) {
 	}
 }
 
+
+void train_position_info_init(train_position_info_t* tpi) {
+    tpi->dist_from_last_sensor = 0;
+    tpi->ticks_at_last_sensor = 0;
+    tpi->last_sensor = NULL;
+    tpi->next_sensor_estimated_time = 0;
+    tpi->dist_to_next_sensor = 0;
+    tpi->average_velocity = 0;
+
+    int i, j;
+    for(i = 0; i < 80; ++i) {
+        for(j = 0; j < 80; ++j) {
+            tpi->average_velocities[i][j].average_velocity = 0;
+            tpi->average_velocities[i][j].average_velocity_count = 0;
+        }
+    }
+
+}
 
 void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
     train_server_msg_t msg;
@@ -120,12 +142,23 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             //Distance between the last sensor and the one we just hit
             distance = distance_between_track_nodes(*last_sensor_track_node,next_sensor);
             
+            int32_t velocity = (distance*100)/(*time -train_position_info->ticks_at_last_sensor);
+
+            uint32_t* average_velocity_count = &train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity_count; 
+            uint32_t* average_velocity = &train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity;
+
+            *average_velocity = ((train_position_info->average_velocity * (*average_velocity_count)) + velocity) / (*average_velocity_count + 1);
+            ++(*average_velocity_count);
 
 
             //Send our time in mm / s
-            send_term_update_velocity_msg(slot,(distance*100)/(*time -train_position_info->ticks_at_last_sensor));
+            send_term_update_velocity_msg(slot, velocity);
              //CUrrently sends the distance between teh last 2 sensors that we just passed by, in mm
             send_term_update_dist_msg(slot, distance );
+            int32_t time_difference = *time - train_position_info->next_sensor_estimated_time;
+
+            //Update the error for the train on screen.
+            send_term_update_err_msg(slot, (time_difference * ((int32_t)(*average_velocity))) / 100); //Converts to mm distance
 
             train_position_info->ticks_at_last_sensor = *time;
             //This may come in handy if we need error correction?
@@ -138,6 +171,15 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)next_sensor->name));
             update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)((get_next_sensor(next_sensor))->name)));
             
+
+            next_sensor = get_next_sensor(next_sensor);
+            train_position_info->dist_to_next_sensor = distance_between_track_nodes(*last_sensor_track_node, next_sensor);
+
+            train_position_info->average_velocity = train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity;
+
+            train_position_info->next_sensor_estimated_time = *time + (train_position_info->dist_to_next_sensor * 100) / train_position_info->average_velocity;
+            //send_term_error_msg("Expected arrival at next sensor: %d Dist: %d   Avg Velocity: %d Velocity: %d", train_position_info->next_sensor_estimated_time, train_position_info->dist_to_next_sensor, train_position_info->average_velocity, velocity);
+
             if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                 //we have have hit our stop sensor
                 train_set_speed(train, 0);   
@@ -145,6 +187,9 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             break;
         }
     }
+
+    int32_t time_to_expected_time = train_position_info->next_sensor_estimated_time - Time();
+    send_term_update_dist_msg(slot, (time_to_expected_time * train_position_info->average_velocity) / 100);
 }
 
 
