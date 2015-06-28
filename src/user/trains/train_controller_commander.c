@@ -228,6 +228,7 @@ void handle_initialize_track_switches(void) {
     int i;
     for( i = 0; i < 200; i++ ) {
         if(is_valid_switch_number(i)){
+           // Delay(10);
             handle_switch_set_direction(i,'C');
         }
         

@@ -241,7 +241,7 @@ void init_tracka(track_node *track) {
   track[28].edge[DIR_AHEAD].reverse = &track[118].edge[DIR_CURVED];
   track[28].edge[DIR_AHEAD].src = &track[28];
   track[28].edge[DIR_AHEAD].dest = &track[119];
-  track[28].edge[DIR_AHEAD].dist = 224;
+  track[28].edge[DIR_AHEAD].dist = 224;// Checked
   track[29].name = "B14";
   track[29].type = NODE_SENSOR;
   track[29].num = 29;
@@ -409,7 +409,7 @@ void init_tracka(track_node *track) {
   track[49].edge[DIR_AHEAD].reverse = &track[66].edge[DIR_AHEAD];
   track[49].edge[DIR_AHEAD].src = &track[49];
   track[49].edge[DIR_AHEAD].dest = &track[67];
-  track[49].edge[DIR_AHEAD].dist = 200;
+  track[49].edge[DIR_AHEAD].dist = 200
   track[50].name = "D3";
   track[50].type = NODE_SENSOR;
   track[50].num = 50;
@@ -449,7 +449,7 @@ void init_tracka(track_node *track) {
   track[54].edge[DIR_AHEAD].reverse = &track[96].edge[DIR_STRAIGHT];
   track[54].edge[DIR_AHEAD].src = &track[54];
   track[54].edge[DIR_AHEAD].dest = &track[97];
-  track[54].edge[DIR_AHEAD].dist = 290;
+  track[54].edge[DIR_AHEAD].dist = 295;
   track[55].name = "D8";
   track[55].type = NODE_SENSOR;
   track[55].num = 55;
@@ -513,7 +513,7 @@ void init_tracka(track_node *track) {
   track[62].edge[DIR_AHEAD].reverse = &track[29].edge[DIR_AHEAD];
   track[62].edge[DIR_AHEAD].src = &track[62];
   track[62].edge[DIR_AHEAD].dest = &track[28];
-  track[62].edge[DIR_AHEAD].dist = 202;
+  track[62].edge[DIR_AHEAD].dist = 199;//Checked
   track[63].name = "D16";
   track[63].type = NODE_SENSOR;
   track[63].num = 63;
@@ -601,7 +601,7 @@ void init_tracka(track_node *track) {
   track[73].edge[DIR_AHEAD].reverse = &track[77].edge[DIR_AHEAD];
   track[73].edge[DIR_AHEAD].src = &track[73];
   track[73].edge[DIR_AHEAD].dest = &track[76];
-  track[73].edge[DIR_AHEAD].dist = 375;
+  track[73].edge[DIR_AHEAD].dist = 375; //Checked
   track[74].name = "E11";
   track[74].type = NODE_SENSOR;
   track[74].num = 74;
@@ -625,7 +625,7 @@ void init_tracka(track_node *track) {
   track[76].edge[DIR_AHEAD].reverse = &track[113].edge[DIR_AHEAD];
   track[76].edge[DIR_AHEAD].src = &track[76];
   track[76].edge[DIR_AHEAD].dest = &track[112];
-  track[76].edge[DIR_AHEAD].dist = 62;
+  track[76].edge[DIR_AHEAD].dist = 60; //Checked
   track[77].name = "E14";
   track[77].type = NODE_SENSOR;
   track[77].num = 77;
@@ -797,11 +797,11 @@ void init_tracka(track_node *track) {
   track[94].edge[DIR_STRAIGHT].reverse = &track[57].edge[DIR_AHEAD];
   track[94].edge[DIR_STRAIGHT].src = &track[94];
   track[94].edge[DIR_STRAIGHT].dest = &track[56];
-  track[94].edge[DIR_STRAIGHT].dist = 291;
+  track[94].edge[DIR_STRAIGHT].dist = 300; //TODO this way
   track[94].edge[DIR_CURVED].reverse = &track[72].edge[DIR_AHEAD];
   track[94].edge[DIR_CURVED].src = &track[94];
   track[94].edge[DIR_CURVED].dest = &track[73];
-  track[94].edge[DIR_CURVED].dist = 215;
+  track[94].edge[DIR_CURVED].dist = 222; 
   track[95].name = "MR8";
   track[95].type = NODE_MERGE;
   track[95].num = 8;
@@ -829,7 +829,7 @@ void init_tracka(track_node *track) {
   track[97].edge[DIR_AHEAD].reverse = &track[95].edge[DIR_AHEAD];
   track[97].edge[DIR_AHEAD].src = &track[97];
   track[97].edge[DIR_AHEAD].dest = &track[94];
-  track[97].edge[DIR_AHEAD].dist = 193;
+  track[97].edge[DIR_AHEAD].dist = 187;
   track[98].name = "BR10";
   track[98].type = NODE_BRANCH;
   track[98].num = 10;
@@ -977,11 +977,11 @@ void init_tracka(track_node *track) {
   track[112].edge[DIR_STRAIGHT].reverse = &track[61].edge[DIR_AHEAD];
   track[112].edge[DIR_STRAIGHT].src = &track[112];
   track[112].edge[DIR_STRAIGHT].dest = &track[60];
-  track[112].edge[DIR_STRAIGHT].dist = 225;
+  track[112].edge[DIR_STRAIGHT].dist = 221; //checked , TODO this way
   track[112].edge[DIR_CURVED].reverse = &track[63].edge[DIR_AHEAD];
   track[112].edge[DIR_CURVED].src = &track[112];
   track[112].edge[DIR_CURVED].dest = &track[62];
-  track[112].edge[DIR_CURVED].dist = 230;
+  track[112].edge[DIR_CURVED].dist = 227; //Checked
   track[113].name = "MR17";
   track[113].type = NODE_MERGE;
   track[113].num = 17;
@@ -1049,7 +1049,7 @@ void init_tracka(track_node *track) {
   track[119].edge[DIR_AHEAD].reverse = &track[123].edge[DIR_AHEAD];
   track[119].edge[DIR_AHEAD].src = &track[119];
   track[119].edge[DIR_AHEAD].dest = &track[122];
-  track[119].edge[DIR_AHEAD].dist = 32;
+  track[119].edge[DIR_AHEAD].dist = 32; //Checked
   track[120].name = "BR155";
   track[120].type = NODE_BRANCH;
   track[120].num = 155;
@@ -1057,11 +1057,11 @@ void init_tracka(track_node *track) {
   track[120].edge[DIR_STRAIGHT].reverse = &track[126].edge[DIR_AHEAD];
   track[120].edge[DIR_STRAIGHT].src = &track[120];
   track[120].edge[DIR_STRAIGHT].dest = &track[127];
-  track[120].edge[DIR_STRAIGHT].dist = 247;
+  track[120].edge[DIR_STRAIGHT].dist = 247; //Checked
   track[120].edge[DIR_CURVED].reverse = &track[48].edge[DIR_AHEAD];
   track[120].edge[DIR_CURVED].src = &track[120];
   track[120].edge[DIR_CURVED].dest = &track[49];
-  track[120].edge[DIR_CURVED].dist = 227;
+  track[120].edge[DIR_CURVED].dist = 212; //Checked
   track[121].name = "MR155";
   track[121].type = NODE_MERGE;
   track[121].num = 155;
@@ -1077,11 +1077,11 @@ void init_tracka(track_node *track) {
   track[122].edge[DIR_STRAIGHT].reverse = &track[121].edge[DIR_AHEAD];
   track[122].edge[DIR_STRAIGHT].src = &track[122];
   track[122].edge[DIR_STRAIGHT].dest = &track[120];
-  track[122].edge[DIR_STRAIGHT].dist = 24;
+  track[122].edge[DIR_STRAIGHT].dist = 25; //Checked
   track[122].edge[DIR_CURVED].reverse = &track[64].edge[DIR_AHEAD];
   track[122].edge[DIR_CURVED].src = &track[122];
   track[122].edge[DIR_CURVED].dest = &track[65];
-  track[122].edge[DIR_CURVED].dist = 222;
+  track[122].edge[DIR_CURVED].dist = 222;//Checked TODO this way
   track[123].name = "MR156";
   track[123].type = NODE_MERGE;
   track[123].num = 156;
@@ -1553,7 +1553,7 @@ void init_trackb(track_node *track) {
   track[44].edge[DIR_AHEAD].reverse = &track[71].edge[DIR_AHEAD];
   track[44].edge[DIR_AHEAD].src = &track[44];
   track[44].edge[DIR_AHEAD].dest = &track[70];
-  track[44].edge[DIR_AHEAD].dist = 785;
+  track[44].edge[DIR_AHEAD].dist = 875;
   track[45].name = "C14";
   track[45].type = NODE_SENSOR;
   track[45].num = 45;
@@ -1761,7 +1761,7 @@ void init_trackb(track_node *track) {
   track[70].edge[DIR_AHEAD].reverse = &track[55].edge[DIR_AHEAD];
   track[70].edge[DIR_AHEAD].src = &track[70];
   track[70].edge[DIR_AHEAD].dest = &track[54];
-  track[70].edge[DIR_AHEAD].dist = 375;
+  track[70].edge[DIR_AHEAD].dist = 385;
   track[71].name = "E8";
   track[71].type = NODE_SENSOR;
   track[71].num = 71;

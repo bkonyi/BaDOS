@@ -1,5 +1,8 @@
 #include <track_node.h>
 #include <io.h>
+#include <bwio.h>
+#include <terminal/terminal.h>
+
 track_node* get_next_track_node(track_node* node) {
 
 	//We can add conditions for getting the next node here
@@ -19,9 +22,12 @@ void set_track_node_state(track_node* node, uint32_t state) {
 	ASSERT(node != NULL);
 	//The only nodes where the state matters are BRANCH
 		//Only ever modify those
+	//send_term_error_msg("Fucked addr 0x%x",(uint32_t)node);
+	//printf(COM2,"\r\nNODE -x%x REV -x%x\r\n",(uint32_t)node,(uint32_t)node->reverse );
 	if(node->type == NODE_BRANCH) {
 		node->state = state;
 	} else if(node->type == NODE_MERGE) {
+		//printf(COM2,"\r\nGOTTINODE -x%x REV -x%x\r\n",(uint32_t)node,(uint32_t)node->reverse );
 		node->reverse->state = state;
 	}
 	
