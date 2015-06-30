@@ -92,7 +92,7 @@ void process_input(char* input) {
 			} else {
 				send_term_error_msg("CMD SW, INVALID switch number");
 			}
-		} else if(strcmp(argv[0], "register") == 0) {
+		} else if(strcmp(argv[0], "register") == 0 || strcmp(argv[0], "reg") == 0) {
 			target_train_number = strtoi(argv[1]);
 			int8_t slot = strtoi(argv[2]);
 
