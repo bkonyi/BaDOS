@@ -15,22 +15,16 @@ bool is_valid_switch_number(uint32_t sw_num) {
             ||(0x99 <= sw_num && sw_num <=0x9c)
             ||(146 <= sw_num && sw_num <=148);
 }
-void set_track_node_state(track_node* node, uint32_t state) {
+void set_track_node_state(volatile track_node* node, uint32_t state) {
 	ASSERT(state == DIR_AHEAD 
 		|| state == DIR_STRAIGHT 
 		|| state ==  DIR_CURVED);
 	ASSERT(node != NULL);
 	//The only nodes where the state matters are BRANCH
 		//Only ever modify those
-	//send_term_error_msg("Fucked addr 0x%x",(uint32_t)node);
-	//printf(COM2,"\r\nNODE -x%x REV -x%x\r\n",(uint32_t)node,(uint32_t)node->reverse );
 	if(node->type == NODE_BRANCH) {
 		node->state = state;
-	} else if(node->type == NODE_MERGE) {
-		//printf(COM2,"\r\nGOTTINODE -x%x REV -x%x\r\n",(uint32_t)node,(uint32_t)node->reverse );
-		node->reverse->state = state;
 	}
-	
 }
 uint32_t get_track_node_length(track_node* node) {
 	if(node == NULL){

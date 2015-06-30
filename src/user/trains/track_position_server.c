@@ -12,14 +12,14 @@
 #define NUM_MESSAGE_BUFFER_ITEMS 5
 #define MESSAGE_BUFFER_SIZE (sizeof(uint32_t)*NUM_MESSAGE_BUFFER_ITEMS)  
 #define MAX_NUM_TRAINS 10
-static void fill_track_branch_data(track_node* track_nodes, track_node** sensor_track_nodes);
+static void fill_track_branch_data(track_node* track_nodes, track_node* sensor_track_nodes[]);
 static void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, tps_tpi_queue_t* tpi_queue_filled);
 
 static track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number);
 static void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors); 
-static void notify_trains_switch_changed(tps_tpi_queue_t* train_queue);
+//static void notify_trains_switch_changed(tps_tpi_queue_t* train_queue);
 static uint32_t switch_num_to_index(uint32_t switch_num);
-static bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state);
+static bool track_nodes_set_switch(track_node* track_branch_nodes[],uint32_t switch_number,uint32_t state);
 void track_position_server(void) {
 	//The two of these need to be of different sizes
 	//we also need to make sure we have enough allocated to hold them
@@ -32,7 +32,7 @@ void track_position_server(void) {
 
 	//Set up our pointers so we can be sneaky
 	//int8_t* signal_message = (int8_t*)message;
-	tps_cover_sheet_t* tps_message = (	tps_cover_sheet_t*)message;
+	tps_cover_sheet_t* tps_message = (tps_cover_sheet_t*)message;
 	train_information_t* tpip;
 	uint32_t state = 0;
 	char character;
@@ -106,8 +106,8 @@ void track_position_server(void) {
 
 						//If that switch exists then change it and notify the trains that the
 							//track has changed
-						if(track_nodes_set_switch(track_branch_nodes,tps_message->num1,state)){
-							notify_trains_switch_changed(&tpi_queue_filled);
+						if(track_nodes_set_switch(track_branch_nodes,tps_message->num1,state) == true){
+							//notify_trains_switch_changed(&tpi_queue_filled);
 						}
 						
 						break;
@@ -155,8 +155,9 @@ void tps_set_switch(uint32_t sw, char state) {
 	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_message),NULL,0);
 }
 
-void fill_track_branch_data(track_node* track_nodes, track_node** track_branch_nodes) {
-	int i,branch_index;
+void fill_track_branch_data(track_node* track_nodes, track_node* track_branch_nodes[]) {
+	int i;
+	uint32_t branch_index;
 	for(i = 0; i < NUM_SWITCHES_TO_STORE; i++) {
 		track_branch_nodes[i] = NULL;
 	}
@@ -167,9 +168,11 @@ void fill_track_branch_data(track_node* track_nodes, track_node** track_branch_n
 			branch_index = track_nodes[i].num;
 			//Make sure to complain if we ever have any switches that are in a range that we haven't handled
 			branch_index = switch_num_to_index(branch_index);
+			ASSERT(branch_index < NUM_SWITCHES_TO_STORE);
 			track_branch_nodes[branch_index] = track_nodes+i;
 		}
 	}
+	
 }
 
 void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, tps_tpi_queue_t* tpi_queue_filled) {
@@ -192,10 +195,20 @@ track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 }
 
 //Returns whether or not that switch exists on this track
-bool track_nodes_set_switch(track_node** track_branch_nodes,uint32_t switch_number,uint32_t state) {
-	track_node* node = track_branch_nodes[switch_num_to_index(switch_number)];
+bool track_nodes_set_switch(track_node* track_branch_nodes[],uint32_t switch_number,uint32_t state) {
+	uint32_t node_index = switch_num_to_index(switch_number);
+
+	//This might fix our problem with the track freezing up
+	if(!(node_index < NUM_SWITCHES_TO_STORE)){
+		//bwprintf(COM2,"GOOTOTTTOTOTOTOTO %d \r\n",node_index);
+		return false;
+	} 
+
+	volatile track_node* node = track_branch_nodes[node_index];
+	//bwprintf(COM2,"INDY %d VAIL 0x%x\r\n",node_index,node );
 	if(node != NULL) {
 		//printf(COM2,"Setting branch %s to %d\r\n",node->name,(char)state );
+		
 		set_track_node_state(node, state);
 		return true;
 	}
