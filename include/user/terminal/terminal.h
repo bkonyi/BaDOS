@@ -126,5 +126,4 @@ void send_term_initialize_track_switches(void);
 void send_term_update_velocity_msg (uint32_t slot, uint32_t v);
 void send_term_update_dist_msg (uint32_t slot, int32_t dist);
 void send_term_update_err_msg(uint32_t slot, int32_t dist);
-void send_term_update_err_msg(uint32_t slot, int32_t dist);
 #endif //__TERMINAL_H__

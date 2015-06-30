@@ -4,6 +4,7 @@
 #include <servers.h>
 #include <queue.h>
 #include <trains/train_server.h>
+#include <terminal/terminal.h>
 
 #define TPS_SENSOR_MESSAGE_SIZE SENSOR_MESSAGE_SIZE
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
@@ -20,6 +21,7 @@ static void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sen
 //static void notify_trains_switch_changed(tps_tpi_queue_t* train_queue);
 static uint32_t switch_num_to_index(uint32_t switch_num);
 static bool track_nodes_set_switch(track_node* track_branch_nodes[],uint32_t switch_number,uint32_t state);
+
 void track_position_server(void) {
 	//The two of these need to be of different sizes
 	//we also need to make sure we have enough allocated to hold them
@@ -58,6 +60,8 @@ void track_position_server(void) {
 			Reply(requester,NULL,0);
 		}
 
+		track_node* literal_addr;
+
 		switch (size_received) {
 			case TPS_SENSOR_MESSAGE_SIZE:
 				//make sure all trains get the sensor data
@@ -86,10 +90,15 @@ void track_position_server(void) {
 						QUEUE_PUSH_BACK(tpi_queue_filled,tpip);
 						tpip->train_num = tps_message->num1;
 						tpip->server_tid = requester;
-
+						Reply(requester, (char*)NULL, 0);
+						break;
+					case TPS_SET_TRAIN_SENSOR:
 						//We want to send back their starting position so they can navigate from there.
-						uint32_t literal_addr = (uint32_t)track_get_sensor(track_nodes,tps_message->num2);
-						Reply(requester,(char*)&literal_addr,sizeof(uint32_t));
+						literal_addr = track_get_sensor(track_nodes,tps_message->num2);
+							//send_term_error_msg("track Type: %d Num: %d Name: %s", ((track_node*)literal_addr)->type, ((track_node*)literal_addr)->num, ((track_node*)literal_addr)->name);
+			//ASSERT(0);
+						ASSERT(literal_addr != NULL);
+						Reply(requester,(char*)&literal_addr, sizeof(track_node*));
 						break;
 					case TPS_SWITCH_SET:
 						//num1 = switch number
@@ -123,22 +132,36 @@ void track_position_server(void) {
 	}
 }
 
-track_node* tps_add_train(uint32_t train_num) {
+void tps_add_train(uint32_t train_num) {
 	tps_cover_sheet_t tps_message;
-	uint32_t track_node_pointer;
 
 	tps_message.command = TPS_ADD_TRAIN;
 	tps_message.num1 = train_num;
-	tps_message.num2 = 0 ; // TODO: FIND GOES HERE
-	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_cover_sheet_t),(char*)&track_node_pointer,sizeof(uint32_t));
-
-	return (track_node*)track_node_pointer;
+	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_cover_sheet_t), (char*)NULL, 0);
 }
+
+track_node* tps_set_train_sensor(uint32_t train_num, uint32_t sensor) {
+	tps_cover_sheet_t tps_message;
+	track_node* track_node_pointer;
+
+	tps_message.command = TPS_SET_TRAIN_SENSOR;
+	tps_message.num1 = train_num;
+	tps_message.num2 = sensor;
+	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_cover_sheet_t),(char*)&track_node_pointer,sizeof(track_node*));
+	
+	ASSERT(track_node_pointer != NULL);
+
+	//send_term_error_msg("track Type: %d Num: %d Name: %s", track_node_pointer->type, track_node_pointer->num, track_node_pointer->name);
+
+	return track_node_pointer;
+}
+
 void tps_send_sensor_data(int8_t* sensors) {
 	//Sensor data has a timestamp tacked on to the end of it so that we can have more 
 		//consistent time measurements between trains
 	Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, TPS_SENSOR_MESSAGE_SIZE, NULL, 0);
 }
+
 void tps_set_track(uint32_t track) {
 	//these are the only types of tracks
 	ASSERT(track == TRACKA || track == TRACKB);
@@ -147,6 +170,7 @@ void tps_set_track(uint32_t track) {
 	tps_message.num1 = track;
 	Send(TRAIN_POSITION_SERVER_ID,(char*)&tps_message, sizeof(tps_message),NULL,0);
 }
+
 void tps_set_switch(uint32_t sw, char state) {
 	tps_cover_sheet_t tps_message;
 	tps_message.command = TPS_SWITCH_SET;
@@ -186,11 +210,12 @@ void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, 
 
 track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 	int i;
-	for(i = 0; i < MAX_NUM_TRAINS; i++) {
+	for(i = 0; i < TRACK_MAX; i++) {
 		if(track_info[i].type == NODE_SENSOR && track_info[i].num == sensor_number) {
 			return track_info+i;
 		}
 	}
+	ASSERT(0);
 	return NULL;
 }
 

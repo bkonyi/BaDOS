@@ -8,10 +8,11 @@
 #define TRACKB 	  0x41
 
 typedef enum tps_command_t {
-	TPS_ADD_TRAIN 	    = 1,
-	TPS_REMOVE_TRAIN    = 2,
-	TPS_SET_TRACK		= 3,
-	TPS_SWITCH_SET		= 4
+	TPS_ADD_TRAIN 	     = 1,
+	TPS_REMOVE_TRAIN     = 2,
+	TPS_SET_TRACK		 = 3,
+	TPS_SWITCH_SET		 = 4,
+	TPS_SET_TRAIN_SENSOR = 5
 } tps_command_t;
 
 typedef struct train_information_t {
@@ -43,7 +44,8 @@ void track_position_server(void);
  * @param track should only ever be the TRACKA or TRACKB macro
  */
 void tps_set_track(uint32_t track);
-track_node* tps_add_train(uint32_t train_num) ;
+void tps_add_train(uint32_t train_num);
+track_node* tps_set_train_sensor(uint32_t train_num, uint32_t sensor);
 void tps_send_sensor_data(int8_t* sensors);
 void tps_set_switch(uint32_t sw, char state);
 #endif //_TRACK_POSITION_SERVER_H_

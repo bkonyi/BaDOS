@@ -331,7 +331,7 @@ void handle_update_train_slot_distance(int8_t slot, uint32_t dist) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
     //We expect the distance in mm
-    printf(COM2, "          ", (int32_t)dist/10,(int32_t)dist%10);
+    printf(COM2, "          ");
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
 
     int32_t decimal = dist % 10;

@@ -429,7 +429,7 @@ void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGI
 
     for(i = 0; i < MAX_REGISTERED_TRAINS; ++i) {
         if(registered_trains[i] != INVALID_SLOT) {
-            //TODO actually start find process for each registered train
+            train_find_initial_position(trains[registered_trains[i]].server_tid);
         }
     }
 }
