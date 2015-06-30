@@ -63,8 +63,8 @@ static void handle_set_track(sensor_map_chars_t* sensor_display_info, char track
 static void handle_register_train(int8_t train, int8_t slot);
 static void handle_init_train_slot(int8_t train, int8_t slot);
 static void handle_update_train_slot_speed(int8_t slot, int8_t speed);
-static void handle_update_train_slot_current_location(int8_t slot, int8_t sensor_position);
-static void handle_update_train_slot_next_location(int8_t slot, int8_t sensor_position);
+static void handle_update_train_slot_current_location(int8_t slot, int16_t sensor_position);
+static void handle_update_train_slot_next_location(int8_t slot, int16_t sensor_position);
 static void handle_clear_train_slot(int8_t slot);
 static void handle_update_train_slot_velocity(int8_t slot, uint32_t v) ;
 static void clear_user_input(void);
@@ -202,10 +202,10 @@ void terminal_server(void) {
                 handle_update_train_slot_speed(data->num2, data->byte1);
                 break;
             case TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION:
-                handle_update_train_slot_current_location(data->num2, data->byte1);
+                handle_update_train_slot_current_location(data->num2, data->num1);
                 break;
             case TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION:
-                handle_update_train_slot_next_location(data->num2, data->byte1);
+                handle_update_train_slot_next_location(data->num2, data->num1);
                 break;
             case TERMINAL_CLEAR_TRAIN_SLOT:
                 handle_clear_train_slot(data->num2);
@@ -289,22 +289,20 @@ void update_terminal_train_slot_speed(int8_t train, int8_t slot, int8_t speed) {
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
 
-void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int8_t sensor_location) {
+void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int16_t sensor_location) {
     terminal_data_t request;
     request.command = TERMINAL_UPDATE_TRAIN_SLOT_CURRENT_LOCATION;
-    request.num1 = train;
+    request.num1 = sensor_location;
     request.num2 = slot;
-    request.byte1 = sensor_location;
 
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
 
-void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int8_t sensor_location) {
+void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int16_t sensor_location) {
     terminal_data_t request;
     request.command = TERMINAL_UPDATE_TRAIN_SLOT_NEXT_LOCATION;
-    request.num1 = train;
+    request.num1 = sensor_location;
     request.num2 = slot;
-    request.byte1 = sensor_location;
 
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
@@ -702,23 +700,31 @@ void handle_update_train_slot_speed(int8_t slot, int8_t speed) {
 }
 
 
-void handle_update_train_slot_current_location(int8_t slot, int8_t sensor_position) {
+void handle_update_train_slot_current_location(int8_t slot, int16_t sensor_position) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
-    char sensor_letter = sensor_id_to_letter(sensor_position);
-    int sensor_number = sensor_id_to_number(sensor_position);
+    if(sensor_position != -1) {
+        char sensor_letter = sensor_id_to_letter(sensor_position);
+        int sensor_number = sensor_id_to_number(sensor_position);
 
-    printf(COM2, "%c%d ", sensor_letter, sensor_number);
+        printf(COM2, "%c%d ", sensor_letter, sensor_number);
+    } else {
+        printf(COM2, "--");
+    }
     term_restore_cursor();
 }
 
-void handle_update_train_slot_next_location(int8_t slot, int8_t sensor_position) {
+void handle_update_train_slot_next_location(int8_t slot, int16_t sensor_position) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_NEXT_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
-    char sensor_letter = sensor_id_to_letter(sensor_position);
-    int sensor_number = sensor_id_to_number(sensor_position);
+    if(sensor_position != -1) {
+        char sensor_letter = sensor_id_to_letter(sensor_position);
+        int sensor_number = sensor_id_to_number(sensor_position);
 
-    printf(COM2, "%c%d ", sensor_letter, sensor_number);
+        printf(COM2, "%c%d ", sensor_letter, sensor_number);
+    } else {
+        printf(COM2, "--");
+    }
     term_restore_cursor();
 }
 

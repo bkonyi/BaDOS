@@ -91,7 +91,7 @@ void update_terminal_train_slot_speed(int8_t train, int8_t slot, int8_t speed);
  * @param slot [description]
  * @param sensor_location [description]
  */
-void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int8_t sensor_location);
+void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int16_t sensor_location);
 
 /**
  * @brief [brief description]
@@ -101,7 +101,7 @@ void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int8
  * @param slot [description]
  * @param sensor_location [description]
  */
-void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int8_t sensor_location);
+void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int16_t sensor_location);
 
 /**
  * @brief Clears a train information slot on screen.

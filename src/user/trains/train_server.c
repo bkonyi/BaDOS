@@ -96,12 +96,11 @@ void train_server(void) {
                                 last_sensor_track_node = tps_set_train_sensor(train_number, sensor);
                                 ASSERT(last_sensor_track_node != NULL);
                                 //send_term_error_msg("blah");
-                                //send_term_error_msg("Found train %d at Sensor: %s!", train_number, last_sensor_track_node->name);
+                                send_term_error_msg("Found train %d at Sensor: %s!", train_number, last_sensor_track_node->name);
                                 update_terminal_train_slot_current_location(train_number, train_slot, sensor_to_id((char*)last_sensor_track_node->name));
 
-                                //TODO:
-                                //THIS IS A LINE THE BREAKS AFTER THE SENSOR IS HIT
-                                //update_terminal_train_slot_next_location(train_number, train_slot, sensor_to_id((char*)((get_next_sensor(last_sensor_track_node))->name)));
+                                track_node* next_sensor = get_next_sensor(last_sensor_track_node);
+                                update_terminal_train_slot_next_location(train_number, train_slot, (next_sensor == NULL) ? -1 : sensor_to_id((char*)(next_sensor->name)));
                                 
                                 finding_initial_position = false;
                                 break;
@@ -184,7 +183,9 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
         next_sensor = get_next_sensor(*last_sensor_track_node);
 
 
-        KASSERT(next_sensor != NULL);
+        if(next_sensor == NULL) {
+            return;
+        }
      
         group = next_sensor->num / 8;
         index = next_sensor->num - group * 8;
@@ -223,23 +224,27 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
                 //Set our most recent sensor to the sensor we just hit.
                 *last_sensor_track_node = next_sensor;
+                next_sensor = get_next_sensor(next_sensor);
 
                 //Update the terminal display
-                update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)next_sensor->name));
-                update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)((get_next_sensor(next_sensor))->name)));
-                
+                update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)(*last_sensor_track_node)->name));
 
-                next_sensor = get_next_sensor(next_sensor);
-                train_position_info->dist_to_next_sensor = distance_between_track_nodes(*last_sensor_track_node, next_sensor);
+                if(next_sensor != NULL) {
+                    update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)((get_next_sensor(next_sensor))->name)));
 
-                train_position_info->average_velocity = train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity;
+                    train_position_info->dist_to_next_sensor = distance_between_track_nodes(*last_sensor_track_node, next_sensor);
 
-                train_position_info->next_sensor_estimated_time = *time + (train_position_info->dist_to_next_sensor * 100) / train_position_info->average_velocity;
-                //send_term_error_msg("Expected arrival at next sensor: %d Dist: %d   Avg Velocity: %d Velocity: %d", train_position_info->next_sensor_estimated_time, train_position_info->dist_to_next_sensor, train_position_info->average_velocity, velocity);
+                    train_position_info->average_velocity = train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity;
 
-                if((sensor_data[i] & stop_sensors[i]) != 0 ) {
-                    //we have have hit our stop sensor
-                    train_set_speed(train, 0);   
+                    train_position_info->next_sensor_estimated_time = *time + (train_position_info->dist_to_next_sensor * 100) / train_position_info->average_velocity;
+                    //send_term_error_msg("Expected arrival at next sensor: %d Dist: %d   Avg Velocity: %d Velocity: %d", train_position_info->next_sensor_estimated_time, train_position_info->dist_to_next_sensor, train_position_info->average_velocity, velocity);
+
+                    if((sensor_data[i] & stop_sensors[i]) != 0 ) {
+                        //we have have hit our stop sensor
+                        train_set_speed(train, 0);   
+                    }
+                } else { 
+                    update_terminal_train_slot_next_location(train, slot, -1);
                 }
                 break;
             }
