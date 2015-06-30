@@ -74,7 +74,7 @@ static void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]);
 static void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index,bool state);
 static void handle_find_command(void);
 static void handle_terminal_send_2_ints(uint32_t command, uint32_t num1, uint32_t num2);
-static void handle_update_train_slot_distance(int8_t slot, uint32_t dist);
+static void handle_update_train_slot_distance(int8_t slot, int32_t dist);
 static void handle_update_train_slot_error(int8_t slot, int32_t err);
 
 void handle_initialize_track_switches(void);
@@ -325,7 +325,7 @@ void send_term_update_err_msg(uint32_t slot, int32_t dist) {
     handle_terminal_send_2_ints(TERMINAL_UPDATE_TRAIN_ERROR, slot, dist);
 }
 
-void handle_update_train_slot_distance(int8_t slot, uint32_t dist) {
+void handle_update_train_slot_distance(int8_t slot, int32_t dist) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
     //We expect the distance in mm
@@ -333,13 +333,14 @@ void handle_update_train_slot_distance(int8_t slot, uint32_t dist) {
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
 
     int32_t decimal = dist % 10;
+    int32_t distance = dist / 10;
 
     if(decimal < 0) {
         decimal *= -1;
     }
 
     //We expect the distance in mm
-    printf(COM2, "%d.%d", (int32_t)dist / 10, (int32_t)decimal % 10);
+    printf(COM2, "%d.%d", distance, decimal);
     term_restore_cursor();
 }
 
