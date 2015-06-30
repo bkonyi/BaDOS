@@ -161,6 +161,7 @@ void fill_track_branch_data(track_node* track_nodes, track_node* track_branch_no
 	for(i = 0; i < NUM_SWITCHES_TO_STORE; i++) {
 		track_branch_nodes[i] = NULL;
 	}
+
 	for(i = 0; i < TRACK_MAX; i++) {
 		track_nodes[i].state = DIR_STRAIGHT;
 		if(track_nodes[i].type == NODE_BRANCH) {
@@ -198,17 +199,13 @@ track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number) {
 bool track_nodes_set_switch(track_node* track_branch_nodes[],uint32_t switch_number,uint32_t state) {
 	uint32_t node_index = switch_num_to_index(switch_number);
 
-	//This might fix our problem with the track freezing up
+	//This is what we needed to make sure that the track doesn't freeze up on initialization
 	if(!(node_index < NUM_SWITCHES_TO_STORE)){
-		//bwprintf(COM2,"GOOTOTTTOTOTOTOTO %d \r\n",node_index);
 		return false;
 	} 
 
 	volatile track_node* node = track_branch_nodes[node_index];
-	//bwprintf(COM2,"INDY %d VAIL 0x%x\r\n",node_index,node );
 	if(node != NULL) {
-		//printf(COM2,"Setting branch %s to %d\r\n",node->name,(char)state );
-		
 		set_track_node_state(node, state);
 		return true;
 	}
