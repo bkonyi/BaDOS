@@ -76,6 +76,7 @@ track_node* get_next_sensor_switch_broken( track_node* node) {
 	if(node == NULL) return NULL;
 
 	int state = node->state;
+	bool first_branch = true;
 
 	for(iterator_node = node->edge[state].dest ;iterator_node != NULL ;
 		iterator_node = iterator_node->edge[state].dest) {
@@ -88,8 +89,9 @@ track_node* get_next_sensor_switch_broken( track_node* node) {
 
 		state = iterator_node->state;
 
-		if(iterator_node->type == NODE_BRANCH) {
+		if(iterator_node->type == NODE_BRANCH && first_branch) {
 			state = (state == DIR_CURVED) ? DIR_AHEAD : DIR_CURVED;
+			first_branch = false;
 		}
 	}
 	return NULL;

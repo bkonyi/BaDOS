@@ -74,7 +74,7 @@ void train_server(void) {
                         memcpy(finding_initial_sensor_state, ((train_server_sensor_msg_t*)message)->sensors, sizeof(int8_t) * 10);
                         initial_sensor_reading_received = true;
                     } else {
-
+                        //Find the train.
                         int8_t* sensors = ((train_server_sensor_msg_t*)message)->sensors;
                         int i;
                         for(i = 0; i < 10; ++i) {
@@ -108,7 +108,8 @@ void train_server(void) {
                                     train_position_info.sensor_error_next_sensor = get_next_sensor(train_position_info.next_sensor);
                                     train_position_info.switch_error_next_sensor = get_next_sensor_switch_broken(last_sensor_track_node);
 
-                                    send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info.sensor_error_next_sensor->name, train_position_info.switch_error_next_sensor->name);
+                                    //NOTE: if you put this back, make sure the sensors aren't null!
+                                    //send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info.sensor_error_next_sensor->name, train_position_info.switch_error_next_sensor->name);
                                 } else {
                                     train_position_info.sensor_error_next_sensor = NULL;
                                     train_position_info.switch_error_next_sensor = NULL;
@@ -265,15 +266,15 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
                 //Set our most recent sensor to the sensor we just hit.
                 *last_sensor_track_node = next_sensor;
-                next_sensor = get_next_sensor(next_sensor);
+                train_position_info->next_sensor = get_next_sensor(next_sensor);
 
                 //Update the terminal display
                 update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)(*last_sensor_track_node)->name));
 
-                if(next_sensor != NULL) {
-                    update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(next_sensor->name)));
+                if(train_position_info->next_sensor != NULL) {
+                    update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(train_position_info->next_sensor->name)));
 
-                    train_position_info->dist_to_next_sensor = distance_between_track_nodes(*last_sensor_track_node, next_sensor);
+                    train_position_info->dist_to_next_sensor = distance_between_track_nodes(*last_sensor_track_node, train_position_info->next_sensor);
 
                     train_position_info->average_velocity = train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity;
 
@@ -284,6 +285,8 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                     train_position_info->sensor_error_next_sensor = get_next_sensor(train_position_info->next_sensor);
                     train_position_info->switch_error_next_sensor = get_next_sensor_switch_broken(*last_sensor_track_node);
 
+                    //NOTE: if you put this back, make sure the sensors aren't null!
+                    //send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info->sensor_error_next_sensor->name, train_position_info->switch_error_next_sensor->name);
                 } else { 
                     train_position_info->sensor_error_next_sensor = NULL;
                     train_position_info->switch_error_next_sensor = NULL;

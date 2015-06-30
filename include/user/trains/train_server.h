@@ -7,7 +7,8 @@ typedef enum train_server_cmd_t {
 	TRAIN_SERVER_SENSOR_DATA 			= 2,
 	TRAIN_SERVER_SWITCH_CHANGED			= 3,
     TRAIN_SERVER_REGISTER_STOP_SENSOR   = 4,
-    TRAIN_SERVER_FIND_INIT_POSITION     = 5
+    TRAIN_SERVER_FIND_INIT_POSITION     = 5,
+    TRAIN_SERVER_DIRECTION_CHANGE       = 6
 } train_server_cmd_t;
 
 typedef struct train_server_msg_t {
