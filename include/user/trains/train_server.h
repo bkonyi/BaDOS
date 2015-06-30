@@ -34,6 +34,9 @@ typedef struct train_position_info_t {
     uint32_t dist_to_next_sensor;
     uint32_t average_velocity;
     avg_velocity_t average_velocities[80][80];
+    track_node* next_sensor;
+    track_node* sensor_error_next_sensor;
+    track_node* switch_error_next_sensor;
 } train_position_info_t;
 
 void train_position_info_init(train_position_info_t* tpi);

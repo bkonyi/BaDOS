@@ -226,12 +226,18 @@ void tcs_initialize_track_switches(void) {
 }
 void handle_initialize_track_switches(void) {
     int i;
-    for( i = 0; i < 200; i++ ) {
+    for( i = 1; i < 19; i++ ) {
         if(is_valid_switch_number(i)){
            // Delay(10);
             handle_switch_set_direction(i,'C');
         }
-        
+    }
+
+    for( i = 0x99; i <= 0x9C; i++ ) {
+        if(is_valid_switch_number(i)){
+           // Delay(10);
+            handle_switch_set_direction(i,'C');
+        }
     }
 }
 
@@ -422,9 +428,7 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     trains[(int16_t)train].server_tid = tid;
     train_server_specialize(tid, train, slot);
 }
-void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {
-    //TODO update terminal status to respresent current state of find process
-    
+void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {    
     int i;
     for(i = 1; i < MAX_TRAIN_NUM; ++i) {
         handle_train_set_speed(trains, i, 0);

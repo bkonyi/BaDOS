@@ -69,3 +69,28 @@ track_node* get_next_sensor( track_node* node) {
 	}
 	return NULL;
 }
+
+track_node* get_next_sensor_switch_broken( track_node* node) {
+	track_node* iterator_node;
+
+	if(node == NULL) return NULL;
+
+	int state = node->state;
+
+	for(iterator_node = node->edge[state].dest ;iterator_node != NULL ;
+		iterator_node = iterator_node->edge[state].dest) {
+		if(iterator_node == node) { 
+			//We have a cycle and didn't find a sensor
+			return NULL;
+		}else if(iterator_node->type == NODE_SENSOR) {
+			return iterator_node;
+		}
+
+		state = iterator_node->state;
+
+		if(iterator_node->type == NODE_BRANCH) {
+			state = (state == DIR_CURVED) ? DIR_AHEAD : DIR_CURVED;
+		}
+	}
+	return NULL;
+}
