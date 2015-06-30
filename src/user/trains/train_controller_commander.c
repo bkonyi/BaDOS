@@ -34,7 +34,7 @@
 #define STOP_CONTROLLER_COMMAND  97
 
 typedef enum {
-    TRAIN_SET_SPEED,
+    TRAIN_SET_SPEED=1 ,
     TRAIN_REVERSE_BEGIN,
     TRAIN_REVERSE_REACCEL,
     SWITCH_DIRECTION,
@@ -117,11 +117,11 @@ void train_controller_commander_server(void) {
     handle_start_controller();
 
     RegisterAs(TRAIN_CONTROLLER_SERVER);
-
-    FOREVER {
+   
+    FOREVER {   
         Receive(&sending_tid, (char*)&data, sizeof(train_controller_data_t));
+       
         Reply(sending_tid, (char*)NULL, 0);
-
         switch(data.command) {
             case TRAIN_SET_SPEED:
                 handle_train_set_speed(trains, (int8_t)data.var1, data.var2);
@@ -260,6 +260,7 @@ int register_train(int8_t train, int8_t slot) {
     data.var1 = train;
     data.var2 = slot;
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+   // ASSERT(0);
 
     return 0;
 }
@@ -380,6 +381,7 @@ void handle_switch_set_direction(int16_t switch_num, char direction) {
         return;
     }
     tps_set_switch(switch_num,direction);
+
     putc(COM1, direction_code);
     putc(COM1, switch_num);
     putc(COM1, SWITCH_DEACTIVATE);
@@ -415,6 +417,7 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     if(trains[(uint16_t)train].speed != INVALID_SPEED) {
         update_terminal_train_slot_speed(train, slot, trains[(uint16_t)train].speed);
     }
+
     tid_t tid = CreateName(TRAIN_SERVER_PRIORITY,train_server, "TRAIN_SERVER"); 
     trains[(int16_t)train].server_tid = tid;
     train_server_specialize(tid, train, slot);
@@ -432,6 +435,7 @@ void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGI
             train_find_initial_position(trains[registered_trains[i]].server_tid);
         }
     }
+
 }
 
 void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num) {

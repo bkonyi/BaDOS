@@ -18,7 +18,7 @@ static void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue
 
 static track_node* track_get_sensor(track_node* track_info, uint32_t sensor_number);
 static void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors); 
-//static void notify_trains_switch_changed(tps_tpi_queue_t* train_queue);
+static void notify_trains_switch_changed(tps_tpi_queue_t* train_queue);
 static uint32_t switch_num_to_index(uint32_t switch_num);
 static bool track_nodes_set_switch(track_node* track_branch_nodes[],uint32_t switch_number,uint32_t state);
 
@@ -48,13 +48,13 @@ void track_position_server(void) {
 
 	tpi_init(train_info,&tpi_queue_free,&tpi_queue_filled);
 
-
 	FOREVER {
 		size_received = Receive(&requester,(char*)message,TPS_SENSOR_MESSAGE_SIZE);
 
 		//printf(COM2,"GOTTI 0x%x",((struct tps_cover_sheet_t*)message)->num1);
 		if(! (size_received == TPS_COVERSHEET_MESSAGE_SIZE 
-			&& tps_message->command == TPS_ADD_TRAIN ) ){
+			&& (   tps_message->command == TPS_ADD_TRAIN 
+				|| tps_message->command == TPS_SET_TRAIN_SENSOR))){ // Since you have a reply in your switch condition, you need to add it here so it doesn'st try to reply twiceh 
 			//TPS_ADD_TRAIN requires a special  Reply
 			// For all others just reply right away
 			Reply(requester,NULL,0);
@@ -93,6 +93,7 @@ void track_position_server(void) {
 						Reply(requester, (char*)NULL, 0);
 						break;
 					case TPS_SET_TRAIN_SENSOR:
+
 						//We want to send back their starting position so they can navigate from there.
 						literal_addr = track_get_sensor(track_nodes,tps_message->num2);
 							//send_term_error_msg("track Type: %d Num: %d Name: %s", ((track_node*)literal_addr)->type, ((track_node*)literal_addr)->num, ((track_node*)literal_addr)->name);
@@ -116,7 +117,7 @@ void track_position_server(void) {
 						//If that switch exists then change it and notify the trains that the
 							//track has changed
 						if(track_nodes_set_switch(track_branch_nodes,tps_message->num1,state) == true){
-							//notify_trains_switch_changed(&tpi_queue_filled);
+							notify_trains_switch_changed(&tpi_queue_filled);
 						}
 						
 						break;

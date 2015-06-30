@@ -98,7 +98,7 @@ void process_input(char* input) {
 
 			send_term_register_train_msg(target_train_number,slot);
 			result = register_train(target_train_number, slot);
-
+			
 			if(result != 0) {
 				send_term_error_msg("Couldn't register train over train controller");
 			}		

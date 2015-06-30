@@ -98,8 +98,11 @@ void train_server(void) {
                                 //send_term_error_msg("blah");
                                 //send_term_error_msg("Found train %d at Sensor: %s!", train_number, last_sensor_track_node->name);
                                 update_terminal_train_slot_current_location(train_number, train_slot, sensor_to_id((char*)last_sensor_track_node->name));
-                                update_terminal_train_slot_next_location(train_number, train_slot, sensor_to_id((char*)((get_next_sensor(last_sensor_track_node))->name)));
-                                //ASSERT(0);
+
+                                //TODO:
+                                //THIS IS A LINE THE BREAKS AFTER THE SENSOR IS HIT
+                                //update_terminal_train_slot_next_location(train_number, train_slot, sensor_to_id((char*)((get_next_sensor(last_sensor_track_node))->name)));
+                                
                                 finding_initial_position = false;
                                 break;
                             }
