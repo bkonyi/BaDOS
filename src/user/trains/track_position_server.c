@@ -32,6 +32,9 @@ void track_position_server(void) {
 	int requester, size_received;
 	uint32_t message[NUM_MESSAGE_BUFFER_ITEMS];
 
+	int8_t stuck_sensors[10];
+	bool found_stuck_sensors = true;
+
 	//Set up our pointers so we can be sneaky
 	//int8_t* signal_message = (int8_t*)message;
 	tps_cover_sheet_t* tps_message = (tps_cover_sheet_t*)message;
@@ -48,10 +51,14 @@ void track_position_server(void) {
 
 	tpi_init(train_info,&tpi_queue_free,&tpi_queue_filled);
 
+	int i;
+	for(i = 0; i < 10; ++i) {
+		stuck_sensors[i] = ~0;
+	}
+
 	FOREVER {
 		size_received = Receive(&requester,(char*)message,TPS_SENSOR_MESSAGE_SIZE);
 
-		//printf(COM2,"GOTTI 0x%x",((struct tps_cover_sheet_t*)message)->num1);
 		if(! (size_received == TPS_COVERSHEET_MESSAGE_SIZE 
 			&& (   tps_message->command == TPS_ADD_TRAIN 
 				|| tps_message->command == TPS_SET_TRAIN_SENSOR))){ // Since you have a reply in your switch condition, you need to add it here so it doesn'st try to reply twiceh 
@@ -64,8 +71,21 @@ void track_position_server(void) {
 
 		switch (size_received) {
 			case TPS_SENSOR_MESSAGE_SIZE:
-				//make sure all trains get the sensor data
-				send_sensor_data_to_trains(&tpi_queue_filled,(int8_t*)message);
+				if(!found_stuck_sensors) {
+					for(i = 0; i < 10; ++i) {
+						stuck_sensors[i] = ~((int8_t*)message)[i];
+					}
+					found_stuck_sensors = true;
+				} else {
+
+					//Clear the sensor information of any noise caused by stuck sensors
+					for(i = 0; i < 10; ++i) {
+						((int8_t*)message)[i] &= stuck_sensors[i];
+					}
+
+					//make sure all trains get the sensor data
+					send_sensor_data_to_trains(&tpi_queue_filled,(int8_t*)message);
+				}
 				break;
 			case TPS_COVERSHEET_MESSAGE_SIZE:
 				switch(tps_message->command) {
@@ -81,6 +101,9 @@ void track_position_server(void) {
 								ASSERT(0);
 								break;
 						}
+
+						//Reinitialize the stuck sensor array
+						found_stuck_sensors = false;
 						fill_track_branch_data(track_nodes, track_branch_nodes);
 						break;
 					case TPS_ADD_TRAIN:
