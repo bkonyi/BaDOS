@@ -216,10 +216,6 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
         }
         
         for(i = 0; i < 10; ++i) {
-            if((sensor_data[i] & stop_sensors[i]) != 0 ) {
-                    //we have have hit our stop sensor
-                    train_set_speed(train, 0);   
-            }
 
             //The condition for hitting the sensor that we are expecting next
             if((expected_group == i && (sensor_data[expected_group] & (1 << (7-expected_index))) != 0) ||
@@ -227,6 +223,12 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                     ((sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0)) ||
                 (switch_error_next_sensor != NULL && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
+
+                if((sensor_data[i] & stop_sensors[i]) != 0 ) {
+                    //we have have hit our stop sensor
+                    train_set_speed(train, 0);  
+                }
+
                 //Get the timestamp from the sensor data
                 time = (volatile uint32_t*)(sensor_data+12);
 
