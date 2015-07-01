@@ -166,7 +166,8 @@ int main(void)
 
         if(task->state != TASK_RUNNING_STATE_FREE) {
             uint32_t task_running_time = task->running_time;
-            bwprintf(COM2, "\033[2KTID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u%%  \t%s\r\n", task->generational_tid, task_running_time / 2, (task_running_time * 100) / user_task_run_time, task->task_name);
+            uint32_t percentage = (task_running_time * 10000) / user_task_run_time;
+            bwprintf(COM2, "\033[2KTID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u.%u%%  \t%s\r\n", task->generational_tid, task_running_time / 2, percentage / 100, percentage % 100, task->task_name);
         }
     }
 
