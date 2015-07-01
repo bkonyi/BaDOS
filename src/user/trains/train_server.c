@@ -9,9 +9,10 @@
 
 
 
-static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node,train_position_info_t* train_position_info); 
+static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info); 
+static bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info);
 static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
-
+static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time);
 
 
 void train_server(void) {
@@ -37,8 +38,6 @@ void train_server(void) {
 
     train_position_info_t train_position_info;
     train_position_info_init(&train_position_info);
-
-    track_node* last_sensor_track_node = NULL;
 
 
     //CURRENTLY A STEM CELL TRAIN,
@@ -67,69 +66,22 @@ void train_server(void) {
         switch (((train_server_msg_t*)message)->command) {
             case TRAIN_SERVER_SENSOR_DATA:
                 if(!finding_initial_position) {
-
                     //Do calculations for our train.
-                    handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&last_sensor_track_node,&train_position_info);
+                    handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&train_position_info);
                 
                     int32_t new_time = Time();
 
                     if(new_time - last_update_time > 10) {
                         int32_t time_to_expected_time = train_position_info.next_sensor_estimated_time - new_time;
-                        //send_term_error_msg("Estimated Time: %d Time: %d Time to Expected: %d Distance: %d",train_position_info->next_sensor_estimated_time, new_time, time_to_expected_time, (time_to_expected_time * train_position_info->average_velocity) / 100);
                         send_term_update_dist_msg(train_slot, (time_to_expected_time * ((int32_t)train_position_info.average_velocity)) / 100);
                         last_update_time = new_time;
                     }
-
                 } else {
                     if(!initial_sensor_reading_received) {
                         memcpy(finding_initial_sensor_state, ((train_server_sensor_msg_t*)message)->sensors, sizeof(int8_t) * 10);
                         initial_sensor_reading_received = true;
                     } else {
-                        //Find the train.
-                        int8_t* sensors = ((train_server_sensor_msg_t*)message)->sensors;
-                        int i;
-                        for(i = 0; i < 10; ++i) {
-                            if(sensors[i] != finding_initial_sensor_state[i]) {
-                                train_set_speed(train_number, 0);
-                                int8_t diff = sensors[i] ^ finding_initial_sensor_state[i];
-
-                                int j;
-                                for(j = 0; j < 8; j++) {
-                                    if((diff & 0x1) != 0) {
-                                        //This is our index
-                                        break;
-                                    }
-                                    diff >>= 1;
-                                }
-
-                                uint32_t sensor = (i * 8) + (7 - j);
-                                (void)sensor;
-                                last_sensor_track_node = tps_set_train_sensor(train_number, sensor);
-                                ASSERT(last_sensor_track_node != NULL);
-                                //send_term_error_msg("blah");
-                                send_term_error_msg("Found train %d at Sensor: %s!", train_number, last_sensor_track_node->name);
-                                update_terminal_train_slot_current_location(train_number, train_slot, sensor_to_id((char*)last_sensor_track_node->name));
-
-                                train_position_info.next_sensor = get_next_sensor(last_sensor_track_node);
-                                update_terminal_train_slot_next_location(train_number, train_slot, (train_position_info.next_sensor == NULL) ? -1 
-                                    : sensor_to_id((char*)(train_position_info.next_sensor->name)));
-
-                                if(train_position_info.next_sensor != NULL) {
-                                    //Set the predicted nodes for error cases
-                                    train_position_info.sensor_error_next_sensor = get_next_sensor(train_position_info.next_sensor);
-                                    train_position_info.switch_error_next_sensor = get_next_sensor_switch_broken(last_sensor_track_node);
-
-                                    //NOTE: if you put this back, make sure the sensors aren't null!
-                                    //send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info.sensor_error_next_sensor->name, train_position_info.switch_error_next_sensor->name);
-                                } else {
-                                    train_position_info.sensor_error_next_sensor = NULL;
-                                    train_position_info.switch_error_next_sensor = NULL;
-                                }
-
-                                finding_initial_position = false;
-                                break;
-                            }
-                        }
+                        finding_initial_position = !handle_find_train(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, finding_initial_sensor_state, &train_position_info);
                     }
                 }
 
@@ -156,7 +108,6 @@ void train_server(void) {
 	}
 }
 
-
 void train_position_info_init(train_position_info_t* tpi) {
     tpi->dist_from_last_sensor = 0;
     tpi->ticks_at_last_sensor = 0;
@@ -164,6 +115,9 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->next_sensor_estimated_time = 0;
     tpi->dist_to_next_sensor = 0;
     tpi->average_velocity = 0;
+    tpi->next_sensor = NULL;
+    tpi->sensor_error_next_sensor = NULL;
+    tpi->switch_error_next_sensor = NULL;
 
     int i, j;
     for(i = 0; i < 80; ++i) {
@@ -183,7 +137,6 @@ void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
 }
 
-
 void train_trigger_stop_on_sensor(tid_t tid, int8_t sensor_num) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_REGISTER_STOP_SENSOR;
@@ -197,23 +150,24 @@ void train_find_initial_position(tid_t tid) {
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
-
-void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,track_node** last_sensor_track_node,train_position_info_t* train_position_info) {
-    if(*last_sensor_track_node != NULL) {
-        track_node* next_sensor = get_next_sensor(*last_sensor_track_node);//train_position_info->next_sensor;
+void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info) {
+    if(train_position_info->last_sensor != NULL) {
+        track_node* last_sensor_track_node = train_position_info->last_sensor;
         track_node* sensor_error_next_sensor = train_position_info->sensor_error_next_sensor;
         track_node* switch_error_next_sensor = train_position_info->switch_error_next_sensor;
+        track_node** next_sensor = &train_position_info->next_sensor;
 
         int i;
         uint32_t distance;
-        volatile uint32_t* time;
+        uint32_t time;
         
-        if(next_sensor == NULL) {
+        if(*next_sensor == NULL) {
             return;
         }
      
-        uint32_t expected_group = next_sensor->num / 8;
-        uint32_t expected_index = next_sensor->num % 8;
+        bool update_error_expected_time = false;
+        uint32_t expected_group = (*next_sensor)->num / 8;
+        uint32_t expected_index = (*next_sensor)->num % 8;
         uint32_t sensor_error_group = 0, sensor_error_index = 0;
         uint32_t switch_error_group = 0, switch_error_index = 0;
 
@@ -222,7 +176,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             sensor_error_index = sensor_error_next_sensor->num % 8;
         }
 
-        if(switch_error_next_sensor != NULL) {
+        if(switch_error_next_sensor != NULL && switch_error_next_sensor != *next_sensor) {
             switch_error_group = switch_error_next_sensor->num / 8;
             switch_error_index = switch_error_next_sensor->num % 8;
         }
@@ -236,90 +190,140 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                 (switch_error_next_sensor != NULL && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
 
-                if((sensor_data[i] & stop_sensors[i]) != 0 ) {
-                    //we have have hit our stop sensor
-                    train_set_speed(train, 0);  
-                }
-
                 //Get the timestamp from the sensor data
-                time = (volatile uint32_t*)(sensor_data+12);
+                time = *((uint32_t*)(sensor_data+12));
 
                 if((sensor_error_next_sensor != NULL && sensor_error_group == i && 
                     (sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0)) {
-                    next_sensor = sensor_error_next_sensor;
+                    *next_sensor = sensor_error_next_sensor;
+                    update_error_expected_time = true;
                 } else if((switch_error_next_sensor != NULL && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
-                    next_sensor = switch_error_next_sensor;
+                    *next_sensor = switch_error_next_sensor;
+                    update_error_expected_time = true;
                 }
 
                 //Distance between the last sensor and the one we just hit
-                distance = distance_between_track_nodes(*last_sensor_track_node, next_sensor);
-                    
-                int32_t velocity = (distance*100)/(*time -train_position_info->ticks_at_last_sensor);
+                distance = distance_between_track_nodes(last_sensor_track_node, *next_sensor);
 
-                uint32_t* average_velocity_count = &train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity_count; 
-                uint32_t* average_velocity = &train_position_info->average_velocities[(*last_sensor_track_node)->num][next_sensor->num].average_velocity;
+                uint32_t* average_velocity_count = &train_position_info->average_velocities[(last_sensor_track_node)->num][(*next_sensor)->num].average_velocity_count; 
+                uint32_t* average_velocity = &train_position_info->average_velocities[(last_sensor_track_node)->num][(*next_sensor)->num].average_velocity;
+            
+                if(update_error_expected_time) {
+                    train_position_info->next_sensor_estimated_time = train_position_info->ticks_at_last_sensor + (distance * 100) / *average_velocity;
+                    send_term_error_msg("Distance between sensors %s and %s is: %d Average velocity: %d Expected Time: %d Actual: %d", last_sensor_track_node->name, (*next_sensor)->name, distance, *average_velocity, train_position_info->next_sensor_estimated_time, time);
+                    //TODO this average velocity keeps going down to zero...
+                }
+
+                int32_t velocity = (distance*100)/(time -train_position_info->ticks_at_last_sensor);
 
                 *average_velocity = ((train_position_info->average_velocity * (*average_velocity_count)) + velocity) / (*average_velocity_count + 1);
                 ++(*average_velocity_count);
 
                 if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                     //we have have hit our stop sensor
+                    train_set_speed(train, 0);  
                     send_term_error_msg("Velocity at Stop: %d.%d",velocity/10,velocity%10); 
                 }
+
                 //Send our time in mm / s
                 send_term_update_velocity_msg(slot, velocity);
-            
+
                 //Currently sends the distance between the last 2 sensors that we just passed by, in mm
                 //send_term_update_dist_msg(slot, distance );
-                int32_t time_difference = *time - train_position_info->next_sensor_estimated_time;
+                int32_t time_difference = time - train_position_info->next_sensor_estimated_time;
 
                 //Update the error for the train on screen.
                 send_term_update_err_msg(slot, (time_difference * ((int32_t)(*average_velocity))) / 100); //Converts to mm distance
 
-                train_position_info->ticks_at_last_sensor = *time;
-                //This may come in handy if we need error correction?
-                train_position_info->last_sensor = next_sensor;
-
-                //Set our most recent sensor to the sensor we just hit.
-                *last_sensor_track_node = next_sensor;
-                train_position_info->next_sensor = get_next_sensor(next_sensor);
-
-                //Update the terminal display
-                update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)(*last_sensor_track_node)->name));
-
-                if(train_position_info->next_sensor != NULL) {
-                    update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(train_position_info->next_sensor->name)));
-
-                    train_position_info->dist_to_next_sensor = distance_between_track_nodes(*last_sensor_track_node, train_position_info->next_sensor);
-
-                    train_position_info->average_velocity = train_position_info->average_velocities[(*last_sensor_track_node)->num][train_position_info->next_sensor->num].average_velocity;
-
-                    train_position_info->next_sensor_estimated_time = *time + (train_position_info->dist_to_next_sensor * 100) / train_position_info->average_velocity;
-                    //send_term_error_msg("Expected arrival at next sensor: %d Dist: %d   Avg Velocity: %d Velocity: %d Time: %d", train_position_info->next_sensor_estimated_time, train_position_info->dist_to_next_sensor, train_position_info->average_velocity, velocity, *time);
-
-                    //Update the predicted nodes for error cases
-                    train_position_info->sensor_error_next_sensor = get_next_sensor(train_position_info->next_sensor);
-                    train_position_info->switch_error_next_sensor = get_next_sensor_switch_broken(*last_sensor_track_node);
-
-                    //NOTE: if you put this back, make sure the sensors aren't null!
-                    //send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info->sensor_error_next_sensor->name, train_position_info->switch_error_next_sensor->name);
-                } else { 
-                    train_position_info->sensor_error_next_sensor = NULL;
-                    train_position_info->switch_error_next_sensor = NULL;
-
-                    update_terminal_train_slot_next_location(train, slot, -1);
-                }
+                handle_update_train_position_info(train, slot, train_position_info, time);
             }
         }
     }
 }
 
+bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info) {
+    //Find the train.
+    int i;
+    for(i = 0; i < 10; ++i) {
+        if(sensors[i] != initial_sensors[i]) {
+            train_set_speed(train, 0);
+            int8_t diff = sensors[i] ^ initial_sensors[i];
 
+            int j;
+            for(j = 0; j < 8; j++) {
+                if((diff & 0x1) != 0) {
+                    //This is our index
+                    break;
+                }
+                diff >>= 1;
+            }
+
+            uint32_t sensor = (i * 8) + (7 - j);
+            train_position_info->last_sensor = tps_set_train_sensor(train, sensor);
+            ASSERT(train_position_info->last_sensor != NULL);
+            //send_term_error_msg("blah");
+            send_term_error_msg("Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
+            update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)train_position_info->last_sensor->name));
+
+            train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
+            update_terminal_train_slot_next_location(train, slot, (train_position_info->next_sensor == NULL) ? -1 
+                : sensor_to_id((char*)(train_position_info->next_sensor->name)));
+
+            if(train_position_info->next_sensor != NULL) {
+                //Set the predicted nodes for error cases
+                train_position_info->sensor_error_next_sensor = get_next_sensor(train_position_info->next_sensor);
+                train_position_info->switch_error_next_sensor = get_next_sensor_switch_broken(train_position_info->last_sensor);
+
+                //NOTE: if you put this back, make sure the sensors aren't null!
+                //send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info.sensor_error_next_sensor->name, train_position_info.switch_error_next_sensor->name);
+            } else {
+                train_position_info->sensor_error_next_sensor = NULL;
+                train_position_info->switch_error_next_sensor = NULL;
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num) {
     int index = sensor_num / 8;
     stop_sensors[index] |= (0x1 << (7 - ((int16_t)sensor_num % 8)));
 }
 
+void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time) {
+    
+    train_position_info->ticks_at_last_sensor = time;
 
+    //Set our most recent sensor to the sensor we just hit.
+    train_position_info->last_sensor = train_position_info->next_sensor;
+    train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
+
+    //Update the terminal display
+    update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)(train_position_info->last_sensor)->name));
+            
+    if(train_position_info->next_sensor != NULL) {
+        update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(train_position_info->next_sensor->name)));
+
+        train_position_info->dist_to_next_sensor = distance_between_track_nodes(train_position_info->last_sensor, train_position_info->next_sensor);
+
+        train_position_info->average_velocity = train_position_info->average_velocities[(train_position_info->last_sensor)->num][train_position_info->next_sensor->num].average_velocity;
+
+        train_position_info->next_sensor_estimated_time = time + (train_position_info->dist_to_next_sensor * 100) / train_position_info->average_velocity;
+
+        //Update the predicted nodes for error cases
+        train_position_info->sensor_error_next_sensor = get_next_sensor(train_position_info->next_sensor);
+        train_position_info->switch_error_next_sensor = get_next_sensor_switch_broken(train_position_info->last_sensor);
+
+        //NOTE: if you put this back, make sure the sensors aren't null!
+        //send_term_error_msg("If sensor broken: %s  If switch broken: %s", train_position_info->sensor_error_next_sensor->name, train_position_info->switch_error_next_sensor->name);
+    } else { 
+        train_position_info->sensor_error_next_sensor = NULL;
+        train_position_info->switch_error_next_sensor = NULL;
+
+        update_terminal_train_slot_next_location(train, slot, -1);
+    }
+}
