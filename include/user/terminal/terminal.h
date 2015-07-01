@@ -27,6 +27,8 @@ typedef enum {
     TERMINAL_UPDATE_TRAIN_VELO                  = 21,
     TERMINAL_UPDATE_TRAIN_DIST                  = 22,
     TERMINAL_UPDATE_TRAIN_ERROR                 = 23,
+    TERMINAL_COMMAND_SUCCESS                    = 24,
+    TERMINAL_HEAVY_STATUS_MESSAGE_COMMAND       = 25,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -126,4 +128,5 @@ void send_term_initialize_track_switches(void);
 void send_term_update_velocity_msg (uint32_t slot, uint32_t v);
 void send_term_update_dist_msg (uint32_t slot, int32_t dist);
 void send_term_update_err_msg(uint32_t slot, int32_t dist);
+void send_term_cmd_success_msg(char*cmd) ;
 #endif //__TERMINAL_H__

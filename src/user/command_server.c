@@ -104,7 +104,9 @@ void process_input(char* input) {
 
 			if(result != 0) {
 				send_term_error_msg("Error telling train controller about stop on sensor");
-			}
+			}else{
+                send_term_cmd_success_msg("sensor_stop");
+            }
 		} else if (strcmp(argv[0],"track")==0) {
 			char track = char_to_upper(argv[1][0]);
 			if(strcmp(argv[2],"bigloop")==0) {
@@ -115,6 +117,7 @@ void process_input(char* input) {
                 _set_switch(9, 'S');
                 _set_switch(12, 'S');
                 _set_switch(15, 'S');
+                send_term_cmd_success_msg("track a bigloop");
 			}else {
                 send_term_error_msg("Track configuration '%s' not available",argv[2]);
             }

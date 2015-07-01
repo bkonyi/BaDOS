@@ -67,7 +67,6 @@ static void handle_update_train_slot_current_location(int8_t slot, int16_t senso
 static void handle_update_train_slot_next_location(int8_t slot, int16_t sensor_position);
 static void handle_clear_train_slot(int8_t slot);
 static void handle_update_train_slot_velocity(int8_t slot, uint32_t v) ;
-static void clear_user_input(void);
 static void status_message(char* fmt, ...);
 static void clear_track_map(void);
 static void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]);
@@ -76,6 +75,8 @@ static void handle_find_command(void);
 static void handle_terminal_send_2_ints(uint32_t command, uint32_t num1, uint32_t num2);
 static void handle_update_train_slot_distance(int8_t slot, int32_t dist);
 static void handle_update_train_slot_error(int8_t slot, int32_t err);
+static void handle_command_success_message(char *cmd) ;
+static void _clear_user_input(void) ;
 
 void handle_initialize_track_switches(void);
 
@@ -231,7 +232,12 @@ void terminal_server(void) {
                 //place our error message
 
                 status_message(((char*)input_buffer)+(sizeof(terminal_data_t)));
-                clear_user_input();
+                break;
+            case TERMINAL_COMMAND_SUCCESS:
+                //Null terminate it just in case
+                input_buffer[MAX_RECEIVE_LENGTH-1] = '\0';
+                //place our error message
+                handle_command_success_message(((char*)input_buffer)+(sizeof(terminal_data_t)));
                 break;
             default:
                 ASSERT(0);
@@ -495,9 +501,22 @@ void status_message(char* fmt, ...){
     term_move_cursor(RIGHT_BAR_COL,TERM_STATUS_ROW);
     printf(COM2,"┃");
 
-    clear_user_input();
+    _clear_user_input();
 }
-void clear_user_input(void) {
+void handle_command_success_message(char *cmd) {
+    term_hide_cursor();
+
+    term_move_cursor(TERM_STATUS_COORDS);
+    term_clear_rest_line();
+    printf(COM2,"Command Succeeed: '%s'",cmd);
+    _clear_user_input();
+}
+void send_term_heavy_status_msg(char* message, ...){
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_HEAVY_STATUS_MESSAGE_COMMAND;
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+}
+void _clear_user_input(void) {
 
     //Clear the line
     term_move_cursor(TERM_INPUT_COORDS);
@@ -538,8 +557,17 @@ void send_term_error_msg(char*message,...) {
     terminal_data->command = TERMINAL_COMMAND_ERROR;
     strcpy(msg_to_send + sizeof(terminal_data_t),err_msg);
     Send(TERMINAL_SERVER_ID,msg_to_send,msg_len, NULL,0);
-
+}
+void send_term_cmd_success_msg(char*cmd) {
     
+    int input_len = strlen(cmd)+1; // include nullus terminus (roman for null terminator....)
+    int msg_len = sizeof(terminal_data_t) + input_len*sizeof(char);
+    char msg_to_send[msg_len];
+
+    terminal_data_t* terminal_data = (terminal_data_t*)msg_to_send;
+    terminal_data->command = TERMINAL_COMMAND_SUCCESS;
+    strcpy(msg_to_send + sizeof(terminal_data_t),cmd);
+    Send(TERMINAL_SERVER_ID,msg_to_send,msg_len, NULL,0);
 }
 void send_term_reverse_msg(uint32_t train_num) {
     terminal_data_t terminal_data;
