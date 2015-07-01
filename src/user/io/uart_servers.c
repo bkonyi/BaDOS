@@ -11,7 +11,7 @@
 #include <io/uart_courrier.h>
 #include <task_priorities.h>
 
-#define OUTPUT_BUFFER_SIZE 4096
+#define OUTPUT_BUFFER_SIZE 8192
 #define INPUT_BUFFER_SIZE  2048
 CREATE_NON_POINTER_BUFFER_TYPE(uart_buffer_t, char, OUTPUT_BUFFER_SIZE);
 CREATE_NON_POINTER_BUFFER_TYPE(uart_tid_buffer_t,tid_t,MAX_NUMBER_OF_TASKS);

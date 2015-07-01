@@ -105,6 +105,8 @@ void terminal_server(void) {
     //term_move_cursor(1,1);
     //printf(COM2, "Time:");
 
+
+
     term_move_cursor(1, 1);
     printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
     printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃                    TRAIN                                          ┃\r\n");
@@ -129,8 +131,6 @@ void terminal_server(void) {
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[32;1mInput:\e[0m                                                                  ┃\r\n");
     printf(COM2, "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");
-
-    term_fmt_clr();
 
     CreateName(TERMINAL_TICK_NOTIFIER_PRIORITY, terminal_tick_notifier, TERMINAL_TICK_NOTIFIER);
 
