@@ -107,7 +107,7 @@ void train_server(void) {
                                 last_sensor_track_node = tps_set_train_sensor(train_number, sensor);
                                 ASSERT(last_sensor_track_node != NULL);
                                 //send_term_error_msg("blah");
-                                send_term_error_msg("Found train %d at Sensor: %s!", train_number, last_sensor_track_node->name);
+                                send_term_heavy_msg(false,"Found train %d at Sensor: %s!", train_number, last_sensor_track_node->name);
                                 update_terminal_train_slot_current_location(train_number, train_slot, sensor_to_id((char*)last_sensor_track_node->name));
 
                                 train_position_info.next_sensor = get_next_sensor(last_sensor_track_node);
@@ -144,7 +144,7 @@ void train_server(void) {
                 break;
             case TRAIN_SERVER_FIND_INIT_POSITION:
                 finding_initial_position = true;
-                send_term_error_msg("Finding train: %d", train_number);
+                send_term_heavy_msg(false,"Finding train: %d", train_number);
                 train_set_speed(train_number, 2);
                 break;
             default:
@@ -265,7 +265,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
                 if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                     //we have have hit our stop sensor
-                    send_term_error_msg("Velocity at Stop: %d.%d",velocity/10,velocity%10); 
+                    send_term_heavy_msg(true,"Velocity at Stop: %d.%d",velocity/10,velocity%10); 
                 }
                 //Send our time in mm / s
                 send_term_update_velocity_msg(slot, velocity);

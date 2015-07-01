@@ -57,7 +57,7 @@ void process_input(char* input) {
 	
 	//inst->type = NONE;
 	if(argc > 3) {
-		send_term_error_msg("Too many args");
+		send_term_heavy_msg(true,"Too many args");
 	} else if(argc ==3){
 		target_train_number = strtoi(argv[1]);//TODO: add hex support
 		if(strcmp(argv[0],"tr")==0) {
@@ -70,10 +70,10 @@ void process_input(char* input) {
 				result = train_set_speed(target_train_number, target_train_value);
 
 				if(result != 0) {
-					send_term_error_msg("Error setting train speed");
+					send_term_heavy_msg(true,"Error setting train speed");
 				}
 			} else {
-				send_term_error_msg("CMD 'TR': invalid args");
+				send_term_heavy_msg(true,"CMD 'TR': invalid args");
 				//term_set_status(t,"ERROR: TR Args invalid");
 			}
 		} else if(strcmp(argv[0],"sw")==0) {
@@ -83,10 +83,10 @@ void process_input(char* input) {
 					(strcmp(argv[2], "c") == 0) || (strcmp(argv[2], "s") == 0)) {
                     _set_switch(target_train_number, argv[2][0]);
 				} else {
-					send_term_error_msg("CMD SW, INVALID switch value");
+					send_term_heavy_msg(true,"CMD SW, INVALID switch value");
 				}
 			} else {
-				send_term_error_msg("CMD SW, INVALID switch number");
+				send_term_heavy_msg(true,"CMD SW, INVALID switch number");
 			}
 		} else if(strcmp(argv[0], "register") == 0 || strcmp(argv[0], "reg") == 0) {
 			target_train_number = strtoi(argv[1]);
@@ -96,14 +96,14 @@ void process_input(char* input) {
 			result = register_train(target_train_number, slot);
 			
 			if(result != 0) {
-				send_term_error_msg("Couldn't register train over train controller");
+				send_term_heavy_msg(true,"Couldn't register train over train controller");
 			}		
 		} else if(strcmp(argv[0], "sensor_stop") == 0) {
 			target_train_number = strtoi(argv[1]);
 			result = trigger_train_stop_on_sensor(target_train_number, sensor_to_id(argv[2]));
 
 			if(result != 0) {
-				send_term_error_msg("Error telling train controller about stop on sensor");
+				send_term_heavy_msg(true,"Error telling train controller about stop on sensor");
 			}else{
                 send_term_cmd_success_msg("sensor_stop");
             }
@@ -119,11 +119,11 @@ void process_input(char* input) {
                 _set_switch(15, 'S');
                 send_term_cmd_success_msg("track a bigloop");
 			}else {
-                send_term_error_msg("Track configuration '%s' not available",argv[2]);
+                send_term_heavy_msg(true,"Track configuration '%s' not available",argv[2]);
             }
 			
 		} else {
-			send_term_error_msg("Invalid Command");
+			send_term_heavy_msg(true,"Invalid Command");
 		}
 	} else if(argc ==2) {
 		
@@ -134,11 +134,10 @@ void process_input(char* input) {
 				result = train_reverse(target_train_number);
 
 				if(result != 0) {
-					send_term_error_msg("Error telling train controller about reverse");
+					send_term_heavy_msg(true,"Error telling train controller about reverse");
 				}
 			} else {
-				printf(COM2,"INVTR %d", target_train_number);
-				send_term_error_msg("");
+				send_term_heavy_msg(true,"RV, invalid train number");
 				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
 		} else if(strcmp(argv[0], "track") == 0) {
@@ -151,7 +150,7 @@ void process_input(char* input) {
                 _init_track(track);
 			}
 		} else {
-			send_term_error_msg("Invalid command");
+			send_term_heavy_msg(true,"Invalid command");
 		}
 	} else if( argc == 1) {
 		if(strcmp(argv[0],"q")==0){
@@ -166,10 +165,10 @@ void process_input(char* input) {
 			find_trains();
 			send_term_find_msg();
 		}else{
-			send_term_error_msg("Invalid command");
+			send_term_heavy_msg(true,"Invalid command");
 		}
 	}else{
-		send_term_error_msg("Invalid command");
+		send_term_heavy_msg(true,"Invalid command");
 	}
 	
 }
@@ -178,7 +177,7 @@ int _set_switch(uint32_t train_number,char state) {
     send_term_switch_msg( train_number,state);
     int result = tcs_switch_set_direction(train_number, state);
     if(result!=0) {
-        send_term_error_msg("Error setting switch through train controller");
+        send_term_heavy_msg(true,"Error setting switch through train controller");
     }
     return result;
 }
