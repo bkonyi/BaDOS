@@ -10,8 +10,9 @@
 
 #define USER_INPUT_BUFFER_SIZE 32
 static void process_input(char* input);
-int _set_switch(uint32_t train_number,char state);
-int _init_track(char track);
+static int _set_switch(uint32_t train_number,char state);
+static int _init_track(char track);
+static int _set_speed(uint32_t train_num, uint32_t speed);
 
 void command_server(void) {
 	RegisterAs(COMMAND_SERVER);
@@ -52,13 +53,17 @@ void process_input(char* input) {
 	
 	int32_t argc = strtokenize(input,argv,10);
 	//if(argc < 0); TODO: INPUT TOO LARGE
-
+	char* first = NULL, *second = NULL, *third = NULL;
 	
 	
 	//inst->type = NONE;
 	if(argc > 3) {
 		send_term_heavy_msg(true,"Too many args");
 	} else if(argc ==3){
+		first = argv[0];
+		second = argv[1];
+		third = argv[2];
+
 		target_train_number = strtoi(argv[1]);//TODO: add hex support
 		if(strcmp(argv[0],"tr")==0) {
 			target_train_value = strtoi(argv[2]);
@@ -66,8 +71,7 @@ void process_input(char* input) {
 			if(((target_train_number) != -1) 
 					&& (target_train_value) != -1) {
 
-				send_term_train_msg(target_train_number,target_train_value) ;
-				result = train_set_speed(target_train_number, target_train_value);
+				result = _set_speed(target_train_number,target_train_value);
 
 				if(result != 0) {
 					send_term_heavy_msg(true,"Error setting train speed");
@@ -126,8 +130,9 @@ void process_input(char* input) {
 			send_term_heavy_msg(true,"Invalid Command");
 		}
 	} else if(argc ==2) {
-		
-		if(strcmp(argv[0],"rv")==0) {
+		first = argv[0];
+		second = argv[1];
+		if(strcmp(first,"rv")==0) {
 			target_train_number = strtoi(argv[1]);
 			if(target_train_number>0) {
 				send_term_reverse_msg(target_train_number);
@@ -140,7 +145,7 @@ void process_input(char* input) {
 				send_term_heavy_msg(true,"RV, invalid train number");
 				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
-		} else if(strcmp(argv[0], "track") == 0) {
+		} else if(strcmp(first, "track") == 0) {
 			char track = char_to_upper(argv[1][0]);
 
 			if(track != 'A' && track != 'B') {
@@ -149,7 +154,21 @@ void process_input(char* input) {
 			} else {
                 _init_track(track);
 			}
-		} else {
+		} else if(strcmp(first, "nudge") == 0) {
+			target_train_number = strtoi(second);
+			_set_speed(target_train_number,7);
+			send_term_heavy_msg(false,"Nudging train %d, please wait",target_train_number);
+			Delay(125);
+			_set_speed(target_train_number,0);
+			send_term_heavy_msg(true,"Done nudging train %d",target_train_number);
+		} else if(strcmp(first, "shove") == 0) {
+			target_train_number = strtoi(second);
+			_set_speed(target_train_number,14);
+			send_term_heavy_msg(false,"Shoving train %d, please wait",target_train_number);
+			Delay(200);
+			_set_speed(target_train_number,0);
+			send_term_heavy_msg(true,"Done shoving train %d",target_train_number);
+		}else {
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	} else if( argc == 1) {
@@ -173,9 +192,15 @@ void process_input(char* input) {
 	
 }
 
-int _set_switch(uint32_t train_number,char state) {
-    send_term_switch_msg( train_number,state);
-    int result = tcs_switch_set_direction(train_number, state);
+int _set_speed(uint32_t train_num, uint32_t speed) {
+	int result;
+	send_term_train_msg(train_num,speed) ;
+	result = train_set_speed(train_num, speed);
+	return result;
+}
+int _set_switch(uint32_t switch_num,char state) {
+    send_term_switch_msg( switch_num,state);
+    int result = tcs_switch_set_direction(switch_num, state);
     if(result!=0) {
         send_term_heavy_msg(true,"Error setting switch through train controller");
     }
