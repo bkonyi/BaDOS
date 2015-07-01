@@ -22,21 +22,6 @@ void initialize(global_data_t* global_data) {
     setspeed(COM2, 115200);
     setfifo(COM2,ON); // ensure that fifo is on
     
-    /**
-     * Performance options
-     */
-    //For information on the bits being set here see the  ep93xx documentation
-    //page 43
-    __asm__("MOV r10, #0");
-    __asm__("MCR p15, 0, r10, c7, c5, 0");
-    __asm__("MRC p15, 0, r10, c1, c0, 0");
-    __asm__("MOV r9, #1");
-    __asm__("MOV r9, r9, LSL#30"); //bits for fast clock
-    __asm__("ORR r10, r10, #4096"); //instruction cache
-    __asm__("ORR r10, r10, r9"); //fast clock
-    __asm__("ORR r10, r10, #2"); //data cache
-    __asm__("MCR p15, 0, r10, c1, c0, 0");
-    
     //Set the software interrupt handler to jump to our
     //kernel entry point in the context switch
     *SOFTWARE_INTERRUPT_HANDLER = (uint32_t) kerenter;
@@ -85,6 +70,21 @@ request_t* switch_context(task_descriptor_t* td) {
 }
 
 int main(void) {
+    /**
+     * Performance options
+     */
+    //For information on the bits being set here see the  ep93xx documentation
+    //page 43
+    __asm__("MOV r10, #0");
+    __asm__("MCR p15, 0, r10, c7, c5, 0");
+    __asm__("MRC p15, 0, r10, c1, c0, 0");
+    __asm__("MOV r9, #1");
+    __asm__("MOV r9, r9, LSL#30"); //bits for fast clock
+    __asm__("ORR r10, r10, #4096"); //instruction cache
+    __asm__("ORR r10, r10, r9"); //fast clock
+    __asm__("ORR r10, r10, #2"); //data cache
+    __asm__("MCR p15, 0, r10, c1, c0, 0");
+    
     global_data_t global_data;
     initialize(&global_data);
 

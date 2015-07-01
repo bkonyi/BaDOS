@@ -499,7 +499,7 @@ void _status_message(bool clr_usr_in,char* fmt, ...){
     vprintf(COM2,fmt,va);
     va_end(va);
     term_move_cursor(RIGHT_BAR_COL,TERM_STATUS_ROW);
-    printf(COM2,"┃");
+    printf(COM2,"┃|");
     if(clr_usr_in == true) {
         _clear_user_input();
     }
@@ -510,6 +510,8 @@ void handle_command_success_message(char *cmd) {
     term_move_cursor(TERM_STATUS_COORDS);
     term_clear_rest_line();
     printf(COM2,"Command Succeeed: '%s'",cmd);
+    term_move_cursor(RIGHT_BAR_COL,TERM_STATUS_ROW);
+    printf(COM2,"┃");
     _clear_user_input();
 }
 void _clear_user_input(void) {
