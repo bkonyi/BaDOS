@@ -10,6 +10,8 @@
 
 #define USER_INPUT_BUFFER_SIZE 32
 static void process_input(char* input);
+int _set_switch(uint32_t train_number,char state);
+int _init_track(char track);
 
 void command_server(void) {
 	RegisterAs(COMMAND_SERVER);
@@ -79,13 +81,7 @@ void process_input(char* input) {
 				//Set type to SW
 				if((strcmp(argv[2],"C") == 0) || (strcmp(argv[2],"S") == 0) ||
 					(strcmp(argv[2], "c") == 0) || (strcmp(argv[2], "s") == 0)) {
-					
-					send_term_switch_msg( target_train_number,argv[2][0]);
-					result = tcs_switch_set_direction(target_train_number, argv[2][0]);
-
-					if(result != 0) {
-						send_term_error_msg("Error setting switch through train controller");
-					}
+                    _set_switch(target_train_number, argv[2][0]);
 				} else {
 					send_term_error_msg("CMD SW, INVALID switch value");
 				}
@@ -109,6 +105,20 @@ void process_input(char* input) {
 			if(result != 0) {
 				send_term_error_msg("Error telling train controller about stop on sensor");
 			}
+		} else if (strcmp(argv[0],"track")==0) {
+			char track = char_to_upper(argv[1][0]);
+			if(strcmp(argv[2],"bigloop")==0) {
+                _init_track(track);
+                _set_switch(6,'S');
+                _set_switch(7, 'S');
+                _set_switch(8,'S');
+                _set_switch(9, 'S');
+                _set_switch(12, 'S');
+                _set_switch(15, 'S');
+			}else {
+                send_term_error_msg("Track configuration '%s' not available",argv[2]);
+            }
+			
 		} else {
 			send_term_error_msg("Invalid Command");
 		}
@@ -135,14 +145,7 @@ void process_input(char* input) {
 				ASSERT(0);
 				return;
 			} else {
-				send_term_set_track_msg(track);
-				if(track == 'A') {
-					tps_set_track(TRACKA);
-				} else if ( track == 'B' ){
-					tps_set_track(TRACKB);
-				}
-				send_term_initialize_track_switches();
-				tcs_initialize_track_switches();
+                _init_track(track);
 			}
 		} else {
 			send_term_error_msg("Invalid command");
@@ -166,4 +169,25 @@ void process_input(char* input) {
 		send_term_error_msg("Invalid command");
 	}
 	
+}
+
+int _set_switch(uint32_t train_number,char state) {
+    send_term_switch_msg( train_number,state);
+    int result = tcs_switch_set_direction(train_number, state);
+    if(result!=0) {
+        send_term_error_msg("Error setting switch through train controller");
+    }
+    return result;
+}
+
+int _init_track(char track) {
+    send_term_set_track_msg(track);
+    if(track == 'A') {
+        tps_set_track(TRACKA);
+    } else if ( track == 'B' ){
+        tps_set_track(TRACKB);
+    }
+    send_term_initialize_track_switches();
+    tcs_initialize_track_switches();
+    return 0; // Todo: can/should errors be conveyed here? 
 }

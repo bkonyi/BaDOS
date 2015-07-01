@@ -262,6 +262,11 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
                 *average_velocity = ((train_position_info->average_velocity * (*average_velocity_count)) + velocity) / (*average_velocity_count + 1);
                 ++(*average_velocity_count);
+
+                if((sensor_data[i] & stop_sensors[i]) != 0 ) {
+                    //we have have hit our stop sensor
+                    send_term_error_msg("Velocity at Stop: %d.%d",velocity/10,velocity%10); 
+                }
                 //Send our time in mm / s
                 send_term_update_velocity_msg(slot, velocity);
             
