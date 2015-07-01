@@ -96,7 +96,7 @@ void train_server(void) {
                 break;
             case TRAIN_SERVER_FIND_INIT_POSITION:
                 finding_initial_position = true;
-                send_term_error_msg("Finding train: %d", train_number);
+                send_term_heavy_msg(false,"Finding train: %d", train_number);
                 train_set_speed(train_number, 2);
                 break;
             default:
@@ -223,7 +223,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                 if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                     //we have have hit our stop sensor
                     train_set_speed(train, 0);  
-                    send_term_error_msg("Velocity at Stop: %d.%d",velocity/10,velocity%10); 
+                    send_term_heavy_msg(true,"Velocity at Stop: %d.%d",velocity/10,velocity%10); 
                 }
 
                 //Send our time in mm / s
