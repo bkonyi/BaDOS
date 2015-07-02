@@ -211,6 +211,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
         uint32_t distance;
         uint32_t time;
         uint32_t average_velocity=0;
+        bool is_switch_error = false;
         if(*next_sensor == NULL) {
             return;
         }
@@ -252,15 +253,26 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
                     *next_sensor = switch_error_next_sensor;
                     update_error_expected_time = true;
+                    is_switch_error = true;
                 }
 
-                //Distance between the last sensor and the one we just hit
-                distance = distance_between_track_nodes(last_sensor_track_node, *next_sensor);
+                
             
                 if(update_error_expected_time) {
+                    //Distance between the last sensor and the one we just hit
+                    distance = distance_between_track_nodes(last_sensor_track_node, *next_sensor,is_switch_error);
                     result = _train_position_get_av_velocity(train_position_info, last_sensor_track_node, *next_sensor, &average_velocity);
-                    ASSERT(result>=0);
-                    train_position_info->next_sensor_estimated_time = train_position_info->ticks_at_last_sensor + (distance * 100) / average_velocity;
+                    if(result < 0) {
+                        train_position_info->next_sensor_estimated_time = 1;
+
+                    }else {
+                        train_position_info->next_sensor_estimated_time = train_position_info->ticks_at_last_sensor + (distance * 100) / average_velocity;
+                        send_term_heavy_msg(false,"aV betwee %s => %s: %d.%d",last_sensor_track_node->name,(*next_sensor)->name,average_velocity/10,average_velocity%10);
+                    }
+                    
+                }else {
+                    //Distance between the last sensor and the one we just hit
+                    distance = distance_between_track_nodes(last_sensor_track_node, *next_sensor,false);
                 }
 
                 int32_t velocity = (distance * 100)/(time - train_position_info->ticks_at_last_sensor);
@@ -357,7 +369,7 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
         update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(train_position_info->next_sensor->name)));
 
         //TODO check for error here?
-        uint32_t dist_to_next_sensor = distance_between_track_nodes(train_position_info->last_sensor, train_position_info->next_sensor);
+        uint32_t dist_to_next_sensor = distance_between_track_nodes(train_position_info->last_sensor, train_position_info->next_sensor,false);
 
         train_position_info->next_sensor_estimated_time = time + (dist_to_next_sensor * 100) / average_velocity;
 
@@ -418,6 +430,6 @@ int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from
             return 0;
         }
     }
-    ASSERT(0);
+ 
     return -1;
 }

@@ -39,5 +39,5 @@ track_node* get_next_sensor( track_node* node);
 track_node* get_next_sensor_switch_broken( track_node* node);
 bool is_valid_switch_number(uint32_t sw_num) ;
 uint32_t get_track_node_length(track_node* node);
-uint32_t distance_between_track_nodes(track_node* start, track_node * end);
+uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool switch_broken);
 #endif //_TRACK_NODE_H_
