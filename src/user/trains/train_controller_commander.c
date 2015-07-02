@@ -45,7 +45,8 @@ typedef enum {
     FIND_TRAINS,
     TRAIN_TRIGGER_STOP_ON_SENSOR,
     TRAIN_CONTROLLER_UKNOWN_COMMAND,
-    SWITCH_INITIALIZE_DIRECTIONS
+    SWITCH_INITIALIZE_DIRECTIONS,
+    REQUEST_CALIBRATION_INFO
 } train_controller_command_t;
 
 typedef struct {
@@ -86,6 +87,9 @@ static void handle_train_register(train_data_t* trains, int16_t* train_slots, in
 static void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
 
 static void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num);
+
+static void handle_request_calibration_info(train_data_t* trains, int16_t train);
+
 static void handle_initialize_track_switches(void);
 
 void train_controller_commander_server(void) {
@@ -162,6 +166,9 @@ void train_controller_commander_server(void) {
                 break;
             case TRAIN_TRIGGER_STOP_ON_SENSOR:
                 handle_trigger_train_stop_on_sensor(trains, data.var1, data.var2);
+                break;
+            case REQUEST_CALIBRATION_INFO:
+                handle_request_calibration_info(trains, data.var1);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -292,6 +299,19 @@ int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num) {
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 
+    return 0;
+}
+
+int tcs_train_request_calibration_info(int8_t train) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    }
+
+    train_controller_data_t data;
+    data.command = REQUEST_CALIBRATION_INFO;
+    data.var1 = train;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
     return 0;
 }
 
@@ -440,6 +460,18 @@ void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGI
         }
     }
 
+}
+
+void handle_request_calibration_info(train_data_t* trains, int16_t train) {
+    if(trains[train].slot != INVALID_SLOT) {
+        avg_velocity_t average_velocity_info[80][80];
+        train_request_calibration_info(trains[train].server_tid, (avg_velocity_t*)average_velocity_info);
+        print_train_calibration_info(train, (avg_velocity_t*)average_velocity_info);
+        //ASSERT(0);
+    } else {
+        //TODO handle error
+        ASSERT(0);
+    }
 }
 
 void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num) {

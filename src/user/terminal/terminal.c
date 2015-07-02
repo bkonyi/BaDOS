@@ -76,11 +76,12 @@ static void handle_terminal_send_2_ints(uint32_t command, uint32_t num1, uint32_
 static void handle_update_train_slot_distance(int8_t slot, int32_t dist);
 static void handle_update_train_slot_error(int8_t slot, int32_t err);
 static void handle_command_success_message(char *cmd) ;
-static void _clear_user_input(void) ;
+static void _clear_user_input(void);
+static void handle_display_average_velocity_information(int16_t train, avg_velocity_t* average_velocity_info);
 
 static void handle_initialize_track_switches(void);
 
-#define MAX_RECEIVE_LENGTH (sizeof(terminal_data_t)+100)
+#define MAX_RECEIVE_LENGTH sizeof(terminal_data_t)+100
 
 void terminal_server(void) {
     int sending_tid;
@@ -237,6 +238,11 @@ void terminal_server(void) {
                 input_buffer[MAX_RECEIVE_LENGTH-1] = '\0';
                 //place our error message
                 handle_command_success_message(((char*)input_buffer)+(sizeof(terminal_data_t)));
+                break;
+            case TERMINAL_DISPLAY_TRAIN_CALIBRATION:
+                //TODO
+                ASSERT(0);
+                handle_display_average_velocity_information(data->num1, NULL);//(avg_velocity_t*)data->average_velocity_info);
                 break;
             default:
                 ASSERT(0);
@@ -818,4 +824,24 @@ void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t i
         putc(COM2,data->original);
     }
 }
+
+void print_train_calibration_info(int8_t train, avg_velocity_t* average_velocity_info) {
+    terminal_data_t terminal_data;
+    terminal_data.command = TERMINAL_DISPLAY_TRAIN_CALIBRATION;
+    terminal_data.num1 = train;
+
+    (void)average_velocity_info;
+    ASSERT(0);
+    _status_message(true, "Printing train calib info...");
+    //TODO
+    //memcpy(terminal_data.average_velocity_info, average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
+    Send(TERMINAL_SERVER_ID,(char*)&terminal_data, sizeof(terminal_data_t),(char*)NULL,0);
+}
+
+void handle_display_average_velocity_information(int16_t train, avg_velocity_t* average_velocity_info) {
+    (void)train;
+    (void)average_velocity_info;
+    ASSERT(0);
+}
+
 

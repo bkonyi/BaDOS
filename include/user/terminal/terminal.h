@@ -2,6 +2,7 @@
 #define __TERMINAL_H__
 
 #include <common.h>
+#include <trains/train_server.h>
 
 typedef enum {
     TERMINAL_UPDATE_CLOCK    =  1,
@@ -10,7 +11,7 @@ typedef enum {
     TERMINAL_SWITCH_COMMAND  =  4,
     TERMINAL_REVERSE_COMMAND =  5,
     TERMINAL_COMMAND_ERROR   =  6,
-    TERMINAL_QUIT			 =  7,
+    TERMINAL_QUIT            =  7,
     TERMINAL_UPDATE_SENSORS  =  8,
     TERMINAL_START_CTRL      =  9,
     TERMINAL_STOP_CTRL       = 10,
@@ -29,6 +30,7 @@ typedef enum {
     TERMINAL_UPDATE_TRAIN_ERROR                 = 23,
     TERMINAL_COMMAND_SUCCESS                    = 24,
     TERMINAL_COMMAND_HEAVY_MESSAGE       = 25,
+    TERMINAL_DISPLAY_TRAIN_CALIBRATION   = 26,
     TERMINAL_UNKNOWN_COMMAND = -1
 
 } terminal_command_t;
@@ -39,6 +41,7 @@ typedef struct {
     int32_t            num2;
     char               byte1;
     int8_t             sensors[10]; //I really don't want to put this here...
+    //avg_velocity_t average_velocity_info[80 * 80]; //Too big :(
 } terminal_data_t;
 
 /**
@@ -129,4 +132,6 @@ void send_term_update_velocity_msg (uint32_t slot, uint32_t v);
 void send_term_update_dist_msg (uint32_t slot, int32_t dist);
 void send_term_update_err_msg(uint32_t slot, int32_t dist);
 void send_term_cmd_success_msg(char*cmd) ;
+
+void print_train_calibration_info(int8_t train, avg_velocity_t* average_velocity_info);
 #endif //__TERMINAL_H__

@@ -61,7 +61,10 @@ void train_server(void) {
 	FOREVER {
         //send_term_error_msg("Train: %d WAITING", train_number);
 		Receive(&requester, message, message_size);
-        Reply(requester, (char*)NULL, 0);
+
+        if(((train_server_msg_t*)message)->command != TRAIN_SERVER_REQUEST_CALIBRATION_INFO) {
+            Reply(requester, (char*)NULL, 0);
+        }
 
         switch (((train_server_msg_t*)message)->command) {
             case TRAIN_SERVER_SENSOR_DATA:
@@ -98,6 +101,9 @@ void train_server(void) {
                 finding_initial_position = true;
                 send_term_heavy_msg(false,"Finding train: %d", train_number);
                 train_set_speed(train_number, 2);
+                break;
+            case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
+                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * 80);
                 break;
             default:
                 //Invalid command
@@ -146,6 +152,12 @@ void train_find_initial_position(tid_t tid) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_FIND_INIT_POSITION;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_request_calibration_info(tid_t tid, avg_velocity_t* average_velocity_info) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
 }
 
 void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info) {
