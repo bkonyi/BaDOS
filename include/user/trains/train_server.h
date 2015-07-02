@@ -2,6 +2,8 @@
 #define _TRAIN_SERVER_H_
 #include <common.h>
 #include <track/track_node.h>
+
+#define MAX_AV_SENSORS_FROM 4
 typedef enum train_server_cmd_t {
 	TRAIN_SERVER_INIT 					= 1,
 	TRAIN_SERVER_SENSOR_DATA 			= 2,
@@ -25,6 +27,7 @@ typedef struct train_server_sensor_msg_t {
 typedef struct {
     uint32_t average_velocity;
     uint32_t average_velocity_count;
+    track_node* from;
 } avg_velocity_t;
 
 typedef struct train_position_info_t {
@@ -32,7 +35,7 @@ typedef struct train_position_info_t {
 	track_node* last_sensor;
     uint32_t next_sensor_estimated_time;
     uint32_t average_velocity;
-    avg_velocity_t average_velocities[80][80];
+    avg_velocity_t average_velocities[80][MAX_AV_SENSORS_FROM];
     track_node* next_sensor;
     track_node* sensor_error_next_sensor;
     track_node* switch_error_next_sensor;

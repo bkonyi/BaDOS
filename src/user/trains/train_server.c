@@ -12,8 +12,9 @@
 static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info); 
 static bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info);
 static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
-static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time);
-
+static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time,uint32_t);
+static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
+static int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
 
 void train_server(void) {
     //The bigger of the 2 should be the size we use for receive
@@ -119,9 +120,10 @@ void train_position_info_init(train_position_info_t* tpi) {
 
     int i, j;
     for(i = 0; i < 80; ++i) {
-        for(j = 0; j < 80; ++j) {
+        for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
             tpi->average_velocities[i][j].average_velocity = 0;
             tpi->average_velocities[i][j].average_velocity_count = 0;
+            tpi->average_velocities[i][j].from = NULL;
         }
     }
 
@@ -155,10 +157,10 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
         track_node* switch_error_next_sensor = train_position_info->switch_error_next_sensor;
         track_node** next_sensor = &train_position_info->next_sensor;
 
-        int i;
+        int i,result;
         uint32_t distance;
         uint32_t time;
-        
+        uint32_t average_velocity=0;
         if(*next_sensor == NULL) {
             return;
         }
@@ -204,18 +206,17 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
                 //Distance between the last sensor and the one we just hit
                 distance = distance_between_track_nodes(last_sensor_track_node, *next_sensor);
-
-                uint32_t* average_velocity_count = &train_position_info->average_velocities[(last_sensor_track_node)->num][(*next_sensor)->num].average_velocity_count; 
-                uint32_t* average_velocity = &train_position_info->average_velocities[(last_sensor_track_node)->num][(*next_sensor)->num].average_velocity;
             
                 if(update_error_expected_time) {
-                    train_position_info->next_sensor_estimated_time = train_position_info->ticks_at_last_sensor + (distance * 100) / *average_velocity;
+                    result = _train_position_get_av_velocity(train_position_info, last_sensor_track_node, *next_sensor, &average_velocity);
+                    ASSERT(result>=0);
+                    train_position_info->next_sensor_estimated_time = train_position_info->ticks_at_last_sensor + (distance * 100) / average_velocity;
                 }
 
                 int32_t velocity = (distance * 100)/(time - train_position_info->ticks_at_last_sensor);
 
-                *average_velocity = ((*average_velocity * (*average_velocity_count)) + velocity) / (*average_velocity_count + 1);
-                ++(*average_velocity_count);
+                result = _train_position_update_av_velocity(train_position_info,last_sensor_track_node,*next_sensor, velocity,&average_velocity);
+                ASSERT(result>=0);
 
                 if((sensor_data[i] & stop_sensors[i]) != 0 ) {
                     //we have have hit our stop sensor
@@ -229,11 +230,11 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                 //Currently sends the distance between the last 2 sensors that we just passed by, in mm
                 //send_term_update_dist_msg(slot, distance );
                 int32_t time_difference = time - train_position_info->next_sensor_estimated_time;
-
+                
                 //Update the error for the train on screen.
-                send_term_update_err_msg(slot, (time_difference * ((int32_t)(*average_velocity))) / 100); //Converts to mm distance
+                send_term_update_err_msg(slot,(time_difference * ((int32_t)(average_velocity))) / 100 ); //Converts to mm distance
 
-                handle_update_train_position_info(train, slot, train_position_info, time);
+                handle_update_train_position_info(train, slot, train_position_info, time, average_velocity);
             }
         }
     }
@@ -259,8 +260,8 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
             uint32_t sensor = (i * 8) + (7 - j);
             train_position_info->last_sensor = tps_set_train_sensor(train, sensor);
             ASSERT(train_position_info->last_sensor != NULL);
-            //send_term_error_msg("blah");
-            send_term_heavy_msg(true, "Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
+
+            send_term_heavy_msg(false, "Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
             update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)train_position_info->last_sensor->name));
 
             train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
@@ -291,7 +292,7 @@ void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num) {
     stop_sensors[index] |= (0x1 << (7 - ((int16_t)sensor_num % 8)));
 }
 
-void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time) {
+void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time, uint32_t average_velocity) {
     
     train_position_info->ticks_at_last_sensor = time;
 
@@ -308,9 +309,7 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
         //TODO check for error here?
         uint32_t dist_to_next_sensor = distance_between_track_nodes(train_position_info->last_sensor, train_position_info->next_sensor);
 
-        train_position_info->average_velocity = train_position_info->average_velocities[(train_position_info->last_sensor)->num][train_position_info->next_sensor->num].average_velocity;
-
-        train_position_info->next_sensor_estimated_time = time + (dist_to_next_sensor * 100) / train_position_info->average_velocity;
+        train_position_info->next_sensor_estimated_time = time + (dist_to_next_sensor * 100) / average_velocity;
 
         //Update the predicted nodes for error cases
         train_position_info->sensor_error_next_sensor = get_next_sensor(train_position_info->next_sensor);
@@ -324,4 +323,51 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
 
         update_terminal_train_slot_next_location(train, slot, -1);
     }
+}
+
+uint32_t estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff) {
+    ASSERT(start_sensor->type == NODE_SENSOR);
+    ASSERT(end_sensor->type == NODE_SENSOR);
+ return 0;
+}
+int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out) {
+    int i,to_index;
+    to_index = to->num;
+    avg_velocity_t* av;
+    for(i = 0; i < MAX_AV_SENSORS_FROM; i ++) {
+        av = &(tpi->average_velocities[to_index][i]);
+        //Emptiness is defined by having a null from member    
+        if(av->from == NULL) {
+            av->from = from;
+            av->average_velocity_count = 1;
+            av->average_velocity = V;
+            *av_out = V;
+            return 0;
+        }else if(av->from == from) {
+            av->average_velocity = ((av->average_velocity * av->average_velocity_count)+ V)/(av->average_velocity_count  +1);
+            av->average_velocity_count++;
+            *av_out = av->average_velocity;
+            
+            return 0;
+        }
+    }
+    //We should never get here, we need to increase MAX_AV_SENSORS_FROM
+    ASSERT(0);
+    return -1;
+}
+
+int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av_out) {
+    avg_velocity_t* av;
+    int i,to_index;
+    to_index = to->num;
+    for(i = 0; i < MAX_AV_SENSORS_FROM; i ++) {
+        av = &(tpi->average_velocities[to_index][i]);
+        if(av->from == from) {
+            *av_out = av->average_velocity;
+
+            return 0;
+        }
+    }
+    ASSERT(0);
+    return -1;
 }
