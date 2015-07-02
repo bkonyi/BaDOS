@@ -109,7 +109,6 @@ void train_server(void) {
 }
 
 void train_position_info_init(train_position_info_t* tpi) {
-    tpi->dist_from_last_sensor = 0;
     tpi->ticks_at_last_sensor = 0;
     tpi->last_sensor = NULL;
     tpi->next_sensor_estimated_time = 0;
