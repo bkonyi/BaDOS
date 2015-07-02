@@ -74,6 +74,8 @@ int register_train(int8_t train, int8_t slot);
  */
 void find_trains(void);
 
+int tcs_train_request_calibration_info(int8_t train);
+
 int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num);
 void tcs_initialize_track_switches(void);
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__

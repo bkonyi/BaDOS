@@ -3,18 +3,31 @@
 #include <trains/train_controller_commander.h>
 #include <io/io.h>
 #include <terminal/terminal.h>
+#include <ring_buffer.h>
 
 #define TRAIN_SERVER_MSG_SIZE (sizeof(train_server_msg_t))
 #define TRAIN_SERVER_SENSOR_MSG_SIZE (sizeof(train_server_sensor_msg_t))
 
 
+static void train_conductor(void);
 
 static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info); 
 static bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info);
 static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
+
 static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time,uint32_t);
 static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
 static int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
+
+
+#define MAX_CONDUCTORS 32 //Arbitrary
+
+CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
+
+typedef struct {
+    train_server_msg_t request;
+    int32_t delay;
+} conductor_info_t;
 
 void train_server(void) {
     //The bigger of the 2 should be the size we use for receive
@@ -23,14 +36,15 @@ void train_server(void) {
                         TRAIN_SERVER_SENSOR_MSG_SIZE);
 	int requester;
 	char message[message_size]; 
-    int16_t train_number = -1;
-    int16_t train_slot   = -1;
-    int8_t  stop_sensors[10];
-    int32_t last_update_time = 0;
+    int16_t train_number = -1; //The number associated with the train
+    int16_t train_slot   = -1; //The slot that the train is registered to.
+    int8_t  stop_sensors[10]; //The sensors which, when hit, will trigger the train to stop
+    int32_t last_distance_update_time = 0; //The last time the expected distance for the train was updated
+    int conductor_tid; //Used when destroying conductors
 
-    bool finding_initial_position = false;
-    bool initial_sensor_reading_received = false;
-    int8_t finding_initial_sensor_state[10];
+    bool finding_initial_position = false; //Is the train currently trying to find its initial location
+    bool initial_sensor_reading_received = false; //Has the train gotten its first sensor update to be used for finding the train
+    int8_t finding_initial_sensor_state[10]; //The first sensor update used when finding the train
 
     int i;
     for(i = 0; i < 10; ++i) {
@@ -40,29 +54,30 @@ void train_server(void) {
     train_position_info_t train_position_info;
     train_position_info_init(&train_position_info);
 
+    conductor_buffer_t conductor_buffer;
+    RING_BUFFER_INIT(conductor_buffer, MAX_CONDUCTORS);
+
 
     //CURRENTLY A STEM CELL TRAIN,
     //need to obtain train info
     Receive(&requester,message, message_size);
     Reply(requester,NULL,0);
+
     if(((train_server_msg_t*)message)->command != TRAIN_SERVER_INIT) {
         //Our train hasn't been initialized
         ASSERT(0);
     }
-
-    //
-    tcs_switch_set_direction(8,'s');
-    tcs_switch_set_direction(7,'s');    
-    tcs_switch_set_direction(14, 's');
 
     train_number = ((train_server_msg_t*)message)->num1; 
     train_slot   = ((train_server_msg_t*)message)->num2;
     tps_add_train(train_number);
 
 	FOREVER {
-        //send_term_error_msg("Train: %d WAITING", train_number);
 		Receive(&requester, message, message_size);
-        Reply(requester, (char*)NULL, 0);
+
+        if(((train_server_msg_t*)message)->command != TRAIN_SERVER_REQUEST_CALIBRATION_INFO) {
+            Reply(requester, (char*)NULL, 0);
+        }
 
         switch (((train_server_msg_t*)message)->command) {
             case TRAIN_SERVER_SENSOR_DATA:
@@ -72,10 +87,10 @@ void train_server(void) {
                 
                     int32_t new_time = Time();
 
-                    if(new_time - last_update_time > 10) {
+                    if(new_time - last_distance_update_time > 10) {
                         int32_t time_to_expected_time = train_position_info.next_sensor_estimated_time - new_time;
                         send_term_update_dist_msg(train_slot, (time_to_expected_time * ((int32_t)train_position_info.average_velocity)) / 100);
-                        last_update_time = new_time;
+                        last_distance_update_time = new_time;
                     }
                 } else {
                     if(!initial_sensor_reading_received) {
@@ -87,10 +102,18 @@ void train_server(void) {
                 }
 
                 break;
-            case TRAIN_SERVER_SWITCH_CHANGED :
+            case TRAIN_SERVER_SWITCH_CHANGED:
                 //Invalidate any predictions we made
                 //Kill our conductor
                 //Resurrect him with a new delay
+                while(!IS_BUFFER_EMPTY(conductor_buffer)) {
+                    POP_FRONT(conductor_buffer, conductor_tid);
+                    Destroy(conductor_tid);
+                }
+
+                //TODO recalculate path finding
+                ASSERT(0);
+                (void)train_conductor;
                 break;
             case TRAIN_SERVER_REGISTER_STOP_SENSOR:
                 handle_register_stop_sensor(stop_sensors, ((train_server_msg_t*)message)->num1);
@@ -100,6 +123,9 @@ void train_server(void) {
                 send_term_heavy_msg(false,"Finding train: %d", train_number);
                 train_set_speed(train_number, 2);
                 break;
+            case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
+                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * 80);
+                break;
             default:
                 //Invalid command
                 bwprintf(COM2, "Invalid train command: %d from TID: %d\r\n", ((train_server_msg_t*)message)->command, requester);
@@ -107,6 +133,24 @@ void train_server(void) {
                 break;
         }
 	}
+}
+
+void train_conductor(void) {
+    conductor_info_t conductor_info;
+    int train_server_tid;
+
+    //Get the conductor request from the train
+    Receive(&train_server_tid, (char*)&conductor_info, sizeof(conductor_info_t));
+    Reply(train_server_tid, (char*)NULL, 0);
+
+    //Delay until the specified time
+    DelayUntil(conductor_info.delay);
+
+    //Send the request to the train server
+    Send(train_server_tid, (char*)&conductor_info.request, sizeof(train_server_msg_t), (char*)NULL, 0);
+
+    //Die
+    Exit();
 }
 
 void train_position_info_init(train_position_info_t* tpi) {
@@ -148,6 +192,12 @@ void train_find_initial_position(tid_t tid) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_FIND_INIT_POSITION;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_request_calibration_info(tid_t tid, avg_velocity_t* average_velocity_info) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
 }
 
 void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info) {

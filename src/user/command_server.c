@@ -168,7 +168,14 @@ void process_input(char* input) {
 			Delay(200);
 			_set_speed(target_train_number,0);
 			send_term_heavy_msg(true,"Done shoving train %d",target_train_number);
-		}else {
+		} else if(strcmp(first, "calibration") == 0 || strcmp(first, "calib") == 0) {
+			target_train_number = strtoi(second);
+			result = tcs_train_request_calibration_info(target_train_number);
+
+			if(result != 0) {
+				send_term_heavy_msg(true, "Invalid train number for calibration info");
+			}
+		} else {
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	} else if( argc == 1) {
@@ -183,7 +190,7 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "find" )== 0) {
 			find_trains();
 			send_term_find_msg();
-		}else{
+		} else{
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	}else{
