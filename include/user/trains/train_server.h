@@ -28,11 +28,9 @@ typedef struct {
 } avg_velocity_t;
 
 typedef struct train_position_info_t {
-	uint32_t dist_from_last_sensor;
 	uint32_t ticks_at_last_sensor;
 	track_node* last_sensor;
     uint32_t next_sensor_estimated_time;
-    uint32_t dist_to_next_sensor;
     uint32_t average_velocity;
     avg_velocity_t average_velocities[80][80];
     track_node* next_sensor;
