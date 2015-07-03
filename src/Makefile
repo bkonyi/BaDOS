@@ -20,7 +20,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 ARFLAGS = rcs
 
 #define the executable
-EXEC = bados.elf
+EXEC = dados.elf
 
 LDFLAGS = -init main -N -Map $(EXEC:.elf=.map) -T orex.ld 
 

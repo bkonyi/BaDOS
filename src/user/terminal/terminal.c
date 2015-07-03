@@ -232,7 +232,13 @@ void terminal_server(void) {
                 //Null terminate it just in case
                 input_buffer[MAX_RECEIVE_LENGTH-1] = '\0';
                 //place our error message
+                if(((bool)data->num1) == false ) {
+                    term_save_cursor();
+                }
                 _status_message(((bool)data->num1),((char*)input_buffer)+(sizeof(terminal_data_t)));
+                if(((bool)data->num1) == false ) {
+                    term_restore_cursor();
+                }
                 break;
             case TERMINAL_COMMAND_SUCCESS:
                 //Null terminate it just in case
@@ -634,7 +640,7 @@ void send_term_quit_msg (void) {
 }
 
 void handle_start_command(void) {
-    _status_message(false,"ENABLING TRAIN CONTROLLER");
+    _status_message(true,"ENABLING TRAIN CONTROLLER");
 }
 void send_term_start_msg(void) {
     terminal_data_t terminal_data;
@@ -643,7 +649,7 @@ void send_term_start_msg(void) {
 }
 
 void handle_stop_command(void) {
-    _status_message(false,"STOPPING TRAINS AND TURNING OFF CONTROLLER");
+    _status_message(true,"STOPPING TRAINS AND TURNING OFF CONTROLLER");
 }
 void send_term_stop_msg(void) {
     terminal_data_t terminal_data;
@@ -651,7 +657,7 @@ void send_term_stop_msg(void) {
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_find_command(void) {
-    _status_message(false,"FINDING REGISTERED TRAINS...");
+    _status_message(true,"FINDING REGISTERED TRAINS...");
 }
 void send_term_find_msg(void) {
     terminal_data_t terminal_data;
