@@ -230,7 +230,6 @@ void process_input(char* input) {
 		}else if(strcmp(argv[0], "tracks" )== 0) {
 			
 			send_term_heavy_msg(true,"Available track options: smallloop, bigloop, megaloop, 8A, 8B, bigloopflare");
-			send_term_find_msg();
 		}  else{
 			send_term_heavy_msg(true,"Invalid command");
 		}
