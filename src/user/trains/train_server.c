@@ -18,7 +18,7 @@ static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num)
 static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time,uint32_t);
 static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
 static int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
-
+//static int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff);
 
 #define MAX_CONDUCTORS 32 //Arbitrary
 
@@ -215,7 +215,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
         if(*next_sensor == NULL) {
             return;
         }
-     
+        
         bool update_error_expected_time = false;
         uint32_t expected_group = (*next_sensor)->num / 8;
         uint32_t expected_index = (*next_sensor)->num % 8;
@@ -231,7 +231,14 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             switch_error_group = switch_error_next_sensor->num / 8;
             switch_error_index = switch_error_next_sensor->num % 8;
         }
-        
+        track_node* temp = NULL ;
+       
+        temp = *next_sensor;
+        while(temp != NULL && temp->num != 71) { // E8
+            temp = get_next_sensor(temp);
+        }
+       
+
         for(i = 0; i < 10; ++i) {
 
             //The condition for hitting the sensor that we are expecting next
@@ -267,7 +274,6 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
 
                     }else {
                         train_position_info->next_sensor_estimated_time = train_position_info->ticks_at_last_sensor + (distance * 100) / average_velocity;
-                        send_term_heavy_msg(false,"aV betwee %s => %s: %d.%d",last_sensor_track_node->name,(*next_sensor)->name,average_velocity/10,average_velocity%10);
                     }
                     
                 }else {
@@ -387,13 +393,40 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
     }
 }
 
-uint32_t estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff) {
+int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff) {
     ASSERT(start_sensor->type == NODE_SENSOR);
     ASSERT(end_sensor->type == NODE_SENSOR);
-    distance_between_track_nodes(start_sensor,end_sensor,false);
- return 0;
+    track_node* iterator_node = start_sensor,*prev_node;
+    uint32_t time = 0,distance=0;
+    prev_node = iterator_node;
+    uint32_t av_velocity=0;
+    for(iterator_node = get_next_sensor(start_sensor); iterator_node != end_sensor && iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
+            _train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity);
+            distance = get_track_node_length(prev_node);
+            //send_term_heavy_msg(false, "dist %d avel %d", distance,av_velocity);
+            time += (distance*100)/av_velocity; // time is in 1/100ths of second so mult by 100 to get on the level
+            prev_node = iterator_node;
+    }
+    
+    if(iterator_node == NULL) {
+        //Track lead us to a dead end we can't estimate
+        return -1;
+
+    }
+
+    if(mm_diff > 0) {
+         _train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity);
+    }//else use the last av_velocity, if that av_velocity was never set or is zero, we will shortcircuit
+
+    if(av_velocity == 0) {
+        return time;
+    }
+    time+= (mm_diff*100)/av_velocity;
+ return time;
 }
 int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out) {
+    ASSERT(from->type == NODE_SENSOR);
+    ASSERT(to->type == NODE_SENSOR);
     int i,to_index;
     to_index = to->num;
     avg_velocity_t* av;
@@ -420,6 +453,8 @@ int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* f
 }
 
 int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av_out) {
+    ASSERT(from->type == NODE_SENSOR);
+    ASSERT(to->type == NODE_SENSOR);    
     avg_velocity_t* av;
     int i,to_index;
     to_index = to->num;
