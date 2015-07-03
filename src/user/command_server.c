@@ -111,7 +111,9 @@ void process_input(char* input) {
 			}else{
                 send_term_cmd_success_msg("sensor_stop");
             }
-		} else if (strcmp(argv[0],"track")==0) {
+		} else if(strcmp(first,"stop_around_sensor") == 0 || strcmp(first, "sas")==0) {
+			
+		}else if (strcmp(argv[0],"track")==0) {
 			char track = char_to_upper(argv[1][0]);
 				str_to_upper(third);
 			if(strcmp(third,"BIGLOOP")==0) {

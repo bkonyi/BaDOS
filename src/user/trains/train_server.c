@@ -18,6 +18,8 @@ static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num)
 static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time,uint32_t);
 static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
 static int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
+static void handle_train_stop_around_sensor(train_position_info_t* tpi,int8_t sensor_num, int32_t mm_diff); 
+static uint32_t _get_stopping_distance(int speed, bool is_under_over) ;
 //static int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff);
 
 #define MAX_CONDUCTORS 32 //Arbitrary
@@ -36,7 +38,7 @@ void train_server(void) {
                         TRAIN_SERVER_SENSOR_MSG_SIZE);
 	int requester;
 	char message[message_size]; 
-    int16_t train_number = -1; //The number associated with the train
+    int16_t train_number = -1; //The number associated wiht the train
     int16_t train_slot   = -1; //The slot that the train is registered to.
     int8_t  stop_sensors[10]; //The sensors which, when hit, will trigger the train to stop
     int32_t last_distance_update_time = 0; //The last time the expected distance for the train was updated
@@ -126,6 +128,9 @@ void train_server(void) {
             case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
                 Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM);
                 break;
+            case TRAIN_SERVER_STOP_AROUND_SENSOR:
+                handle_train_stop_around_sensor(&train_position_info,((train_server_msg_t*)message)->num1, ((train_server_msg_t*)message)->num2);
+                break;
             default:
                 //Invalid command
                 bwprintf(COM2, "Invalid train command: %d from TID: %d\r\n", ((train_server_msg_t*)message)->command, requester);
@@ -145,7 +150,6 @@ void train_conductor(void) {
 
     //Delay until the specified time
     DelayUntil(conductor_info.delay);
-
     //Send the request to the train server
     Send(train_server_tid, (char*)&conductor_info.request, sizeof(train_server_msg_t), (char*)NULL, 0);
 
@@ -161,6 +165,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->next_sensor = NULL;
     tpi->sensor_error_next_sensor = NULL;
     tpi->switch_error_next_sensor = NULL;
+    tpi->conductor_tid = -1;
 
     int i, j;
     for(i = 0; i < 80; ++i) {
@@ -172,7 +177,13 @@ void train_position_info_init(train_position_info_t* tpi) {
     }
 
 }
-
+void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_diff) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_STOP_AROUND_SENSOR;
+    msg.num1 = sensor_num;
+    msg.num2 = mm_diff;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
+}
 void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_INIT;
@@ -418,6 +429,67 @@ int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sens
     time+= (mm_diff*100)/av_velocity;
  return time;
 }
+int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sensor, int distance) {
+    ASSERT(start_sensor->type == NODE_SENSOR);
+    track_node* iterator_node = start_sensor,*prev_node;
+    uint32_t time = 0,segment_dist=0;
+    prev_node = iterator_node;
+    uint32_t av_velocity=0;
+    for(iterator_node = get_next_sensor(start_sensor); distance >0  && iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
+            _train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity);
+            segment_dist = get_track_node_length(prev_node);
+            //send_term_heavy_msg(false, "dist %d avel %d", dist,av_velocity);
+            if(distance < segment_dist  ) {
+                segment_dist = distance;
+            }
+            time += (segment_dist*100)/av_velocity; // time is in 1/100ths of second so mult by 100 to get on the level
+            distance -= segment_dist;
+            prev_node = iterator_node;
+    }
+    
+    if(distance != 0) {
+        //Track lead us to a dead end we can't estimate
+        return -2;
+
+    }
+    return time;
+}
+void handle_train_stop_around_sensor(train_position_info_t* tpi,int8_t sensor_num, int32_t mm_diff) {
+    int time;
+    uint32_t distance;
+    track_node * destination_sensor = get_sensor_node_from_num(tpi->next_sensor,sensor_num); 
+    //Get distance to that point
+    distance = distance_between_track_nodes(tpi->next_sensor,destination_sensor,false);
+    distance += mm_diff;
+    //get stopping distance
+    distance -= _get_stopping_distance(12,false);
+    //get time to that spot
+    time = estimate_ticks_to_position(tpi,tpi->next_sensor, distance);
+    //Start a conducter
+    tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
+    conductor_info_t conductor_info;
+    conductor_info.request.command = TRAIN_SERVER_SET_SPEED;
+    conductor_info.request.num1 = 0;
+    conductor_info.delay = time;
+    Send(tpi->conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
+
+
+}
+
+uint32_t _get_stopping_distance(int speed, bool is_under_over) {
+    //Using the stopping data curve calculated from excel sheet
+    uint32_t distance ;
+
+    if(is_under_over){
+        distance = 1664*speed*speed - 18608*speed + 67071;
+    }else {
+        distance = 1752*speed*speed - 21836*speed + 82966;
+    }
+    distance/=100;
+
+    return distance;
+}
+
 int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out) {
     ASSERT(from->type == NODE_SENSOR);
     ASSERT(to->type == NODE_SENSOR);
@@ -456,7 +528,6 @@ int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from
         av = &(tpi->average_velocities[to_index][i]);
         if(av->from == from) {
             *av_out = av->average_velocity;
-
             return 0;
         }
     }

@@ -34,6 +34,7 @@ uint32_t get_track_node_length(track_node* node) {
 	}
 
 }
+
 static track_node* distance_between_track_nodes_next(track_node* node, bool* flip_switches) {
 	int index = node->state;
 	if(*flip_switches == true && node->type == NODE_BRANCH) {
@@ -52,6 +53,30 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 	uint32_t edge = 0;
 
 	for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
+		iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
+		
+		if(iterator_node == start || iterator_node == NULL){
+			//We have a cycle and didn't find a sensor
+			return 0;
+		}
+		dist += get_track_node_length(iterator_node);
+		edge++;
+
+	}
+	ASSERT(dist != 0);
+	return dist;
+}
+
+uint32_t dist_between_node_and_num(track_node* start, int num) {
+	if(start == NULL || start->num == num) {
+		return 0;
+	}
+	bool broken_switch = false;
+	track_node* iterator_node; 
+	uint32_t dist =get_track_node_length(start);
+	uint32_t edge = 0;
+
+	for(iterator_node = get_next_track_node(start) ;iterator_node->num !=num   ;
 		iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
 		
 		if(iterator_node == start || iterator_node == NULL){
@@ -107,4 +132,11 @@ track_node* get_next_sensor_switch_broken( track_node* node) {
 		}
 	}
 	return NULL;
+}
+track_node* get_sensor_node_from_num(track_node* start, int num) {
+	ASSERT(start->type == NODE_SENSOR);
+
+	int index_num = start->num;
+	track_node* base = start - index_num;
+	return base+num;
 }
