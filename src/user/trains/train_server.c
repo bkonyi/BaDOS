@@ -194,7 +194,7 @@ void train_find_initial_position(tid_t tid) {
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
-void train_request_calibration_info(tid_t tid, avg_velocity_t* average_velocity_info) {
+void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
