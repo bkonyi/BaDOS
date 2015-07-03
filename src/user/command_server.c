@@ -113,7 +113,7 @@ void process_input(char* input) {
             }
 		} else if (strcmp(argv[0],"track")==0) {
 			char track = char_to_upper(argv[1][0]);
-			if(strcmp(argv[2],"bigloop")==0) {
+			if(strcmp(third,"bigloop")==0) {
                 _init_track(track);
                 _set_switch(6,'S');
                 _set_switch(7, 'S');
@@ -121,7 +121,44 @@ void process_input(char* input) {
                 _set_switch(9, 'S');
                 _set_switch(12, 'S');
                 _set_switch(15, 'S');
-                send_term_cmd_success_msg("track a bigloop");
+                send_term_cmd_success_msg("set track to: bigloop");
+			}else if(strcmp(third,"bigloopflare")==0) {
+                _init_track(track);
+                _set_switch(8,'S');
+                _set_switch(9, 'S');
+                _set_switch(12, 'S');
+                _set_switch(15, 'S');
+                send_term_cmd_success_msg("set track to: bigloop");
+			}else if(strcmp(third,"8") == 0||strcmp(third,"8A")==0) {
+                _init_track(track);
+                _set_switch(10,'S');
+                _set_switch(17, 'S');
+                _set_switch(156,'S');
+                send_term_cmd_success_msg("set track to: 8A");
+			} else if(strcmp(third,"8B")==0) {
+                _init_track(track);
+                _set_switch(13,'S');
+                _set_switch(16, 'S');
+                _set_switch(156,'S');
+                send_term_cmd_success_msg("set track to: 8A");
+			}else if (strcmp(third,"smallloop") == 0) {
+				_init_track(track);
+                _set_switch(16,'S');
+                _set_switch(17, 'S');
+                _set_switch(10,'S');
+                _set_switch(13,'S');
+                send_term_cmd_success_msg("set track to: smallloop");
+			}else if (strcmp(third,"megaloop") == 0) {
+				_init_track(track);
+				if(track == 'B') _set_switch(11,'S');
+                _set_switch(4,'S');
+                _set_switch(8, 'S');
+                _set_switch(9,'S');
+                _set_switch(15,'S');
+                _set_switch(18, 'S');
+                _set_switch(2,'S');
+                _set_switch(1,'S');
+                send_term_cmd_success_msg("set track to: megaloop");
 			}else {
                 send_term_heavy_msg(true,"Track configuration '%s' not available",argv[2]);
             }
@@ -190,7 +227,11 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "find" )== 0) {
 			find_trains();
 			send_term_find_msg();
-		} else{
+		}else if(strcmp(argv[0], "tracks" )== 0) {
+			
+			send_term_heavy_msg(true,"Available track options: smallloop, bigloop, megaloop, 8A, 8B, bigloopflare");
+			send_term_find_msg();
+		}  else{
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	}else{
