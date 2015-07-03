@@ -230,14 +230,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
         if(switch_error_next_sensor != NULL && switch_error_next_sensor != *next_sensor) {
             switch_error_group = switch_error_next_sensor->num / 8;
             switch_error_index = switch_error_next_sensor->num % 8;
-        }
-        track_node* temp = NULL ;
-       
-        temp = *next_sensor;
-        while(temp != NULL && temp->num != 71) { // E8
-            temp = get_next_sensor(temp);
-        }
-       
+        }       
 
         for(i = 0; i < 10; ++i) {
 
