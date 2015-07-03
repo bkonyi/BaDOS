@@ -19,5 +19,5 @@ void term_clear_rest_line(void);
 void term_move_cursor(int col, int row);
 void term_save_cursor(void);
 void term_restore_cursor(void);
-
+void term_move_to_column(int col);
 #endif //_TERMINAL_CONTROL_H_
