@@ -53,5 +53,5 @@ void train_server(void);
 void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot);
 void train_trigger_stop_on_sensor(tid_t tid, int8_t sensor_num);
 void train_find_initial_position(tid_t tid);
-void train_request_calibration_info(tid_t tid, avg_velocity_t* average_velocity_info);
+void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]);
 #endif // _TRAIN_SERVER_H_

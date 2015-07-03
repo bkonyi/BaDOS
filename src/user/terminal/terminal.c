@@ -38,6 +38,7 @@
 #define TERM_TRAIN_STATE_NEXT_OFF    TERM_TRAIN_STATE_DIST_OFF  + 13
 #define TERM_TRAIN_STATE_VELO_OFF    TERM_TRAIN_STATE_NEXT_OFF + 6
 #define TERM_TRAIN_STATE_ERR_OFF     TERM_TRAIN_STATE_VELO_OFF + 10
+#define TERM_TRAIN_CALIB_DATA_OFF    TERM_TRAIN_STATE_ERR_OFF + 12
 
 #define MAP_ROW                      TERM_INPUT_ROW+2
 #define MAP_COL                      3
@@ -77,7 +78,7 @@ static void handle_update_train_slot_distance(int8_t slot, int32_t dist);
 static void handle_update_train_slot_error(int8_t slot, int32_t err);
 static void handle_command_success_message(char *cmd) ;
 static void _clear_user_input(void);
-static void handle_display_average_velocity_information(int16_t train, avg_velocity_t* average_velocity_info);
+static void handle_display_average_velocity_information(int16_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]);
 
 static void handle_initialize_track_switches(void);
 
@@ -241,8 +242,7 @@ void terminal_server(void) {
                 break;
             case TERMINAL_DISPLAY_TRAIN_CALIBRATION:
                 //TODO
-                ASSERT(0);
-                handle_display_average_velocity_information(data->num1, NULL);//(avg_velocity_t*)data->average_velocity_info);
+                handle_display_average_velocity_information(data->num1, data->average_velocity_info);
                 break;
             default:
                 ASSERT(0);
@@ -825,23 +825,42 @@ void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t i
     }
 }
 
-void print_train_calibration_info(int8_t train, avg_velocity_t* average_velocity_info) {
+void print_train_calibration_info(int8_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_DISPLAY_TRAIN_CALIBRATION;
     terminal_data.num1 = train;
 
     (void)average_velocity_info;
-    ASSERT(0);
     _status_message(true, "Printing train calib info...");
     //TODO
-    //memcpy(terminal_data.average_velocity_info, average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
+    memcpy(terminal_data.average_velocity_info, average_velocity_info, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM    );
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data, sizeof(terminal_data_t),(char*)NULL,0);
 }
 
-void handle_display_average_velocity_information(int16_t train, avg_velocity_t* average_velocity_info) {
-    (void)train;
-    (void)average_velocity_info;
-    ASSERT(0);
+void handle_display_average_velocity_information(int16_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
+    term_save_cursor();
+    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF, TERM_INPUT_ROW + 2);
+
+    printf(COM2, "Calibration Information For Train: %d\r\n", train);
+    term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);
+
+    int i, j;
+    for(i = 0; i < 80; ++i) {
+        char first_sensor_letter = 'A' + (i / 16);
+        int first_sensor_num = (i % 16) + 1;
+
+        for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
+            avg_velocity_t* avg_velocity = &(average_velocity_info[i][j]);
+
+            if(avg_velocity->average_velocity != 0) {
+                printf(COM2, "%c%d[%d] from %s[%d]: \t%d Iterations: %d\r\n", first_sensor_letter, first_sensor_num, i, 
+                    avg_velocity->from->name, j, avg_velocity->average_velocity, avg_velocity->average_velocity_count);
+                term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);
+            }
+        }
+    }
+
+    term_restore_cursor();
 }
 
 

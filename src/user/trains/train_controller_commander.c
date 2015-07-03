@@ -464,13 +464,12 @@ void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGI
 
 void handle_request_calibration_info(train_data_t* trains, int16_t train) {
     if(trains[train].slot != INVALID_SLOT) {
-        avg_velocity_t average_velocity_info[80][80];
-        train_request_calibration_info(trains[train].server_tid, (avg_velocity_t*)average_velocity_info);
-        print_train_calibration_info(train, (avg_velocity_t*)average_velocity_info);
+        avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM];
+        train_request_calibration_info(trains[train].server_tid, average_velocity_info);
+        print_train_calibration_info(train, average_velocity_info);
         //ASSERT(0);
     } else {
-        //TODO handle error
-        ASSERT(0);
+        send_term_heavy_msg(true, "Train: %d is not registered", train);
     }
 }
 

@@ -124,7 +124,7 @@ void train_server(void) {
                 train_set_speed(train_number, 2);
                 break;
             case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
-                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * 80);
+                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM);
                 break;
             default:
                 //Invalid command
@@ -194,7 +194,7 @@ void train_find_initial_position(tid_t tid) {
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
-void train_request_calibration_info(tid_t tid, avg_velocity_t* average_velocity_info) {
+void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
@@ -374,6 +374,7 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
     if(train_position_info->next_sensor != NULL) {
         update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(train_position_info->next_sensor->name)));
 
+        train_position_info->average_velocity = average_velocity;
         //TODO check for error here?
         uint32_t dist_to_next_sensor = distance_between_track_nodes(train_position_info->last_sensor, train_position_info->next_sensor,false);
 
