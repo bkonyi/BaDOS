@@ -500,7 +500,6 @@ void _status_message(bool clr_usr_in,char* fmt, ...){
     term_hide_cursor();
     term_move_cursor(TERM_STATUS_COORDS);
     term_clear_rest_line();
-    term_move_to_column(20);
     va_list va;
     va_start(va,fmt);
     vprintf(COM2,fmt,va);
