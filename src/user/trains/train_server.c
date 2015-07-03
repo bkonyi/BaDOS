@@ -390,6 +390,7 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
 uint32_t estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff) {
     ASSERT(start_sensor->type == NODE_SENSOR);
     ASSERT(end_sensor->type == NODE_SENSOR);
+    distance_between_track_nodes(start_sensor,end_sensor,false);
  return 0;
 }
 int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out) {

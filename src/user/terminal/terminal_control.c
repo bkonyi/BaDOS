@@ -51,3 +51,7 @@ void term_save_cursor(void) {
 void term_restore_cursor(void) {
    printf(COM2,"\033[u");
 }
+
+void term_move_to_column(int col) {
+  printf(COM2,"\033[%dG",col );
+}
