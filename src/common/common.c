@@ -54,17 +54,13 @@ char char_to_upper(char a) {
     return a;
 }
 
-void to_upper(char* a) {
-    //TODO: untested
-    #if 0
+void str_to_upper(char* a) {
+
     char* A = a;
     while(*A != '\0' ){
-        if('a'<= *A && *A <= 'z'){
-            *A = *A +('a'-'A');
-        }
+        *A = char_to_upper(*A);
         A++;
     }
-    #endif
 }
 
 int32_t strcmp(char* a, char* b) {
