@@ -41,7 +41,7 @@ typedef struct {
     int32_t            num2;
     char               byte1;
     int8_t             sensors[10]; //I really don't want to put this here...
-    //avg_velocity_t average_velocity_info[80 * 80]; //Too big :(
+    avg_velocity_t average_velocity_info[80 * MAX_AV_SENSORS_FROM];
 } terminal_data_t;
 
 /**

@@ -124,7 +124,7 @@ void train_server(void) {
                 train_set_speed(train_number, 2);
                 break;
             case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
-                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * 80);
+                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM);
                 break;
             default:
                 //Invalid command
