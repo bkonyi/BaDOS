@@ -1,6 +1,7 @@
 #include <trains/train_server.h>
 #include <trains/track_position_server.h>
 #include <trains/train_controller_commander.h>
+#include <trains/train_calibration_loader.h>
 #include <io/io.h>
 #include <terminal/terminal.h>
 #include <ring_buffer.h>
