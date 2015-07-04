@@ -4,3 +4,4 @@
 *.map
 *.swp
 *.swo
+src/Makefile

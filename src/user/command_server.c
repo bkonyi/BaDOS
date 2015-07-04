@@ -113,7 +113,8 @@ void process_input(char* input) {
             }
 		} else if (strcmp(argv[0],"track")==0) {
 			char track = char_to_upper(argv[1][0]);
-			if(strcmp(third,"bigloop")==0) {
+				str_to_upper(third);
+			if(strcmp(third,"BIGLOOP")==0) {
                 _init_track(track);
                 _set_switch(6,'S');
                 _set_switch(7, 'S');
@@ -122,13 +123,13 @@ void process_input(char* input) {
                 _set_switch(12, 'S');
                 _set_switch(15, 'S');
                 send_term_cmd_success_msg("set track to: bigloop");
-			}else if(strcmp(third,"bigloopflare")==0) {
+			}else if(strcmp(third,"BIGLOOPFLARE")==0) {
                 _init_track(track);
                 _set_switch(8,'S');
                 _set_switch(9, 'S');
                 _set_switch(12, 'S');
                 _set_switch(15, 'S');
-                send_term_cmd_success_msg("set track to: bigloop");
+                send_term_cmd_success_msg("set track to: bigloopflare");
 			}else if(strcmp(third,"8") == 0||strcmp(third,"8A")==0) {
                 _init_track(track);
                 _set_switch(10,'S');
@@ -139,16 +140,16 @@ void process_input(char* input) {
                 _init_track(track);
                 _set_switch(13,'S');
                 _set_switch(16, 'S');
-                _set_switch(156,'S');
-                send_term_cmd_success_msg("set track to: 8A");
-			}else if (strcmp(third,"smallloop") == 0) {
+                _set_switch(154,'S');
+                send_term_cmd_success_msg("set track to: 8B");
+			}else if (strcmp(third,"SMALLLOOP") == 0) {
 				_init_track(track);
                 _set_switch(16,'S');
                 _set_switch(17, 'S');
                 _set_switch(10,'S');
                 _set_switch(13,'S');
                 send_term_cmd_success_msg("set track to: smallloop");
-			}else if (strcmp(third,"megaloop") == 0) {
+			}else if (strcmp(third,"MEGALOOP") == 0) {
 				_init_track(track);
 				if(track == 'B') _set_switch(11,'S');
                 _set_switch(4,'S');
