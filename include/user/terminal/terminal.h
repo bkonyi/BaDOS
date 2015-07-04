@@ -41,7 +41,7 @@ typedef struct {
     int32_t            num2;
     char               byte1;
     int8_t             sensors[10]; //I really don't want to put this here...
-    avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM];
+    avg_velocity_t*** average_velocity_info;
 } terminal_data_t;
 
 /**
@@ -133,5 +133,5 @@ void send_term_update_dist_msg (uint32_t slot, int32_t dist);
 void send_term_update_err_msg(uint32_t slot, int32_t dist);
 void send_term_cmd_success_msg(char*cmd) ;
 
-void print_train_calibration_info(int8_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]);
+void print_train_calibration_info(int8_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]);
 #endif //__TERMINAL_H__

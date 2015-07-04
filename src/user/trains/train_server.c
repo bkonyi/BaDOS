@@ -84,7 +84,6 @@ void train_server(void) {
                 if(!finding_initial_position) {
                     //Do calculations for our train.
                     handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&train_position_info);
-                
                     int32_t new_time = Time();
 
                     if(new_time - last_distance_update_time > 10) {
@@ -124,7 +123,10 @@ void train_server(void) {
                 train_set_speed(train_number, 2);
                 break;
             case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
-                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM);
+                Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM * MAX_STORED_SPEEDS);
+                break;
+            case TRAIN_SERVER_SET_SPEED:
+                train_position_info.speed = ((train_server_msg_t*)message)->num1;
                 break;
             default:
                 //Invalid command
@@ -154,6 +156,7 @@ void train_conductor(void) {
 }
 
 void train_position_info_init(train_position_info_t* tpi) {
+    tpi->speed = 0;
     tpi->ticks_at_last_sensor = 0;
     tpi->last_sensor = NULL;
     tpi->next_sensor_estimated_time = 0;
@@ -162,12 +165,14 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->sensor_error_next_sensor = NULL;
     tpi->switch_error_next_sensor = NULL;
 
-    int i, j;
+    int i, j, k;
     for(i = 0; i < 80; ++i) {
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
-            tpi->average_velocities[i][j].average_velocity = 0;
-            tpi->average_velocities[i][j].average_velocity_count = 0;
-            tpi->average_velocities[i][j].from = NULL;
+            for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
+                tpi->average_velocities[i][j][k].average_velocity = 0;
+                tpi->average_velocities[i][j][k].average_velocity_count = 0;
+                tpi->average_velocities[i][j][k].from = NULL;
+            }
         }
     }
 
@@ -194,10 +199,17 @@ void train_find_initial_position(tid_t tid) {
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
-void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
+void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * 80);
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM * MAX_STORED_SPEEDS);
+}
+
+void train_server_set_speed(tid_t tid, uint16_t speed) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_SPEED;
+    msg.num1 = speed;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
 void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info) {
@@ -231,13 +243,6 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
             switch_error_group = switch_error_next_sensor->num / 8;
             switch_error_index = switch_error_next_sensor->num % 8;
         }
-        track_node* temp = NULL ;
-       
-        temp = *next_sensor;
-        while(temp != NULL && temp->num != 71) { // E8
-            temp = get_next_sensor(temp);
-        }
-       
 
         for(i = 0; i < 10; ++i) {
 
@@ -263,6 +268,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                     is_switch_error = true;
                 }
 
+                (void)last_sensor_track_node;
                 
             
                 if(update_error_expected_time) {
@@ -431,8 +437,10 @@ int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* f
     int i,to_index;
     to_index = to->num;
     avg_velocity_t* av;
+    int16_t speed_index = GET_SPEED_INDEX(tpi->speed);
+
     for(i = 0; i < MAX_AV_SENSORS_FROM; i ++) {
-        av = &(tpi->average_velocities[to_index][i]);
+        av = &(tpi->average_velocities[to_index][i][speed_index]);
         //Emptiness is defined by having a null from member    
         if(av->from == NULL) {
             av->from = from;
@@ -441,7 +449,7 @@ int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* f
             *av_out = V;
             return 0;
         }else if(av->from == from) {
-            av->average_velocity = ((av->average_velocity * av->average_velocity_count)+ V)/(av->average_velocity_count  +1);
+            av->average_velocity = ((av->average_velocity * av->average_velocity_count) + V)/(av->average_velocity_count + 1);
             av->average_velocity_count++;
             *av_out = av->average_velocity;
             
@@ -458,9 +466,11 @@ int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from
     ASSERT(to->type == NODE_SENSOR);    
     avg_velocity_t* av;
     int i,to_index;
+    uint16_t speed_index = GET_SPEED_INDEX(tpi->speed);
+
     to_index = to->num;
     for(i = 0; i < MAX_AV_SENSORS_FROM; i ++) {
-        av = &(tpi->average_velocities[to_index][i]);
+        av = &(tpi->average_velocities[to_index][i][speed_index]);
         if(av->from == from) {
             *av_out = av->average_velocity;
 
