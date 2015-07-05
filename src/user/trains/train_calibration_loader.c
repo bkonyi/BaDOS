@@ -40,14 +40,14 @@ void load_train_65_calibration_info(train_position_info_t* train_position_info) 
 }
 
 uint16_t train_65_stopping_distance(uint16_t velocity) {
-    int64_t big_velocity = ((int64_t)velocity) * 100000;
+    int64_t big_velocity = ((int64_t)velocity);
     int64_t distance;
 
-    //This calculates f(x) = (-2 * 10^(-5))x^2 + 0.0633x + 7.4358
+    //This calculates f(x) = (0.3712)x^2 + 0.6223x + 54.877
     //That's the best polynomial fit for our stopping distances for this train
-    distance = ((big_velocity * big_velocity) * -2) + (6330 * big_velocity) + 743580;
+    distance = ((big_velocity * big_velocity) * 3712) + (6223 * big_velocity) + 548770;
 
-    return ((uint16_t)(distance / 100000));
+    return ((uint16_t)(distance / 10000));
 }
 
 void load_train_66_calibration_info(train_position_info_t* train_position_info) {
@@ -67,7 +67,14 @@ void load_train_66_calibration_info(train_position_info_t* train_position_info) 
 }
 
 uint16_t train_66_stopping_distance(uint16_t velocity) {
-    return train_65_stopping_distance(velocity); //TODO update this to actual stopping distance for 66
+    int64_t big_velocity = ((int64_t)velocity);
+    int64_t distance;
+
+    //This calculates f(x) = (0.3148)x^2 - 15.236x + 684.02
+    //That's the best polynomial fit for our stopping distances for this train
+    distance = ((big_velocity * big_velocity) * 3148) - (152360 * big_velocity) + 6840200;
+
+    return ((uint16_t)(distance / 10000));
 }
 
 void load_default_calibration(train_position_info_t* train_position_info) {
