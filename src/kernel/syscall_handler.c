@@ -32,7 +32,8 @@ static void handle_Pass(global_data_t* global_data) {
 }
 
 static void handle_Exit(global_data_t* global_data) {
-    zombify_active_task(global_data); 
+    //zombify_active_task(global_data);
+    destroy_task(global_data, get_active_task(global_data)->generational_tid); 
 }
 
 static int handle_Send(global_data_t* global_data, int tid, char* msg, int msglen, char* reply, int replylen) {
