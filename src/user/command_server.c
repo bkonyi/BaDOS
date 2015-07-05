@@ -53,13 +53,23 @@ void process_input(char* input) {
 	
 	int32_t argc = strtokenize(input,argv,10);
 	//if(argc < 0); TODO: INPUT TOO LARGE
-	char* first = NULL, *second = NULL, *third = NULL;
+	char* first = NULL, *second = NULL, *third = NULL, *fourth = NULL;
 	
 	
 	//inst->type = NONE;
-	if(argc > 3) {
+	if(argc > 4) {
 		send_term_heavy_msg(true,"Too many args");
-	} else if(argc ==3){
+	} else if(argc == 4) {
+		first = argv[0];
+		second = argv[1];
+		third = argv[2];
+		fourth = argv[3];
+		if(strcmp(first,"stop_around_sensor") == 0 || strcmp(first, "sas")==0) {
+			target_train_number = strtoi(second);
+			send_term_cmd_success_msg("stop_around_sensor");
+			tcs_send_stop_around_sensor_msg(target_train_number,sensor_to_id(third),strtoi(fourth));
+		}
+	}else if(argc ==3){
 		first = argv[0];
 		second = argv[1];
 		third = argv[2];
@@ -243,7 +253,7 @@ void process_input(char* input) {
 int _set_speed(uint32_t train_num, uint32_t speed) {
 	int result;
 	send_term_train_msg(train_num,speed) ;
-	result = train_set_speed(train_num, speed);
+	result = tcs_train_set_speed(train_num, speed);
 	return result;
 }
 int _set_switch(uint32_t switch_num,char state) {

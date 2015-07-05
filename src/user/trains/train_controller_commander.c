@@ -46,14 +46,15 @@ typedef enum {
     TRAIN_TRIGGER_STOP_ON_SENSOR,
     TRAIN_CONTROLLER_UKNOWN_COMMAND,
     SWITCH_INITIALIZE_DIRECTIONS,
-    REQUEST_CALIBRATION_INFO
+    REQUEST_CALIBRATION_INFO,
+    TRAIN_TRIGGER_STOP_AROUND_SENSOR
 } train_controller_command_t;
 
 typedef struct {
     train_controller_command_t command;
     int16_t var1;
     int8_t  var2;
-
+    uint32_t var3;
 } train_controller_data_t;
 
 typedef struct {
@@ -91,7 +92,7 @@ static void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t tra
 static void handle_request_calibration_info(train_data_t* trains, int16_t train);
 
 static void handle_initialize_track_switches(void);
-
+static void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor_num,uint32_t mm_diff);
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -170,6 +171,9 @@ void train_controller_commander_server(void) {
             case REQUEST_CALIBRATION_INFO:
                 handle_request_calibration_info(trains, data.var1);
                 break;
+            case TRAIN_TRIGGER_STOP_AROUND_SENSOR:
+                handle_stop_around_sensor(trains,data.var1,data.var2,data.var3);
+                break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
                 ASSERT(0);
@@ -178,7 +182,7 @@ void train_controller_commander_server(void) {
     }
 }
 
-int train_set_speed(int8_t train, int8_t speed) {
+int tcs_train_set_speed(int8_t train, int8_t speed) {
     if(train > MAX_TRAIN_NUM) {
         return -1;
     } else if(speed > MAX_SPEED) {
@@ -299,6 +303,22 @@ int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num) {
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 
+    return 0;
+}
+int tcs_send_stop_around_sensor_msg(int16_t train,int8_t sensor_num, int32_t mm_diff) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    } else if(sensor_num >= 80) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = TRAIN_TRIGGER_STOP_AROUND_SENSOR;
+    data.var1 = train;
+    data.var2 = sensor_num;
+    data.var3 = mm_diff;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
     return 0;
 }
 
@@ -479,4 +499,8 @@ void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int
         train_trigger_stop_on_sensor(trains[(int16_t)train].server_tid, sensor_num);
     }
 }
-
+void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor_num,uint32_t mm_diff) {
+    if(trains[(int16_t)train].server_tid != -1) {
+        train_send_stop_around_sensor_msg(trains[(int16_t)train].server_tid, sensor_num,mm_diff);
+    }
+}
