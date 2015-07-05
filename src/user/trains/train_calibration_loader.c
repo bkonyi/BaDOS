@@ -2,9 +2,9 @@
 #include <terminal/terminal.h>
 
 static void load_train_65_calibration_info(train_position_info_t* train_position_info);
-static uint16_t train_65_stopping_distance(uint16_t velocity);
+static uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_train_66_calibration_info(train_position_info_t* train_position_info);
-static uint16_t train_66_stopping_distance(uint16_t velocity);
+static uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_default_calibration(train_position_info_t* train_position_info);
 
 void load_calibration(int16_t train, train_position_info_t* train_position_info) {
@@ -39,15 +39,19 @@ void load_train_65_calibration_info(train_position_info_t* train_position_info) 
     }
 }
 
-uint16_t train_65_stopping_distance(uint16_t velocity) {
-    int64_t big_velocity = ((int64_t)velocity);
+uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over) {
+    int64_t big_speed = ((int64_t)speed);
     int64_t distance;
 
-    //This calculates f(x) = (0.3712)x^2 + 0.6223x + 54.877
-    //That's the best polynomial fit for our stopping distances for this train
-    distance = ((big_velocity * big_velocity) * 3712) + (6223 * big_velocity) + 548770;
+    if(is_under_over) {
+        distance = ((big_speed * big_speed) * 16640) - (186080 * big_speed) + 670710;
+    } else {
+        //This calculates f(x) = (0.3712)x^2 + 0.6223x + 54.877
+        //That's the best polynomial fit for our stopping distances for this train
+        distance = ((big_speed * big_speed) * 17518) - (218360 * big_speed) + 829660;
+    }
 
-    return ((uint16_t)(distance / 10000));
+    return ((uint16_t)(distance / 1000));
 }
 
 void load_train_66_calibration_info(train_position_info_t* train_position_info) {
@@ -66,13 +70,14 @@ void load_train_66_calibration_info(train_position_info_t* train_position_info) 
     }
 }
 
-uint16_t train_66_stopping_distance(uint16_t velocity) {
-    int64_t big_velocity = ((int64_t)velocity);
+uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over) {
+    int64_t big_speed = ((int64_t)speed);
     int64_t distance;
+    (void)is_under_over; //TODO use this eventually
 
     //This calculates f(x) = (0.3148)x^2 - 15.236x + 684.02
     //That's the best polynomial fit for our stopping distances for this train
-    distance = ((big_velocity * big_velocity) * 3148) - (152360 * big_velocity) + 6840200;
+    distance = ((big_speed * big_speed) * -27181) + (1302900 * big_speed) - 3213400;
 
     return ((uint16_t)(distance / 10000));
 }

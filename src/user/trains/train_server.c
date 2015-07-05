@@ -50,6 +50,7 @@ void train_server(void) {
     bool finding_initial_position = false; //Is the train currently trying to find its initial location
     bool initial_sensor_reading_received = false; //Has the train gotten its first sensor update to be used for finding the train
     int8_t finding_initial_sensor_state[10]; //The first sensor update used when finding the train
+    bool is_stopping_at_landmark = false;
 
     int i;
     for(i = 0; i < 10; ++i) {
@@ -139,10 +140,18 @@ void train_server(void) {
                     train_position_info.is_under_over = true;
                 } // Else leave the over under, we changed to the same speed
                 train_position_info.speed  = new_speed;
+
+                if(new_speed == 0 && is_stopping_at_landmark) {
+                    is_stopping_at_landmark = false;
+                    int time_diff = Time() - train_position_info.ticks_at_last_sensor;
+                    int distance = time_diff * train_position_info.average_velocity / 100;
+                    send_term_heavy_msg(false, "Stopping train at %d.%dcm from %s Estimated Stopping Distance: %d", distance / 10, distance % 10, train_position_info.last_sensor->name, train_position_info.last_stopping_distance);
+                }
                 
                 break;
             case TRAIN_SERVER_STOP_AROUND_SENSOR:
                 handle_train_stop_around_sensor(&train_position_info,train_number,  ((train_server_msg_t*)message)->num1, ((train_server_msg_t*)message)->num2);
+                is_stopping_at_landmark = true;
                 break;
             default:
                 //Invalid command
@@ -178,6 +187,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->last_sensor = NULL;
     tpi->next_sensor_estimated_time = 0;
     tpi->average_velocity = 0;
+    tpi->last_stopping_distance = 0;
     tpi->next_sensor = NULL;
     tpi->sensor_error_next_sensor = NULL;
     tpi->switch_error_next_sensor = NULL;
@@ -488,7 +498,9 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
     distance = distance_between_track_nodes(tpi->next_sensor,destination_sensor,false);
     distance += mm_diff;
     //get stopping distance
-    distance -= _get_stopping_distance(tpi->speed,false);
+    (void)_get_stopping_distance;//(tpi->speed,false);
+    distance -= tpi->stopping_distance(tpi->speed, false);
+    tpi->last_stopping_distance = tpi->stopping_distance(tpi->speed, false);
     //get time to that spot
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance);
     //Start a conducter
