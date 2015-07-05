@@ -78,7 +78,7 @@ static void handle_update_train_slot_distance(int8_t slot, int32_t dist);
 static void handle_update_train_slot_error(int8_t slot, int32_t err);
 static void handle_command_success_message(char *cmd) ;
 static void _clear_user_input(void);
-static void handle_display_average_velocity_information(int16_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]);
+static void handle_display_average_velocity_information(int16_t train, avg_velocity_t*** average_velocity_info);
 
 static void handle_initialize_track_switches(void);
 
@@ -147,8 +147,10 @@ void terminal_server(void) {
         result = Receive(&sending_tid, input_buffer, MAX_RECEIVE_LENGTH);
         ASSERT(result >= 0);
 
-        //Just send a null reply for now
-        Reply(sending_tid, (char*)NULL, 0);
+        if(data->command != TERMINAL_DISPLAY_TRAIN_CALIBRATION) {
+            //Just send a null reply for now
+            Reply(sending_tid, (char*)NULL, 0);
+        }
 
         switch(data->command) {
             case TERMINAL_UPDATE_CLOCK:
@@ -249,6 +251,7 @@ void terminal_server(void) {
             case TERMINAL_DISPLAY_TRAIN_CALIBRATION:
                 //TODO
                 handle_display_average_velocity_information(data->num1, data->average_velocity_info);
+                Reply(sending_tid, (char*)NULL, 0);            
                 break;
             default:
                 ASSERT(0);
@@ -831,37 +834,37 @@ void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t i
     }
 }
 
-void print_train_calibration_info(int8_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
+void print_train_calibration_info(int8_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_DISPLAY_TRAIN_CALIBRATION;
     terminal_data.num1 = train;
+    terminal_data.average_velocity_info = (avg_velocity_t***)average_velocity_info;
 
-    (void)average_velocity_info;
     _status_message(true, "Printing train calib info...");
-    //TODO
-    memcpy(terminal_data.average_velocity_info, average_velocity_info, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM    );
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data, sizeof(terminal_data_t),(char*)NULL,0);
 }
 
-void handle_display_average_velocity_information(int16_t train, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM]) {
+void handle_display_average_velocity_information(int16_t train, avg_velocity_t*** average_velocity_info) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF, TERM_INPUT_ROW + 2);
 
     printf(COM2, "Calibration Information For Train: %d\r\n", train);
     term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);
 
-    int i, j;
+    int i, j, k;
     for(i = 0; i < 80; ++i) {
         char first_sensor_letter = 'A' + (i / 16);
         int first_sensor_num = (i % 16) + 1;
 
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
-            avg_velocity_t* avg_velocity = &(average_velocity_info[i][j]);
-
-            if(avg_velocity->average_velocity != 0) {
-                printf(COM2, "%c%d[%d] from %s[%d]: \t%d Iterations: %d\r\n", first_sensor_letter, first_sensor_num, i, 
-                    avg_velocity->from->name, j, avg_velocity->average_velocity, avg_velocity->average_velocity_count);
-                term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);
+            for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
+                //This cast on the next line is black magic, and I never want to do it again.
+                avg_velocity_t* avg_velocity = &(((avg_velocity_t (*)[MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS])average_velocity_info)[i][j][k]);
+                if(avg_velocity->from != NULL && avg_velocity->average_velocity != 0) {
+                    printf(COM2, "%c%d[%d] from %s[%d]: \t%d Iterations: %d\t Speed: %d\r\n", first_sensor_letter, first_sensor_num, i, 
+                        avg_velocity->from->name, j, avg_velocity->average_velocity, avg_velocity->average_velocity_count, k + MAX_STORED_SPEEDS + 1);
+                    term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);
+                }
             }
         }
     }

@@ -173,6 +173,7 @@ void train_controller_commander_server(void) {
                 break;
             case TRAIN_TRIGGER_STOP_AROUND_SENSOR:
                 handle_stop_around_sensor(trains,data.var1,data.var2,data.var3);
+                break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
                 ASSERT(0);
@@ -181,7 +182,7 @@ void train_controller_commander_server(void) {
     }
 }
 
-int train_set_speed(int8_t train, int8_t speed) {
+int tcs_train_set_speed(int8_t train, int8_t speed) {
     if(train > MAX_TRAIN_NUM) {
         return -1;
     } else if(speed > MAX_SPEED) {
@@ -391,6 +392,7 @@ void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
 
     if(!trains[(uint16_t)train].is_reversing) {
         trains[(uint16_t)train].speed = speed;
+        train_server_set_speed(trains[(uint16_t)train].server_tid, speed);
     }
 
     if(trains[(uint16_t)train].slot != INVALID_SLOT && speed != REVERSE_COMMAND) {
@@ -483,7 +485,7 @@ void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGI
 
 void handle_request_calibration_info(train_data_t* trains, int16_t train) {
     if(trains[train].slot != INVALID_SLOT) {
-        avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM];
+        avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS];
         train_request_calibration_info(trains[train].server_tid, average_velocity_info);
         print_train_calibration_info(train, average_velocity_info);
         //ASSERT(0);

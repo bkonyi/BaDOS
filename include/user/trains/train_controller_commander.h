@@ -20,7 +20,7 @@ void train_controller_commander_server(void);
  * 
  * @return -1 if invalid train number, -2 if the speed is invalid, 0 otherwise.
  */
-int train_set_speed(int8_t train, int8_t speed);
+int tcs_train_set_speed(int8_t train, int8_t speed);
 
 /**
  * @brief Sends a request to the train controller server to reverse the train.
@@ -78,4 +78,5 @@ int tcs_train_request_calibration_info(int8_t train);
 
 int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num);
 void tcs_initialize_track_switches(void);
+int tcs_send_stop_around_sensor_msg(int16_t train,int8_t sensor_num, int32_t mm_diff);
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__
