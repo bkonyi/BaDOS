@@ -860,7 +860,7 @@ void handle_display_average_velocity_information(int16_t train, avg_velocity_t**
             for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
                 //This cast on the next line is black magic, and I never want to do it again.
                 avg_velocity_t* avg_velocity = &(((avg_velocity_t (*)[MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS])average_velocity_info)[i][j][k]);
-                if(avg_velocity->average_velocity != 0) {
+                if(avg_velocity->from != NULL && avg_velocity->average_velocity != 0) {
                     printf(COM2, "%c%d[%d] from %s[%d]: \t%d Iterations: %d\t Speed: %d\r\n", first_sensor_letter, first_sensor_num, i, 
                         avg_velocity->from->name, j, avg_velocity->average_velocity, avg_velocity->average_velocity_count, k + MAX_STORED_SPEEDS + 1);
                     term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);

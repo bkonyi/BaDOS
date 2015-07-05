@@ -72,6 +72,7 @@ void train_server(void) {
     train_number = ((train_server_msg_t*)message)->num1; 
     train_slot   = ((train_server_msg_t*)message)->num2;
     tps_add_train(train_number);
+    load_calibration(train_number, &train_position_info);
 
 	FOREVER {
 		Receive(&requester, message, message_size);
@@ -166,7 +167,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->sensor_error_next_sensor = NULL;
     tpi->switch_error_next_sensor = NULL;
 
-    int i, j, k;
+    /*int i, j, k;
     for(i = 0; i < 80; ++i) {
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
             for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
@@ -175,8 +176,7 @@ void train_position_info_init(train_position_info_t* tpi) {
                 tpi->average_velocities[i][j][k].from = NULL;
             }
         }
-    }
-
+    }*/
 }
 
 void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
@@ -445,17 +445,13 @@ int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* f
         //Emptiness is defined by having a null from member    
         if(av->from == NULL) {
             av->from = from;
-            av->average_velocity_count = 1;
-            av->average_velocity = V;
-            *av_out = V;
-            return 0;
-        }else if(av->from == from) {
-            av->average_velocity = ((av->average_velocity * av->average_velocity_count) + V)/(av->average_velocity_count + 1);
-            av->average_velocity_count++;
-            *av_out = av->average_velocity;
-            
-            return 0;
         }
+
+        av->average_velocity = ((av->average_velocity * av->average_velocity_count) + V)/(av->average_velocity_count + 1);
+        av->average_velocity_count++;
+        *av_out = av->average_velocity;
+            
+        return 0;
     }
     //We should never get here, we need to increase MAX_AV_SENSORS_FROM
     ASSERT(0);
