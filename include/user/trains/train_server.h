@@ -42,6 +42,7 @@ typedef struct train_position_info_t {
     uint32_t next_sensor_estimated_time;
     uint32_t average_velocity;
     avg_velocity_t average_velocities[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS];
+    uint16_t (*stopping_distance)(uint16_t);
     track_node* next_sensor;
     track_node* sensor_error_next_sensor;
     track_node* switch_error_next_sensor;
