@@ -140,3 +140,39 @@ track_node* get_sensor_node_from_num(track_node* start, int num) {
 	track_node* base = start - index_num;
 	return base+num;
 }
+
+
+int get_two_sensors_before_distance(track_node* start_sensor, int distance) {
+    ASSERT(start_sensor->type == NODE_SENSOR);
+    track_node* iterator_node = start_sensor, *node_of_interest;
+    uint32_t partial_distance = 0;
+    uint32_t segment_dist = 0;
+    node_of_interest = iterator_node;
+
+    for(iterator_node = get_next_sensor(start_sensor); distance > 0  && iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
+            segment_dist = get_track_node_length(node_of_interest);
+
+            partial_distance += segment_dist;
+            node_of_interest = iterator_node;
+
+            if(partial_distance >= distance) {
+                break;
+            }
+    }
+    
+    if(partial_distance < distance) {
+        return -1;
+    }
+
+    if(start_sensor == node_of_interest) {
+    	return -2;
+    }
+
+    for(iterator_node = start_sensor; iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
+    	if(get_next_sensor(iterator_node) == node_of_interest) {
+    		return iterator_node->num;
+    	}
+    }
+
+    return -2;
+}
