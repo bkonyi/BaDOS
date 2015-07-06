@@ -25,7 +25,7 @@ static uint32_t _get_stopping_distance(int speed, bool is_under_over) ;
 //static int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff);
 
 static void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) ;
-static void _set_stop_around_trigger(sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) ;
+static void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff);
 static void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) ;
 static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) ;
 
@@ -61,11 +61,6 @@ void train_server(void) {
     _init_sensor_triggers(&sensor_triggers);
 
     bool is_stopping_at_landmark = false;
-
-    int i;
-    for(i = 0; i < 10; ++i) {
-        stop_sensors[i] = 0;
-    }
 
     train_position_info_t train_position_info;
     train_position_info_init(&train_position_info);
@@ -162,7 +157,7 @@ void train_server(void) {
                 break;
             case TRAIN_SERVER_STOP_AROUND_SENSOR:
 
-                _set_stop_around_trigger(&sensor_triggers,((train_server_msg_t*)message)->num1,((train_server_msg_t*)message)->num2) ;
+                _set_stop_around_trigger(&train_position_info,&sensor_triggers,((train_server_msg_t*)message)->num1,((train_server_msg_t*)message)->num2) ;
 
                 handle_train_stop_around_sensor(&train_position_info,train_number,  ((train_server_msg_t*)message)->num1, ((train_server_msg_t*)message)->num2);
                 is_stopping_at_landmark = true;
@@ -191,10 +186,16 @@ void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num)
     triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
     triggers->action[sensor_num].type = TRIGGER_STOP_AT;
 }
-void _set_stop_around_trigger(sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) {
+void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) {
     
-    
-    int16_t sensor_to_trigger_at = 71; //TODO: For now, defaults to E8
+    uint32_t distance =0;
+    int16_t sensor_to_trigger_at ; 
+    track_node * destination_sensor = get_sensor_node_from_num(tpi->next_sensor,sensor_num); 
+    //Get distance to that point
+    distance = distance_between_track_nodes(tpi->next_sensor,destination_sensor,false);
+    distance += mm_diff;
+    distance -= tpi->stopping_distance(tpi->speed, false);
+    sensor_to_trigger_at =  get_two_sensors_before_distance(tpi->next_sensor,distance);
 
     uint32_t sensor_group = (sensor_to_trigger_at) / 8;
     uint32_t sensor_index = (sensor_to_trigger_at) % 8;
