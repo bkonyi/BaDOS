@@ -159,7 +159,6 @@ void train_server(void) {
 
                 _set_stop_around_trigger(&train_position_info,&sensor_triggers,((train_server_msg_t*)message)->num1,((train_server_msg_t*)message)->num2) ;
 
-                handle_train_stop_around_sensor(&train_position_info,train_number,  ((train_server_msg_t*)message)->num1, ((train_server_msg_t*)message)->num2);
                 is_stopping_at_landmark = true;
                 break;
             default:
@@ -181,7 +180,7 @@ void _init_sensor_triggers(sensor_triggers_t* triggers) {
     }
 }
 void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) {
-    uint32_t sensor_group = (sensor_num)/ 8;
+    uint32_t sensor_group = (sensor_num) / 8;
     uint32_t sensor_index = (sensor_num) % 8;
     triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
     triggers->action[sensor_num].type = TRIGGER_STOP_AT;
@@ -189,13 +188,22 @@ void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num)
 void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) {
     
     uint32_t distance =0;
-    int16_t sensor_to_trigger_at ; 
-    track_node * destination_sensor = get_sensor_node_from_num(tpi->next_sensor,sensor_num); 
+    int16_t sensor_to_trigger_at; 
+    int print_index = 0;
+    track_node * destination_sensor = get_sensor_node_from_num(tpi->last_sensor,sensor_num); 
+    printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, sensor_num);
+
     //Get distance to that point
-    distance = distance_between_track_nodes(tpi->next_sensor,destination_sensor,false);
+    distance = distance_between_track_nodes(tpi->last_sensor,destination_sensor,false);
+    printf(COM2, "\033[s\033[%d;%dHDistance between %s and %s: %d\033[u", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
+
     distance += mm_diff;
+    printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
+
     distance -= tpi->stopping_distance(tpi->speed, false);
-    sensor_to_trigger_at =  get_two_sensors_before_distance(tpi->next_sensor,distance);
+    printf(COM2, "\033[s\033[%d;%dH Distance -stopping dist: %d\033[u", 35 + print_index++, 60, distance);
+
+    sensor_to_trigger_at =  get_two_sensors_before_distance(tpi->last_sensor,distance);
 
     uint32_t sensor_group = (sensor_to_trigger_at) / 8;
     uint32_t sensor_index = (sensor_to_trigger_at) % 8;
@@ -204,9 +212,8 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
     triggers->action[sensor_to_trigger_at].type = TRIGGER_STOP_AROUND;
     triggers->action[sensor_to_trigger_at].byte1 = sensor_num;
     triggers->action[sensor_to_trigger_at].num1 = mm_diff;
-
-    
 }
+
 void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) {
     triggers->sensors[sensor_group] &= ~(1<<(7-sensor_index));
 }
@@ -215,18 +222,18 @@ void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* trig
     if(((1<<(7-sensor_index)) & triggers->sensors[sensor_group]) != 0 ) {
         //Act on the action related to the stop sensor
         int32_t action_index = (sensor_group*8)+sensor_index;
-        printf(COM2,"TYPE%d", triggers->action[action_index].type);
         
         switch(triggers->action[action_index].type) {
             case TRIGGER_STOP_AT:
                 tcs_train_set_speed(train_number, 0); 
                 break;
             case TRIGGER_STOP_AROUND:
-                send_term_heavy_msg(false,"Handling TRIGGER_STOP_AROUND");
                 handle_train_stop_around_sensor(tpi,train_number,triggers->action[action_index].byte1,triggers->action[action_index].num1);
                 _unset_sensor_trigger(triggers,sensor_group,sensor_index);
                 break;
             case TRIGGER_NONE:
+                printf(COM2, "\e[s\e[60;40HAction Index: %d\e[u", action_index);
+                Delay(200);
                 ASSERT(0);
                 break;
             default:
@@ -579,8 +586,6 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
     conductor_info.delay = time;
     conductor_info.train_number = train_number;
     Send(tpi->conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
-
-
 }
 
 uint32_t _get_stopping_distance(int speed, bool is_under_over) {

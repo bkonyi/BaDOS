@@ -144,34 +144,25 @@ track_node* get_sensor_node_from_num(track_node* start, int num) {
 
 int get_two_sensors_before_distance(track_node* start_sensor, int distance) {
     ASSERT(start_sensor->type == NODE_SENSOR);
-    track_node* iterator_node = start_sensor, *node_of_interest;
+    track_node* iterator_node;
     uint32_t partial_distance = 0;
     uint32_t segment_dist = 0;
-    node_of_interest = iterator_node;
+    int print_index = 0;
 
-    for(iterator_node = get_next_sensor(start_sensor); distance > 0  && iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
-            segment_dist = get_track_node_length(node_of_interest);
-
-            partial_distance += segment_dist;
-            node_of_interest = iterator_node;
-
-            if(partial_distance >= distance) {
-                break;
-            }
-    }
-    
-    if(partial_distance < distance) {
-        return -1;
-    }
-
-    if(start_sensor == node_of_interest) {
-    	return -2;
+    if(distance < 0) {
+    	return -1;
     }
 
     for(iterator_node = start_sensor; iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
-    	if(get_next_sensor(iterator_node) == node_of_interest) {
-    		return iterator_node->num;
-    	}
+            track_node* next_node = get_next_sensor(iterator_node);
+            segment_dist = distance_between_track_nodes(iterator_node, next_node, false);
+            printf(COM2, "\033[s\033[%d;%dHIterator Node Name: %s Segment distance: %d Total Distance: %d Desired Distance: %d\033[u", 40 + print_index++, 60, iterator_node->name, segment_dist, partial_distance + segment_dist, distance);
+            partial_distance += segment_dist;
+
+            if(partial_distance >= distance) {
+	  		    send_term_heavy_msg(false, "Going to trigger at sensor: %s Current Sensor: %s", iterator_node->name, start_sensor->name);
+            	return iterator_node->num;
+            }
     }
 
     return -2;
