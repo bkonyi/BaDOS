@@ -490,6 +490,7 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     }
     return time;
 }
+
 void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_number,int8_t sensor_num, int32_t mm_diff) {
     int time;
     uint32_t distance;
