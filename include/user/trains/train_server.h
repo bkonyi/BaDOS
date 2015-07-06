@@ -30,11 +30,29 @@ typedef struct train_server_sensor_msg_t {
     char sensors[SENSOR_MESSAGE_SIZE];
 } train_server_sensor_msg_t;
 
+typedef enum sensor_trigger_type_t {
+    TRIGGER_NONE=1,
+    TRIGGER_STOP_AT ,
+    TRIGGER_STOP_AROUND
+}sensor_trigger_type_t;
+
+typedef struct sensor_trigger_info_t {
+    sensor_trigger_type_t type;
+    int32_t num1;
+    int8_t byte1;
+}sensor_trigger_info_t;
+
+typedef struct sensor_triggers_t {
+    int8_t  sensors[10];
+    sensor_trigger_info_t action[80]; //each sensor gets a command
+}sensor_triggers_t;
+
 typedef struct {
     uint16_t average_velocity;
     uint16_t average_velocity_count;
     track_node* from;
 } avg_velocity_t;
+
 
 typedef struct train_position_info_t {
     int16_t speed;
@@ -50,6 +68,8 @@ typedef struct train_position_info_t {
     track_node* switch_error_next_sensor;
     tid_t conductor_tid;
 } train_position_info_t;
+
+void _init_sensor_triggers(sensor_triggers_t* triggers);
 
 void train_position_info_init(train_position_info_t* tpi);
 /**

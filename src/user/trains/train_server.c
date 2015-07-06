@@ -13,9 +13,9 @@
 
 static void train_conductor(void);
 
-static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info); 
+static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, sensor_triggers_t* ,train_position_info_t* train_position_info); 
 static bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info);
-static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
+//static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
 
 static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time,uint32_t);
 static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
@@ -23,6 +23,12 @@ static int _train_position_get_av_velocity(train_position_info_t* tpi, track_nod
 static void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_number,int8_t sensor_num, int32_t mm_diff); 
 static uint32_t _get_stopping_distance(int speed, bool is_under_over) ;
 //static int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff);
+
+static void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) ;
+static void _set_stop_around_trigger(sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) ;
+static void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) ;
+static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) ;
+
 
 #define MAX_CONDUCTORS 32 //Arbitrary
 
@@ -43,18 +49,16 @@ void train_server(void) {
 	char message[message_size]; 
     int16_t train_number = -1; //The number associated wiht the train
     int16_t train_slot   = -1; //The slot that the train is registered to.
-    int8_t  stop_sensors[10]; //The sensors which, when hit, will trigger the train to stop
+    sensor_triggers_t sensor_triggers;
+
     int32_t last_distance_update_time = 0; //The last time the expected distance for the train was updated
     int conductor_tid; //Used when destroying conductors
     int new_speed;
     bool finding_initial_position = false; //Is the train currently trying to find its initial location
     bool initial_sensor_reading_received = false; //Has the train gotten its first sensor update to be used for finding the train
     int8_t finding_initial_sensor_state[10]; //The first sensor update used when finding the train
-
-    int i;
-    for(i = 0; i < 10; ++i) {
-        stop_sensors[i] = 0;
-    }
+    
+    _init_sensor_triggers(&sensor_triggers);
 
     train_position_info_t train_position_info;
     train_position_info_init(&train_position_info);
@@ -89,7 +93,7 @@ void train_server(void) {
             case TRAIN_SERVER_SENSOR_DATA:
                 if(!finding_initial_position) {
                     //Do calculations for our train.
-                    handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, stop_sensors,&train_position_info);
+                    handle_sensor_data(train_number, train_slot, ((train_server_sensor_msg_t*)message)->sensors, &sensor_triggers,&train_position_info);
                     int32_t new_time = Time();
 
                     if(new_time - last_distance_update_time > 10) {
@@ -121,7 +125,8 @@ void train_server(void) {
                 (void)train_conductor;
                 break;
             case TRAIN_SERVER_REGISTER_STOP_SENSOR:
-                handle_register_stop_sensor(stop_sensors, ((train_server_msg_t*)message)->num1);
+                //handle_register_stop_sensor(stop_sensors, ((train_server_msg_t*)message)->num1);
+                _set_stop_on_sensor_trigger(&sensor_triggers,((train_server_msg_t*)message)->num1);
                 break;
             case TRAIN_SERVER_FIND_INIT_POSITION:
                 finding_initial_position = true;
@@ -142,7 +147,7 @@ void train_server(void) {
                 
                 break;
             case TRAIN_SERVER_STOP_AROUND_SENSOR:
-                handle_train_stop_around_sensor(&train_position_info,train_number,  ((train_server_msg_t*)message)->num1, ((train_server_msg_t*)message)->num2);
+                _set_stop_around_trigger(&sensor_triggers,((train_server_msg_t*)message)->num1,((train_server_msg_t*)message)->num2) ;
                 break;
             default:
                 //Invalid command
@@ -151,6 +156,65 @@ void train_server(void) {
                 break;
         }
 	}
+}
+
+void _init_sensor_triggers(sensor_triggers_t* triggers) {
+    int i;
+    for(i = 0; i < 10; ++i) {
+        triggers->sensors[i] = 0;
+    }
+    for(i = 0; i < 80; i ++) {
+        triggers->action[i].type = TRIGGER_NONE;
+    }
+}
+void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) {
+    uint32_t sensor_group = (sensor_num)/ 8;
+    uint32_t sensor_index = (sensor_num) % 8;
+    triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
+    triggers->action[sensor_num].type = TRIGGER_STOP_AT;
+}
+void _set_stop_around_trigger(sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) {
+    
+    
+    int16_t sensor_to_trigger_at = 71; //TODO: For now, defaults to E8
+
+    uint32_t sensor_group = (sensor_to_trigger_at) / 8;
+    uint32_t sensor_index = (sensor_to_trigger_at) % 8;
+
+    triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
+    triggers->action[sensor_to_trigger_at].type = TRIGGER_STOP_AROUND;
+    triggers->action[sensor_to_trigger_at].byte1 = sensor_num;
+    triggers->action[sensor_to_trigger_at].num1 = mm_diff;
+
+    
+}
+void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) {
+    triggers->sensors[sensor_group] &= ~(1<<(7-sensor_index));
+}
+void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) {
+    //Check if we have a trigger set for this sensor and sensor_group.
+    if(((1<<(7-sensor_index)) & triggers->sensors[sensor_group]) != 0 ) {
+        //Act on the action related to the stop sensor
+        int32_t action_index = (sensor_group*8)+sensor_index;
+        printf(COM2,"TYPE%d", triggers->action[action_index].type);
+        
+        switch(triggers->action[action_index].type) {
+            case TRIGGER_STOP_AT:
+                tcs_train_set_speed(train_number, 0); 
+                break;
+            case TRIGGER_STOP_AROUND:
+                send_term_heavy_msg(false,"Handling TRIGGER_STOP_AROUND");
+                handle_train_stop_around_sensor(tpi,train_number,triggers->action[action_index].byte1,triggers->action[action_index].num1);
+                _unset_sensor_trigger(triggers,sensor_group,sensor_index);
+                break;
+            case TRIGGER_NONE:
+                ASSERT(0);
+                break;
+            default:
+                ASSERT(0);
+        }
+         
+    }
 }
 
 void train_conductor(void) {
@@ -166,7 +230,6 @@ void train_conductor(void) {
     send_term_heavy_msg(false,"Conductor Going back to TS after delay %d",conductor_info.delay);
     //Send the request to the train server
     tcs_train_set_speed(conductor_info.train_number,0);
-    //Send(train_server_tid, (char*)&conductor_info.request, sizeof(train_server_msg_t), (char*)NULL, 0);
 
     //Die
     Exit();
@@ -236,7 +299,7 @@ void train_server_set_speed(tid_t tid, uint16_t speed) {
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
-void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t* stop_sensors,train_position_info_t* train_position_info) {
+void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data, sensor_triggers_t* sensor_triggers,train_position_info_t* train_position_info)   {
     if(train_position_info->last_sensor != NULL) {
         track_node* last_sensor_track_node = train_position_info->last_sensor;
         track_node* sensor_error_next_sensor = train_position_info->sensor_error_next_sensor;
@@ -276,6 +339,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                     ((sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0)) ||
                 (switch_error_next_sensor != NULL && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
+                //Make sure only our sensor is enabled
 
                 //Get the timestamp from the sensor data
                 time = *((uint32_t*)(sensor_data+12));
@@ -290,10 +354,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                     *next_sensor = switch_error_next_sensor;
                     update_error_expected_time = true;
                     is_switch_error = true;
-                }
-
-                (void)last_sensor_track_node;
-                
+                }                
             
                 if(update_error_expected_time) {
                     //Distance between the last sensor and the one we just hit
@@ -316,12 +377,8 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                 result = _train_position_update_av_velocity(train_position_info,last_sensor_track_node,*next_sensor, velocity,&average_velocity);
                 ASSERT(result>=0);
 
-                if((sensor_data[i] & stop_sensors[i]) != 0 ) {
-                    //we have have hit our stop sensor
-                    tcs_train_set_speed(train, 0);  
-                    send_term_heavy_msg(true,"Velocity at Stop: %d.%d",velocity/10,velocity%10); 
-                }
-
+                _handle_sensor_triggers(train_position_info,sensor_triggers,train_number,expected_group,expected_index);
+                
                 //Send our time in mm / s
                 send_term_update_velocity_msg(slot, velocity);
 
@@ -332,7 +389,7 @@ void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, int8_t
                 //Update the error for the train on screen.
                 send_term_update_err_msg(slot,(time_difference * ((int32_t)(average_velocity))) / 100 ); //Converts to mm distance
 
-                handle_update_train_position_info(train, slot, train_position_info, time, average_velocity);
+                handle_update_train_position_info(train_number, slot, train_position_info, time, average_velocity);
             }
         }
     }
