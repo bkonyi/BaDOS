@@ -47,7 +47,8 @@ typedef enum {
     TRAIN_CONTROLLER_UKNOWN_COMMAND,
     SWITCH_INITIALIZE_DIRECTIONS,
     REQUEST_CALIBRATION_INFO,
-    TRAIN_TRIGGER_STOP_AROUND_SENSOR
+    TRAIN_TRIGGER_STOP_AROUND_SENSOR,
+    SET_TRAIN_STOP_OFFSET
 } train_controller_command_t;
 
 typedef struct {
@@ -93,6 +94,7 @@ static void handle_request_calibration_info(train_data_t* trains, int16_t train)
 
 static void handle_initialize_track_switches(void);
 static void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor_num,uint32_t mm_diff);
+static void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int32_t mm_diff);
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -173,6 +175,9 @@ void train_controller_commander_server(void) {
                 break;
             case TRAIN_TRIGGER_STOP_AROUND_SENSOR:
                 handle_stop_around_sensor(trains,data.var1,data.var2,data.var3);
+                break;
+            case SET_TRAIN_STOP_OFFSET:
+                handle_train_stop_offset(trains,data.var1,data.var3);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -320,6 +325,23 @@ int tcs_send_stop_around_sensor_msg(int16_t train,int8_t sensor_num, int32_t mm_
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
     return 0;
+}
+
+int tcs_send_train_stop_offset_msg(int16_t train, int32_t mm_diff) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    } 
+    train_controller_data_t data;
+    data.command = SET_TRAIN_STOP_OFFSET;
+    data.var1 = train;
+    data.var3 = mm_diff;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+    return 0;
+}
+
+void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int32_t mm_diff) {
+    train_server_send_set_stop_offset_msg(trains[(uint16_t)train_num].server_tid,mm_diff);
 }
 
 int tcs_train_request_calibration_info(int8_t train) {

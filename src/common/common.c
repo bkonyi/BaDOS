@@ -154,18 +154,25 @@ int strtoi(char* c) {
     int num;
     int charnum;
     int base = 10;
+    bool is_neg = false;
     num =0;
     if(c[0]!= '\0' && c[1]!= '\0' && c[0] =='0' && c[1] =='x'){
         if(c[2]=='\0') return -1; // Improper hex format
         //This is hex, skip the first 2 format chars
         c+=2; //
         base = 16;
+    }else if(c[0] == '-') {
+        c++;
+        is_neg = true;
     }
     for(;*c!='\0';c++){
         num*=base;
         charnum = char2int(*c, base);
         if(charnum < 0) return -1;
         num+=charnum;
+    }
+    if(is_neg == true) {
+        num *= -1;
     }
     return num;
 
