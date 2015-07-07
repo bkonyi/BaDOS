@@ -142,7 +142,7 @@ track_node* get_sensor_node_from_num(track_node* start, int num) {
 }
 
 
-int get_two_sensors_before_distance(track_node* start_sensor, int distance) {
+int get_sensor_before_distance(track_node* start_sensor, int distance) {
     ASSERT(start_sensor->type == NODE_SENSOR);
     track_node* iterator_node;
     uint32_t partial_distance = 0;

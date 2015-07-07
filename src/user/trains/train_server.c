@@ -198,7 +198,7 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
         send_term_heavy_msg(false, "Stop around instruction given too late");
         return;
     }
-    sensor_to_trigger_at =  get_two_sensors_before_distance(tpi->last_sensor,distance);
+    sensor_to_trigger_at =  get_sensor_before_distance(tpi->last_sensor,distance);
 
     uint32_t sensor_group = (sensor_to_trigger_at) / 8;
     uint32_t sensor_index = (sensor_to_trigger_at) % 8;
@@ -216,6 +216,15 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
 
     track_node * destination_sensor = get_sensor_node_from_num(start_node,destination_sensor_num); 
    // printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
+
+    if(start_node == destination_sensor) {
+        start_node = get_next_sensor(start_node);
+    }
+
+    //We couldn't find a node...
+    if(start_node == NULL) {
+        return -1;
+    }
 
     //Get distance to that point
     distance = distance_between_track_nodes(start_node,destination_sensor,false);

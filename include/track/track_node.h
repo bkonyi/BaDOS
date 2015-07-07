@@ -41,7 +41,7 @@ track_node* get_next_sensor_switch_broken( track_node* node);
 bool is_valid_switch_number(uint32_t sw_num) ;
 uint32_t get_track_node_length(track_node* node);
 uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool switch_broken);
-int get_two_sensors_before_distance(track_node* start_sensor, int distance);
+int get_sensor_before_distance(track_node* start_sensor, int distance);
 /**
  * @brief Pass it any sensor track node and it  will find the other node based on their position relative to each other
  */
