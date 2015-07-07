@@ -176,6 +176,7 @@ void process_input(char* input) {
 			
 		} else if(strcmp(first,"train_stop_offset") == 0  || strcmp(first, "tso") == 0) {
 			target_train_number = strtoi(second);
+			send_term_cmd_success_msg("train_stop_offset");
 			tcs_send_train_stop_offset_msg(target_train_number,strtoi(third));
 		} else {
 			send_term_heavy_msg(true,"Invalid Command");

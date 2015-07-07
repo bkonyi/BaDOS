@@ -177,7 +177,7 @@ void train_controller_commander_server(void) {
                 handle_stop_around_sensor(trains,data.var1,data.var2,data.var3);
                 break;
             case SET_TRAIN_STOP_OFFSET:
-                handle_train_stop_offset(trains,data.var1,data.var2);
+                handle_train_stop_offset(trains,data.var1,data.var3);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -331,11 +331,10 @@ int tcs_send_train_stop_offset_msg(int16_t train, int32_t mm_diff) {
     if(train > MAX_TRAIN_NUM) {
         return -1;
     } 
-
     train_controller_data_t data;
     data.command = SET_TRAIN_STOP_OFFSET;
     data.var1 = train;
-    data.var2 = mm_diff;
+    data.var3 = mm_diff;
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
     return 0;
