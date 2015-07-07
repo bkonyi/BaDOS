@@ -28,7 +28,7 @@ static void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sens
 static void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff);
 static void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) ;
 static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) ;
-
+static void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff);
 
 #define MAX_CONDUCTORS 32 //Arbitrary
 
@@ -161,6 +161,9 @@ void train_server(void) {
 
                 is_stopping_at_landmark = true;
                 break;
+            case TRAIN_SERVER_SET_STOP_OFFSET:
+                handle_set_stop_offset(&train_position_info,((train_server_msg_t*)message)->num1);
+                break;
             default:
                 //Invalid command
                 bwprintf(COM2, "Invalid train command: %d from TID: %d\r\n", ((train_server_msg_t*)message)->command, requester);
@@ -212,6 +215,30 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
     triggers->action[sensor_to_trigger_at].type = TRIGGER_STOP_AROUND;
     triggers->action[sensor_to_trigger_at].byte1 = sensor_num;
     triggers->action[sensor_to_trigger_at].num1 = mm_diff;
+}
+
+int32_t _distance_to_stop_before_sensor(train_position_info_t* tpi,uint32_t destination_sensor_num, int32_t mm_diff) {
+    uint32_t distance =0;
+    //int16_t sensor_to_trigger_at; 
+   // int print_index = 0;
+
+    track_node * destination_sensor = get_sensor_node_from_num(tpi->last_sensor,destination_sensor_num); 
+    //printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
+
+    //Get distance to that point
+    distance = distance_between_track_nodes(tpi->last_sensor,destination_sensor,false);
+    //printf(COM2, "\033[s\033[%d;%dHDistance between %s and %s: %d\033[u", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
+
+    distance += mm_diff;
+    //printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
+
+    //account for the stopping_offset on this track
+    distance += tpi->stopping_offset;
+
+    distance -= tpi->stopping_distance(tpi->speed, false);
+    //printf(COM2, "\033[s\033[%d;%dH Distance -stopping dist: %d\033[u", 35 + print_index++, 60, distance);
+
+    return distance;
 }
 
 void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) {
@@ -273,6 +300,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->switch_error_next_sensor = NULL;
     tpi->conductor_tid = -1;
     tpi->is_under_over = true; //Assume we are starting at speed 0 so this doesn't really matter
+    tpi->stopping_offset = 0;
 
     /*int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -324,6 +352,15 @@ void train_server_set_speed(tid_t tid, uint16_t speed) {
     msg.command = TRAIN_SERVER_SET_SPEED;
     msg.num1 = speed;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_STOP_OFFSET;
+    msg.num1 = mm_diff;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff) {
+    train_position_info->stopping_offset = mm_diff;
 }
 
 void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data, sensor_triggers_t* sensor_triggers,train_position_info_t* train_position_info)   {

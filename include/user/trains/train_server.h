@@ -16,7 +16,8 @@ typedef enum train_server_cmd_t {
     TRAIN_SERVER_DIRECTION_CHANGE       = 6,
     TRAIN_SERVER_REQUEST_CALIBRATION_INFO = 7,
     TRAIN_SERVER_STOP_AROUND_SENSOR     = 8,
-    TRAIN_SERVER_SET_SPEED              = 9
+    TRAIN_SERVER_SET_SPEED              = 9,
+    TRAIN_SERVER_SET_STOP_OFFSET        = 10
 } train_server_cmd_t;
 
 typedef struct train_server_msg_t {
@@ -68,7 +69,7 @@ typedef struct train_position_info_t {
     track_node* next_sensor;
     track_node* sensor_error_next_sensor;
     track_node* switch_error_next_sensor;
-
+    int32_t stopping_offset;
     tid_t conductor_tid;
 } train_position_info_t;
 
@@ -91,5 +92,6 @@ void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_d
 
 void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]);
 void train_server_set_speed(tid_t tid, uint16_t speed);
+void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff);
 
 #endif // _TRAIN_SERVER_H_
