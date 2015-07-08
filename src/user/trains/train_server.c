@@ -146,6 +146,11 @@ void train_server(void) {
                     train_position_info.is_under_over = true;
                 } // Else leave the over under, we changed to the same speed
                 train_position_info.speed  = new_speed;
+                if(new_speed == 0) {
+                    train_position_info.ok_to_record_av_velocities = false;
+                }else {
+                    train_position_info.ok_to_record_av_velocities = true;
+                }
 
                 if(new_speed == 0 && is_stopping_at_landmark) {
                     is_stopping_at_landmark = false;
@@ -301,6 +306,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->conductor_tid = -1;
     tpi->is_under_over = true; //Assume we are starting at speed 0 so this doesn't really matter
     tpi->stopping_offset = 0;
+    tpi->ok_to_record_av_velocities = false;
 
     /*int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -642,6 +648,9 @@ uint32_t _get_stopping_distance(int speed, bool is_under_over) {
 }
 
 int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out) {
+    if(tpi->ok_to_record_av_velocities ==false ) {
+        return 0; // currently shouldn't update av vels. So don't
+    }
     ASSERT(from->type == NODE_SENSOR);
     ASSERT(to->type == NODE_SENSOR);
     int i,to_index;
