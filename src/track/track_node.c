@@ -169,13 +169,13 @@ int get_sensor_before_distance(track_node* start_sensor, int distance) {
     	return -1;
     }
 
-    for(iterator_node = start_sensor; iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
-            track_node* next_node = get_next_sensor(iterator_node);
+    for(iterator_node = start_sensor; iterator_node != NULL; iterator_node = get_next_sensor_or_exit(iterator_node)) {
+            track_node* next_node = get_next_sensor_or_exit(iterator_node);
             segment_dist = distance_between_track_nodes(iterator_node, next_node, false);
             printf(COM2, "\033[s\033[%d;%dHIterator Node Name: %s Segment distance: %d Total Distance: %d Desired Distance: %d\033[u", 40 + print_index++, 60, iterator_node->name, segment_dist, partial_distance + segment_dist, distance);
             partial_distance += segment_dist;
 
-            if(partial_distance >= distance) {
+            if(partial_distance >= distance || next_node->type == NODE_EXIT) {
 	  		    send_term_heavy_msg(false, "Going to trigger at sensor: %s Current Sensor: %s", iterator_node->name, start_sensor->name);
             	return iterator_node->num;
             }

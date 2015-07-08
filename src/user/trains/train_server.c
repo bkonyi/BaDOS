@@ -218,10 +218,10 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
 int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) {
     int32_t distance =0;
     //int16_t sensor_to_trigger_at; 
-    int print_index = 0;
+    //int print_index = 0;
 
     track_node * destination_sensor = get_sensor_node_from_num(start_node,destination_sensor_num); 
-    printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
+    //printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
 
     if(start_node == destination_sensor) {
         start_node = get_next_sensor(start_node);
@@ -231,19 +231,24 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     if(start_node == NULL) {
         return -1;
     }
+    //account for the stopping_offset on this track
+    mm_diff+=tpi->stopping_offset;
 
     //Get distance to that point
     distance = distance_between_track_nodes(start_node,destination_sensor,false);
-    printf(COM2, "\033[s\033[%d;%dHDistance between %s and %s: %d\033[u", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
-
+    //printf(COM2, "\033[s\033[%d;%dHDistance between %s and %s: %d\033[u", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
+    track_node * runoff_limit = get_next_sensor_or_exit(destination_sensor);
+    uint32_t runoff_length = distance_between_track_nodes(destination_sensor,runoff_limit,false);
+    if(mm_diff > runoff_length) {
+        mm_diff = runoff_length;
+    }
     distance += mm_diff;
-    printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
+    //printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
 
-    //account for the stopping_offset on this track
-    distance += tpi->stopping_offset;
+
 
     distance -= tpi->stopping_distance(tpi->speed, false);
-    printf(COM2, "\033[s\033[%d;%dH Distance -stopping dist: %d\033[u", 35 + print_index++, 60, distance);
+    //printf(COM2, "\033[s\033[%d;%dH Distance -stopping dist: %d\033[u", 35 + print_index++, 60, distance);
     return distance;
 }
 
@@ -589,23 +594,23 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     uint32_t time = 0,segment_dist=0;
     prev_node = iterator_node;
     uint32_t av_velocity=0;
-    int print_index=0;
+    //int print_index=0;
     for(iterator_node = get_next_sensor_or_exit(start_sensor); distance >0  && iterator_node != NULL  ; iterator_node = get_next_sensor_or_exit(iterator_node)) {
             if(iterator_node->type == NODE_EXIT){
                 ASSERT(_train_position_get_prev_first_av_velocity(tpi,prev_node,&av_velocity) == 0);
-                printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is an exit node");
+                //printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is an exit node");
             }else{
                 ASSERT(_train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity) == 0);
-                printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is not an exit node");
+                //printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is not an exit node");
 
             }
             
             segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
-            printf(COM2,"\033[s\033[%d;%dHIterator Node: %s Segment Dist: %d Avg Velocity: %d Time for segment: %d Distleft: %d Time: %d\033[u",25+print_index++,60,iterator_node->name,segment_dist, av_velocity,(segment_dist*100)/av_velocity,distance- segment_dist,time + (segment_dist*100)/av_velocity);
+            //printf(COM2,"\033[s\033[%d;%dHIterator Node: %s Segment Dist: %d Avg Velocity: %d Time for segment: %d Distleft: %d Time: %d\033[u",25+print_index++,60,iterator_node->name,segment_dist, av_velocity,(segment_dist*100)/av_velocity,distance- segment_dist,time + (segment_dist*100)/av_velocity);
             //send_term_heavy_msg(false, "dist %d avel %d", dist,av_velocity);
 
             if(distance < segment_dist  ) {
-                printf(COM2, "\e[s\e[%d;%dH%s: %d\n\e[u", 25+print_index++,60,"Segment distance is greater than distance. Seg Distance: ", distance);
+               // printf(COM2, "\e[s\e[%d;%dH%s: %d\n\e[u", 25+print_index++,60,"Segment distance is greater than distance. Seg Distance: ", distance);
 
                 segment_dist = distance;
             }
