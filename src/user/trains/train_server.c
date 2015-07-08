@@ -585,7 +585,7 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     uint32_t av_velocity=0;
     for(iterator_node = get_next_sensor(start_sensor); distance >0  && iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
             _train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity);
-            segment_dist = get_track_node_length(prev_node);
+            segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
             //send_term_heavy_msg(false, "dist %d avel %d", dist,av_velocity);
             if(distance < segment_dist  ) {
                 segment_dist = distance;
@@ -596,6 +596,7 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     }
     
     if(distance != 0) {
+        ASSERT(0);
         //Track lead us to a dead end we can't estimate
         return -2;
 
