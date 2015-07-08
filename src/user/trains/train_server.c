@@ -231,8 +231,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     if(start_node == NULL) {
         return -1;
     }
-    //account for the stopping_offset on this track
-    mm_diff+=tpi->stopping_offset;
+
 
     //Get distance to that point
     distance = distance_between_track_nodes(start_node,destination_sensor,false);
@@ -244,7 +243,9 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     }
     distance += mm_diff;
     //printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
-
+    
+    //account for the stopping_offset on this track
+    distance += tpi->stopping_offset;
 
 
     distance -= tpi->stopping_distance(tpi->speed, false);
