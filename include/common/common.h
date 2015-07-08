@@ -28,8 +28,14 @@ typedef uint8_t priority_t;
 #define SENSOR_MESSAGE_SIZE (sizeof(int8_t)*10 + 2+ sizeof(uint32_t))
 //\e[2J \e[1;1H
 
-#define ASSERT(cond)  if(!(cond)) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Terminate(); } while(0)
-#define KASSERT(cond) if(!(cond)) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)
+#ifdef ASSERTIONS
+	#define ASSERT(cond)  if(!(cond)) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Terminate(); } while(0)
+	#define KASSERT(cond) if(!(cond)) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)
+#else
+	#define ASSERT(cond)  ((void)(cond));
+	#define KASSERT(cond) ((void)(cond));
+#endif
+
 
 void* memcpy(void* dest, void* src, size_t len);
 int max(int val1, int val2);

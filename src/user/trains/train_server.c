@@ -50,6 +50,7 @@ void train_server(void) {
 	char message[message_size]; 
     int16_t train_number = -1; //The number associated wiht the train
     int16_t train_slot   = -1; //The slot that the train is registered to.
+    int32_t distance_estimation;
     sensor_triggers_t sensor_triggers;
 
     int32_t last_distance_update_time = 0; //The last time the expected distance for the train was updated
@@ -101,7 +102,13 @@ void train_server(void) {
 
                     if(new_time - last_distance_update_time > 10) {
                         int32_t time_to_expected_time = train_position_info.next_sensor_estimated_time - new_time;
-                        send_term_update_dist_msg(train_slot, (time_to_expected_time * ((int32_t)train_position_info.average_velocity)) / 100);
+                        distance_estimation = (time_to_expected_time * ((int32_t)train_position_info.average_velocity)) / 100;
+                        
+                        //TODO: Improve this when we have acceleration profiles
+                        if(distance_estimation>=0){
+                            send_term_update_dist_msg(train_slot, distance_estimation);  
+                        }
+                        
                         last_distance_update_time = new_time;
                     }
                 } else {
@@ -243,7 +250,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     }
     distance += mm_diff;
     //printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
-    
+
     //account for the stopping_offset on this track
     distance += tpi->stopping_offset;
 
