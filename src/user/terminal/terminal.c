@@ -34,8 +34,8 @@
 #define TERM_TRAIN_STATE_TRAIN_OFF   3
 #define TERM_TRAIN_STATE_SPEED_OFF   TERM_TRAIN_STATE_TRAIN_OFF + 8
 #define TERM_TRAIN_STATE_LANDM_OFF   TERM_TRAIN_STATE_SPEED_OFF + 10
-#define TERM_TRAIN_STATE_DIST_OFF    TERM_TRAIN_STATE_LANDM_OFF + 7
-#define TERM_TRAIN_STATE_NEXT_OFF    TERM_TRAIN_STATE_DIST_OFF  + 13
+#define TERM_TRAIN_STATE_DIST_OFF    TERM_TRAIN_STATE_LANDM_OFF + 8
+#define TERM_TRAIN_STATE_NEXT_OFF    TERM_TRAIN_STATE_DIST_OFF  + 12
 #define TERM_TRAIN_STATE_VELO_OFF    TERM_TRAIN_STATE_NEXT_OFF + 6
 #define TERM_TRAIN_STATE_ERR_OFF     TERM_TRAIN_STATE_VELO_OFF + 10
 #define TERM_TRAIN_CALIB_DATA_OFF    TERM_TRAIN_STATE_ERR_OFF + 12
@@ -105,17 +105,12 @@ void terminal_server(void) {
     RegisterAs(TERMINAL_SERVER);
 
     term_clear();
-    //term_move_cursor(1,1);
-    //printf(COM2, "Time:");
-
-
-
     term_move_cursor(1, 1);
     printf(COM2, "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\r\n");
-    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃                    TRAIN                                          ┃\r\n");
-    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃                 INFORMATION                                       ┃\r\n");
+    printf(COM2, "┃                                   \e[32;1;4mBADos\e[0m                                 ┃                              \e[34;1;4mTRAIN\e[0m                                ┃\r\n");
+    printf(COM2, "┃                  \e[2mCreated by: Dan Chevalier and Ben Konyi\e[0m                ┃                           \e[34;1;4mINFORMATION\e[0m                             ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━┫\r\n");         
-    printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃ NUMBER ┃ SPEED ┃ LANDMARK ┃ DISTANCE ┃ NEXT ┃ V(cm/s) ┃ ERROR(cm) ┃\r\n");
+    printf(COM2, "┃        \e[1;96mSENSOR STATES\e[0m           ┃  \e[1;91mRECENT\e[0m  ┃        \e[1;35mSWITCH STATES\e[0m        ┃ \e[1mNUMBER\e[0m ┃ \e[1mSPEED\e[0m ┃ \e[1mLANDMARK\e[0m ┃ \e[1mDISTANCE\e[0m ┃ \e[1mNEXT\e[0m ┃ \e[1mV(cm/s)\e[0m ┃ \e[1mERROR(cm)\e[0m ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━┻━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━┻━━━━━━┻━━━━━━━━━┻━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃A1  A2  A3  A4  A5  A6  A7  A8  ┃          ┃  1  2  3  4  5  6  7  8  9  ┃                                                                   ┃\r\n");
     printf(COM2, "┃A9  A10 A11 A12 A13 A14 A15 A16 ┃          ┃  ?  ?  ?  ?  ?  ?  ?  ?  ?  ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
@@ -126,9 +121,9 @@ void terminal_server(void) {
     printf(COM2, "┃D1  D2  D3  D4  D5  D6  D7  D8  ┃          ┃    153   154   155   156    ┃                                                                   ┃\r\n");
     printf(COM2, "┃D9  D10 D11 D12 D13 D14 D15 D16 ┃          ┃     ?     ?     ?     ?     ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃E1  E2  E3  E4  E5  E6  E7  E8  ┃          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                                                   ┃\r\n");
-    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ TIME:                       ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
+    printf(COM2, "┃E9  E10 E11 E12 E13 E14 E15 E16 ┃          ┃ \e[4mTIME:\e[0m                       ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┣━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫                                                                   ┃\r\n");
-    printf(COM2, "┃ Track: ? ┃ Idle Time: XX.X%%  ┃                                          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");   
+    printf(COM2, "┃ \e[4mTrack:\e[0m ? ┃ \e[4mIdle Time:\e[0m XX.X%%  ┃                                          ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\r\n");   
     printf(COM2, "┣━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
     printf(COM2, "┃ \e[33;1mResult:\e[0m                                                                 ┃\r\n");
     printf(COM2, "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\r\n");
@@ -137,9 +132,8 @@ void terminal_server(void) {
 
     CreateName(TERMINAL_TICK_NOTIFIER_PRIORITY, terminal_tick_notifier, TERMINAL_TICK_NOTIFIER);
 
-    //draw_initial_track_map();
     sensor_map_chars_t sensor_chars[16*16];
-    //track_b_sensor_char_init(sensor_chars);
+
     //IMPORTANT: This needs to be the last coord we set so user input is in the right place
     term_move_cursor(TERM_INPUT_COORDS);
 
@@ -542,7 +536,7 @@ void _clear_user_input(void) {
     term_show_cursor();
 }
 void handle_train_command(int32_t num,int32_t speed){
-    _status_message(true,"CMD: 'TR' #: '%d' Speed: '%d'",num,speed);
+    _status_message(true,"tr %d %d",num,speed);
 }
 void send_term_train_msg(int32_t num,int32_t speed) {
     terminal_data_t terminal_data;
@@ -552,7 +546,7 @@ void send_term_train_msg(int32_t num,int32_t speed) {
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_reverse_command(int32_t num){
-   _status_message(true, "CMD: 'RV' #: '%d'",num);
+   _status_message(true, "rv %d",num);
 }
 void send_term_heavy_msg(bool clr_user_input,char*message,...) {
     char err_msg[128];
@@ -590,7 +584,7 @@ void send_term_reverse_msg(uint32_t train_num) {
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_switch_command(int32_t num,char state){
-    _status_message(true, "CMD 'SW' #: '%d' State: '%c'",num,state);
+    _status_message(true, "sw %d %c",num,state);
 
     term_hide_cursor();
     term_save_cursor();
@@ -626,14 +620,14 @@ void send_term_initialize_track_switches(void) {
 }
 void handle_initialize_track_switches(void) {
     int i;
-    for(i = 0; i < 200; i ++){
-        if(is_valid_switch_number(i)){
+    for(i = 0; i < 200; i ++) {
+        if(is_valid_switch_number(i)) {
             handle_switch_command(i,'C');
         }
     }
 }
 void handle_quit_command(void){
-    _status_message(true,"CMD QUIT");
+    _status_message(true,"Quitting");
     Terminate();
 }
 void send_term_quit_msg (void) {
@@ -643,7 +637,7 @@ void send_term_quit_msg (void) {
 }
 
 void handle_start_command(void) {
-    _status_message(true,"ENABLING TRAIN CONTROLLER");
+    _status_message(true,"Enabling the train controller");
 }
 void send_term_start_msg(void) {
     terminal_data_t terminal_data;
@@ -652,7 +646,7 @@ void send_term_start_msg(void) {
 }
 
 void handle_stop_command(void) {
-    _status_message(true,"STOPPING TRAINS AND TURNING OFF CONTROLLER");
+    _status_message(true,"Disabling the train controller");
 }
 void send_term_stop_msg(void) {
     terminal_data_t terminal_data;
@@ -660,7 +654,7 @@ void send_term_stop_msg(void) {
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_find_command(void) {
-    _status_message(true,"FINDING REGISTERED TRAINS...");
+    _status_message(true,"Finding registered trains...");
 }
 void send_term_find_msg(void) {
     terminal_data_t terminal_data;
@@ -669,7 +663,6 @@ void send_term_find_msg(void) {
 }
 
 void handle_set_track(sensor_map_chars_t* sensor_display_info, char track) {
-    //TODO actually set track info
     clear_track_map();
 
     if(track == 'A') {
@@ -707,7 +700,7 @@ void send_term_set_track_msg(char track) {
 }
 
 void handle_register_train(int8_t train, int8_t slot) {
-    _status_message(true,"TRAIN: %d REGISTERED TO SLOT: %d", train, slot);
+    _status_message(true,"Train %d is registered to slot %d", train, slot);
 }
 void send_term_register_train_msg(int8_t train, int8_t slot) {
     terminal_data_t terminal_data;
@@ -776,15 +769,7 @@ void handle_clear_train_slot(int8_t slot) {
 
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_TRAIN_OFF, slot_offset);
-    printf(COM2, "  ");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, slot_offset);
-    printf(COM2, "    ");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_LANDM_OFF, slot_offset);
-    printf(COM2, "    ");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_DIST_OFF, slot_offset);
-    printf(COM2, "    ");
-    term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_NEXT_OFF, slot_offset);
-    printf(COM2, "    ");
+    printf(COM2, "                                                                   ");
     term_restore_cursor();
 }
 
@@ -823,7 +808,6 @@ void draw_initial_track_map(char track_map[TRACK_SIZE_Y][TRACK_SIZE_X]) {
 
 void update_map_sensor(sensor_map_chars_t* sensor_chars,int32_t group, int32_t index, bool state) {
     sensor_map_chars_t* data = &sensor_chars[MAP_DRAW_COORDS(group,index)];
-    //bwprintf(COM2, "Group: %d Index: %d COORDS: %d\r\n", group, index, MAP_DRAW_COORDS(group,index));
     ASSERT(MAP_COL + data->x >= 0);
     ASSERT(MAP_ROW + data->y >= 0);
     term_move_cursor(MAP_COL + data->x,MAP_ROW + data->y);
@@ -840,12 +824,13 @@ void print_train_calibration_info(int8_t train, avg_velocity_t average_velocity_
     terminal_data.num1 = train;
     terminal_data.average_velocity_info = (avg_velocity_t***)average_velocity_info;
 
-    _status_message(true, "Printing train calib info...");
+    _status_message(true, "Printing train calibration info...");
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data, sizeof(terminal_data_t),(char*)NULL,0);
 }
 
 void handle_display_average_velocity_information(int16_t train, avg_velocity_t*** average_velocity_info) {
     term_save_cursor();
+    term_hide_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF, TERM_INPUT_ROW + 2);
 
     printf(COM2, "Calibration Information For Train: %d\r\n", train);
@@ -862,7 +847,7 @@ void handle_display_average_velocity_information(int16_t train, avg_velocity_t**
                 avg_velocity_t* avg_velocity = &(((avg_velocity_t (*)[MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS])average_velocity_info)[i][j][k]);
                 if(avg_velocity->from != NULL && avg_velocity->average_velocity != 0) {
                     printf(COM2, "%c%d[%d] from %s[%d]: \t%d Iterations: %d\t Speed: %d\r\n", first_sensor_letter, first_sensor_num, i, 
-                        avg_velocity->from->name, j, avg_velocity->average_velocity, avg_velocity->average_velocity_count, k + MAX_STORED_SPEEDS + 1);
+                        avg_velocity->from->name, avg_velocity->from->num, avg_velocity->average_velocity, avg_velocity->average_velocity_count, k + MAX_STORED_SPEEDS + 1);
                     term_move_to_column(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_CALIB_DATA_OFF);
                 }
             }
@@ -870,6 +855,7 @@ void handle_display_average_velocity_information(int16_t train, avg_velocity_t**
     }
 
     term_restore_cursor();
+    term_show_cursor();
 }
 
 

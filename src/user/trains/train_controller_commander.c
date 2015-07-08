@@ -100,6 +100,7 @@ void train_controller_commander_server(void) {
     train_controller_data_t data;
     train_data_t trains[MAX_TRAIN_NUM + 1];
     int16_t registered_trains[MAX_REGISTERED_TRAINS];
+    bool track_initialized = false;
 
     int i;
     for(i = 0; i <= MAX_TRAIN_NUM; ++i) {
@@ -150,6 +151,7 @@ void train_controller_commander_server(void) {
                 handle_switch_set_direction(data.var1, data.var2);
                 break;
             case SWITCH_INITIALIZE_DIRECTIONS:
+                track_initialized = true;
                 handle_initialize_track_switches();
                 break;
             case SENSOR_QUERY_REQUEST:
@@ -162,7 +164,12 @@ void train_controller_commander_server(void) {
                 handle_stop_controller();
                 break;
             case TRAIN_REGISTER:
-                handle_train_register(trains, registered_trains, data.var1, data.var2);
+                if(track_initialized) {
+                    send_term_register_train_msg(data.var1, data.var2);
+                    handle_train_register(trains, registered_trains, data.var1, data.var2);
+                } else {
+                    send_term_heavy_msg(true, "Cannot register trains until the track is initialized");
+                }
                 break;
             case FIND_TRAINS:
                 handle_find_trains(trains, registered_trains);
@@ -244,14 +251,12 @@ void handle_initialize_track_switches(void) {
     int i;
     for( i = 1; i < 19; i++ ) {
         if(is_valid_switch_number(i)){
-           // Delay(10);
             handle_switch_set_direction(i,'C');
         }
     }
 
     for( i = 0x99; i <= 0x9C; i++ ) {
         if(is_valid_switch_number(i)){
-           // Delay(10);
             handle_switch_set_direction(i,'C');
         }
     }

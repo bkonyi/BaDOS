@@ -106,7 +106,7 @@ void process_input(char* input) {
 			target_train_number = strtoi(argv[1]);
 			int8_t slot = strtoi(argv[2]);
 
-			send_term_register_train_msg(target_train_number,slot);
+			//send_term_register_train_msg(target_train_number,slot);
 			result = register_train(target_train_number, slot);
 			
 			if(result != 0) {
@@ -276,6 +276,7 @@ int _init_track(char track) {
     } else if ( track == 'B' ){
         tps_set_track(TRACKB);
     }
+
     send_term_initialize_track_switches();
     tcs_initialize_track_switches();
     return 0; // Todo: can/should errors be conveyed here? 
