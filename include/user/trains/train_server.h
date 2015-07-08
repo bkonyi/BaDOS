@@ -72,6 +72,7 @@ typedef struct train_position_info_t {
     int32_t stopping_offset;
     tid_t conductor_tid;
     bool ok_to_record_av_velocities;
+    uint32_t default_av_velocity[MAX_STORED_SPEEDS];
 } train_position_info_t;
 
 void _init_sensor_triggers(sensor_triggers_t* triggers);

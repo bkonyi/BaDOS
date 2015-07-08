@@ -30,6 +30,7 @@ static void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_gro
 static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) ;
 static void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff);
 static int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) ;
+static int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track_node* node, uint32_t* av_out) ; 
 #define MAX_CONDUCTORS 32 //Arbitrary
 
 CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
@@ -82,7 +83,7 @@ void train_server(void) {
     train_number = ((train_server_msg_t*)message)->num1; 
     train_slot   = ((train_server_msg_t*)message)->num2;
     tps_add_train(train_number);
-    load_calibration(train_number, &train_position_info);
+    //load_calibration(train_number, &train_position_info);
 
 	FOREVER {
 		Receive(&requester, message, message_size);
@@ -217,10 +218,10 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
 int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) {
     int32_t distance =0;
     //int16_t sensor_to_trigger_at; 
-   // int print_index = 0;
+    int print_index = 0;
 
     track_node * destination_sensor = get_sensor_node_from_num(start_node,destination_sensor_num); 
-   // printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
+    printf(COM2, "\033[s\033[%d;%dHDestination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
 
     if(start_node == destination_sensor) {
         start_node = get_next_sensor(start_node);
@@ -233,16 +234,16 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
 
     //Get distance to that point
     distance = distance_between_track_nodes(start_node,destination_sensor,false);
-   // printf(COM2, "\033[s\033[%d;%dHDistance between %s and %s: %d\033[u", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
+    printf(COM2, "\033[s\033[%d;%dHDistance between %s and %s: %d\033[u", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
 
     distance += mm_diff;
-    //printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
+    printf(COM2, "\033[s\033[%d;%dH Distance w/diff: %d\033[u", 35 + print_index++, 60, distance);
 
     //account for the stopping_offset on this track
     distance += tpi->stopping_offset;
 
     distance -= tpi->stopping_distance(tpi->speed, false);
-   // printf(COM2, "\033[s\033[%d;%dH Distance -stopping dist: %d\033[u", 35 + print_index++, 60, distance);
+    printf(COM2, "\033[s\033[%d;%dH Distance -stopping dist: %d\033[u", 35 + print_index++, 60, distance);
     return distance;
 }
 
@@ -504,7 +505,7 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
                 train_position_info->sensor_error_next_sensor = NULL;
                 train_position_info->switch_error_next_sensor = NULL;
             }
-
+            load_calibration(train,train_position_info);
             return true;
         }
     }
@@ -588,18 +589,32 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     uint32_t time = 0,segment_dist=0;
     prev_node = iterator_node;
     uint32_t av_velocity=0;
-    for(iterator_node = get_next_sensor(start_sensor); distance >0  && iterator_node != NULL; iterator_node = get_next_sensor(iterator_node)) {
-            _train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity);
+    int print_index=0;
+    for(iterator_node = get_next_sensor_or_exit(start_sensor); distance >0  && iterator_node != NULL  ; iterator_node = get_next_sensor_or_exit(iterator_node)) {
+            if(iterator_node->type == NODE_EXIT){
+                ASSERT(_train_position_get_prev_first_av_velocity(tpi,prev_node,&av_velocity) == 0);
+                printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is an exit node");
+            }else{
+                ASSERT(_train_position_get_av_velocity(tpi,prev_node,iterator_node,&av_velocity) == 0);
+                printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is not an exit node");
+
+            }
+            
             segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
+            printf(COM2,"\033[s\033[%d;%dHIterator Node: %s Segment Dist: %d Avg Velocity: %d Time for segment: %d Distleft: %d Time: %d\033[u",25+print_index++,60,iterator_node->name,segment_dist, av_velocity,(segment_dist*100)/av_velocity,distance- segment_dist,time + (segment_dist*100)/av_velocity);
             //send_term_heavy_msg(false, "dist %d avel %d", dist,av_velocity);
+
             if(distance < segment_dist  ) {
+                printf(COM2, "\e[s\e[%d;%dH%s: %d\n\e[u", 25+print_index++,60,"Segment distance is greater than distance. Seg Distance: ", distance);
+
                 segment_dist = distance;
             }
             time += (segment_dist*100)/av_velocity; // time is in 1/100ths of second so mult by 100 to get on the level
-            bwprintf(COM2,"\r\ndist %d segment_dist %d  av vel %d\r\n",distance,segment_dist,av_velocity);
             distance -= segment_dist;
             prev_node = iterator_node;
     }
+
+  //  ASSERT(iterator_node == NULL);
     
     if(distance != 0) {
         ASSERT(0);
@@ -683,8 +698,14 @@ int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from
     avg_velocity_t* av;
     int i,to_index;
     uint16_t speed_index = GET_SPEED_INDEX(tpi->speed);
-
     to_index = to->num;
+    if(tpi->average_velocities[to_index][0][speed_index].from == NULL) {
+        tpi->average_velocities[to_index][0][speed_index].from = from;
+        tpi->average_velocities[to_index][0][speed_index].average_velocity = tpi->default_av_velocity[speed_index];
+        *av_out = tpi->average_velocities[to_index][0][speed_index].average_velocity;
+        return 0;
+    }
+    
     for(i = 0; i < MAX_AV_SENSORS_FROM; i ++) {
         av = &(tpi->average_velocities[to_index][i][speed_index]);
         if(av->from == from) {
@@ -694,4 +715,17 @@ int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from
     }
  
     return -1;
+}
+int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track_node* node, uint32_t* av_out) {
+    //Super hacky, ben you can take marks off for this lol :P but not really. but actually.
+    // lololol its 2 in the morning
+    ASSERT(node->type == NODE_SENSOR);
+    avg_velocity_t* av;
+    int to_index;
+    uint16_t speed_index = GET_SPEED_INDEX(tpi->speed);
+    to_index = node->num;
+    av = &(tpi->average_velocities[to_index][0][speed_index]);
+    *av_out = av->average_velocity;
+ 
+    return 0;
 }
