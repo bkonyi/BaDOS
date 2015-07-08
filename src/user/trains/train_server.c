@@ -202,7 +202,7 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
 
     uint32_t sensor_group = (sensor_to_trigger_at) / 8;
     uint32_t sensor_index = (sensor_to_trigger_at) % 8;
-    send_term_heavy_msg(false, "Setting sens# %d sg %d si %d", sensor_to_trigger_at,sensor_group,sensor_index);
+    send_term_heavy_msg(false, "Setting sens trigger on: %s sg %d si %d", get_sensor_node_from_num(tpi->last_sensor,sensor_to_trigger_at)->name,sensor_group,sensor_index);
     triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
     triggers->action[sensor_to_trigger_at].type = TRIGGER_STOP_AROUND;
     triggers->action[sensor_to_trigger_at].byte1 = sensor_num;
@@ -249,7 +249,6 @@ void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* trig
     if(((1<<(7-sensor_index)) & triggers->sensors[sensor_group]) != 0 ) {
         //Act on the action related to the stop sensor
         int32_t action_index = (sensor_group*8)+sensor_index;
-        send_term_heavy_msg(false, "CHECKING sens# %d sg %d si %d", action_index,sensor_group,sensor_index);
         switch(triggers->action[action_index].type) {
             case TRIGGER_STOP_AT:
                 tcs_train_set_speed(train_number, 0); 
@@ -591,6 +590,7 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
                 segment_dist = distance;
             }
             time += (segment_dist*100)/av_velocity; // time is in 1/100ths of second so mult by 100 to get on the level
+            bwprintf(COM2,"\r\ndist %d segment_dist %d  av vel %d\r\n",distance,segment_dist,av_velocity);
             distance -= segment_dist;
             prev_node = iterator_node;
     }
