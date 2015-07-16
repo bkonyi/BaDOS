@@ -2,6 +2,7 @@
 #define _TRAIN_SERVER_H_
 #include <common.h>
 #include <track/track_node.h>
+#include <track/track_data.h>
 
 #define MAX_AV_SENSORS_FROM 4
 #define MAX_STORED_SPEEDS 7 //Can't make this any larger or else things just die...
@@ -18,7 +19,8 @@ typedef enum train_server_cmd_t {
     TRAIN_SERVER_STOP_AROUND_SENSOR     = 8,
     TRAIN_SERVER_SET_SPEED              = 9,
     TRAIN_SERVER_SET_STOP_OFFSET        = 10,
-    TRAIN_SERVER_GOTO_DESTINATION       = 11
+    TRAIN_SERVER_GOTO_DESTINATION       = 11,
+    TRAIN_SERVER_SET_REVERSING          = 12
 } train_server_cmd_t;
 
 typedef struct train_server_msg_t {
@@ -74,6 +76,10 @@ typedef struct train_position_info_t {
     tid_t conductor_tid;
     bool ok_to_record_av_velocities;
     uint32_t default_av_velocity[MAX_STORED_SPEEDS];
+
+    track_node* current_path[TRACK_MAX];
+    int path_length;
+    int8_t destination;
 } train_position_info_t;
 
 void _init_sensor_triggers(sensor_triggers_t* triggers);
@@ -96,6 +102,7 @@ void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_d
 void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]);
 void train_server_set_speed(tid_t tid, uint16_t speed);
 void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff);
-void train_server_goto_destination(tid_t, int8_t sensor_num);
+void train_server_goto_destination(tid_t tid, int8_t sensor_num);
+void train_server_set_reversing(tid_t tid);
 
 #endif // _TRAIN_SERVER_H_
