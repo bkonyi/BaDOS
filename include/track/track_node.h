@@ -32,6 +32,7 @@ struct track_node {
   track_node *reverse;  /* same location, but opposite direction */
   track_edge edge[2];
   int state;
+  int16_t index;
 };
 
 track_node* get_next_track_node(track_node* start_node);

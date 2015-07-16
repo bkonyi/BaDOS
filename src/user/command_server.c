@@ -178,7 +178,20 @@ void process_input(char* input) {
 			target_train_number = strtoi(second);
 			send_term_cmd_success_msg("train_stop_offset");
 			tcs_send_train_stop_offset_msg(target_train_number,strtoi(third));
-		} else {
+		} else if(strcmp(first, "goto") == 0) {
+            target_train_number = strtoi(second);
+            int8_t sensor_id = sensor_to_id(third);
+            
+            result = tcs_goto_destination(target_train_number, sensor_id);
+            if(result == -1) {
+                send_term_heavy_msg(true, "Invalid goto train number");
+            } else if(result == -2) {
+                send_term_heavy_msg(true, "Invalid goto destination");
+            } else {
+                send_term_heavy_msg(true, "Sending train: %d to destination: %s", target_train_number, third);
+            }
+
+        } else {
 			send_term_heavy_msg(true,"Invalid Command");
 		}
 	} else if(argc ==2) {

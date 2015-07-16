@@ -2,6 +2,7 @@
 #include <trains/track_position_server.h>
 #include <trains/train_controller_commander.h>
 #include <trains/train_calibration_loader.h>
+#include <trains/train_path_finder.h>
 #include <io/io.h>
 #include <terminal/terminal.h>
 #include <ring_buffer.h>
@@ -31,6 +32,8 @@ static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_
 static void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff);
 static int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) ;
 static int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track_node* node, uint32_t* av_out) ; 
+static void handle_goto_destination(train_position_info_t* train_position_info, int8_t sensor_num);
+
 #define MAX_CONDUCTORS 32 //Arbitrary
 
 CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
@@ -177,6 +180,9 @@ void train_server(void) {
             case TRAIN_SERVER_SET_STOP_OFFSET:
                 handle_set_stop_offset(&train_position_info,((train_server_msg_t*)message)->num1);
                 break;
+            case TRAIN_SERVER_GOTO_DESTINATION:
+                handle_goto_destination(&train_position_info, ((train_server_msg_t*)message)->num1);
+                break;
             default:
                 //Invalid command
                 bwprintf(COM2, "Invalid train command: %d from TID: %d\r\n", ((train_server_msg_t*)message)->command, requester);
@@ -320,18 +326,8 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->is_under_over = true; //Assume we are starting at speed 0 so this doesn't really matter
     tpi->stopping_offset = 0;
     tpi->ok_to_record_av_velocities = false;
-
-    /*int i, j, k;
-    for(i = 0; i < 80; ++i) {
-        for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
-            for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
-                tpi->average_velocities[i][j][k].average_velocity = 0;
-                tpi->average_velocities[i][j][k].average_velocity_count = 0;
-                tpi->average_velocities[i][j][k].from = NULL;
-            }
-        }
-    }*/
 }
+
 void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_diff) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_STOP_AROUND_SENSOR;
@@ -339,6 +335,7 @@ void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_d
     msg.num2 = mm_diff;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
 }
+
 void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_INIT;
@@ -378,6 +375,14 @@ void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff) {
     msg.num1 = mm_diff;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
+
+void train_server_goto_destination(tid_t tid, int8_t sensor_num) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_GOTO_DESTINATION;
+    msg.num1 = sensor_num;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
 void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff) {
     train_position_info->stopping_offset = mm_diff;
     send_term_heavy_msg(false,"Set stopping offset %d", mm_diff);
@@ -741,4 +746,22 @@ int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track
     *av_out = av->average_velocity;
  
     return 0;
+}
+
+void handle_goto_destination(train_position_info_t* train_position_info, int8_t sensor_num) {
+    track_node* current_location = train_position_info->last_sensor;
+    track_node* destination = get_sensor_node_from_num(current_location, sensor_num);
+
+    int length = 0;
+    track_node* path[TRACK_MAX];
+
+    find_path(current_location, destination, path, &length);
+
+    int print_index = -10;
+    printf(COM2, "\033[s\033[%d;%dH\e[2KPath Length: %d\033[u", 40 + print_index++, 60, length);
+
+    int i;
+    for(i = 0; i < length; ++i) {
+        printf(COM2, "\033[s\033[%d;%dH\e[2KNext node in path: %s\033[u", 40 + print_index++, 60, path[i]->name);
+    }
 }

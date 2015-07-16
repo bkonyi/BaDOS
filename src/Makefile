@@ -5,7 +5,7 @@ CC  = gcc
 AS	= as
 AR	= ar
 LD  = ld
-MACROS = #-D ASSERTIONS
+MACROS = -D ASSERTIONS
 CFLAGS  = $(MACROS) -O3 -c -fPIC -Wall -Werror -mcpu=arm920t -msoft-float -fno-builtin
 # -g: include hooks for gdb
 # -c: only compile
