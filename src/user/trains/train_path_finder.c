@@ -50,7 +50,7 @@ void find_path(track_node* source, track_node* destination, track_node** path, i
     for(i = 0; i < TRACK_MAX; ++i) {
         track_node* temp_node = &track_start[i];
 
-        if(temp_node == NULL) {
+        if(temp_node->name == NULL) {
             continue;
         }
 
