@@ -31,8 +31,8 @@ void sensor_triggers_set(sensor_triggers_t *sensor_triggers,int32_t sensor_num,s
 
 	uint8_t Byte = 0;
 	uint32_t Num = 0;
-	if(Byte != NULL) Byte = *byte ;
-	if(Num != NULL) Num = *num ;
+	if(byte != NULL) Byte = *byte ;
+	if(num != NULL) Num = *num ;
 	sensor_trigger_info_t* trigger_info;
 	QUEUE_POP_FRONT(*(sensor_triggers->free_slots), trigger_info);
 

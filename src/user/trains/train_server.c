@@ -22,6 +22,7 @@ static void handle_update_train_position_info(int16_t train, int16_t slot, train
 static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
 static int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
 static void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_number,int8_t sensor_num, int32_t mm_diff); 
+static void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switch_num, int16_t direction);
 static uint32_t _get_stopping_distance(int speed, bool is_under_over) ;
 //static int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff);
 
@@ -38,10 +39,17 @@ static void handle_train_reversing(int16_t train, int8_t slot, train_position_in
 
 CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
 
+typedef enum {
+    CONDUCTOR_TRAIN_STOP = 0,
+    CONDUCTOR_SET_SWITCH = 1
+} conductor_command_t;
+
 typedef struct {
-    train_server_msg_t request;
+    conductor_command_t command;
     int32_t delay;
     int32_t train_number;
+    int32_t num1;
+    int8_t byte1;
 } conductor_info_t;
 
 void train_server(void) {
@@ -260,12 +268,14 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
 }
 
 
+
 void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) {
     //Check if we have a trigger set for this sensor and sensor_group.
     int32_t action_index = (sensor_group*8)+sensor_index;
     if(sensor_triggers_has_triggers(triggers, action_index)) {
         sensor_trigger_info_t* sti;
         //Act on the action related to the stop sensor
+
         while((sti = sensor_triggers_get(triggers,action_index)) != NULL){
             switch(sti->type) {
                 case TRIGGER_STOP_AT:
@@ -273,7 +283,11 @@ void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* trig
                     break;
                 case TRIGGER_STOP_AROUND:
                     handle_train_stop_around_sensor(tpi,train_number,sti->byte1,sti->num1);
-                    sensor_trigger_unset(triggers,sensor_group,sensor_index);
+                    //_unset_sensor_trigger(triggers,sensor_group,sensor_index);
+                    break;
+                case TRIGGER_SET_SWITCH:
+                    handle_train_set_switch_direction(tpi, sti->num1, sti->byte1);
+                    //_unset_sensor_trigger(triggers,sensor_group,sensor_index);
                     break;
                 case TRIGGER_NONE:
                     printf(COM2, "\e[s\e[60;40HAction Index: %d\e[u", action_index);
@@ -283,7 +297,9 @@ void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* trig
                 default:
                     ASSERT(0);
             }
+            //If this needs to be put inside the switch above, then we need a different way of looping over so we don't go to infinite
             sensor_triggers_add_free_slot(triggers, sti);
+
         }
         
          
@@ -300,9 +316,18 @@ void train_conductor(void) {
     //send_term_heavy_msg(false,"Conductor Starting with delay %d",conductor_info.delay);
     //Delay until the specified time
     Delay(conductor_info.delay);
-    //send_term_heavy_msg(false,"Conductor Going back to TS after delay %d",conductor_info.delay);
-    //Send the request to the train server
-    tcs_train_set_speed(conductor_info.train_number,0);
+
+    switch(conductor_info.command) {
+        case CONDUCTOR_TRAIN_STOP:
+            //Send the request to the train server
+            tcs_train_set_speed(conductor_info.train_number, 0);
+            break;
+        case CONDUCTOR_SET_SWITCH:
+            tcs_switch_set_direction(conductor_info.num1, conductor_info.byte1);
+            break;
+        default:
+            ASSERT(0);
+    }
 
     //Die
     Exit();
@@ -439,10 +464,14 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
                     (sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0)) {
                     *next_sensor = sensor_error_next_sensor;
                     update_error_expected_time = true;
+                    expected_group = sensor_error_group;
+                    expected_index = sensor_error_index;
                 } else if((switch_error_next_sensor != NULL && switch_error_next_sensor != *next_sensor 
                     && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
                     *next_sensor = switch_error_next_sensor;
+                    expected_group = switch_error_group;
+                    expected_index = switch_error_index;
                     update_error_expected_time = true;
                     is_switch_error = true;
                 }                
@@ -663,12 +692,39 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
     //Start a conducter
     tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
     conductor_info_t conductor_info;
-    conductor_info.request.command = TRAIN_SERVER_SET_SPEED;
-    conductor_info.request.num1 = 0;
+    conductor_info.command = CONDUCTOR_TRAIN_STOP;
     conductor_info.delay = time;
     conductor_info.train_number = train_number;
     Send(tpi->conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
 }
+
+void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switch_num, int16_t direction) {
+    int time;
+    int32_t distance = 0;
+    int16_t switch_node_num = switch_num;
+
+    //We've got 4 switches with weird assignments, so we need to have a special case for them
+    if(0x99 <= switch_node_num && switch_node_num <=0x9c){
+        switch_node_num -= (153 - 19);
+    }
+
+    (void)switch_node_num;
+    //distance = dist_between_node_and_num(tpi->next_sensor, 80 + ((switch_node_num - 1) * 2));//_distance_to_send_stop_command(tpi,tpi->next_sensor, sensor_num, 0);
+
+    //get time to that spot
+    time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance);
+
+    //Start a conducter
+    tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
+
+    conductor_info_t conductor_info;
+    conductor_info.command = CONDUCTOR_SET_SWITCH;
+    conductor_info.num1 = switch_num;
+    conductor_info.byte1 = (direction == DIR_STRAIGHT) ? 'S' : 'C';
+    conductor_info.delay = time;
+    Send(tpi->conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
+}
+
 
 uint32_t _get_stopping_distance(int speed, bool is_under_over) {
     //Using the stopping data curve calculated from excel sheet
@@ -737,6 +793,7 @@ int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from
  
     return -1;
 }
+
 int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track_node* node, uint32_t* av_out) {
     //Super hacky, ben you can take marks off for this lol :P but not really. but actually.
     // lololol its 2 in the morning
@@ -751,7 +808,7 @@ int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track
     return 0;
 }
 
-void handle_goto_destination(train_position_info_t* train_position_info, sensor_triggers_t* triggers, int16_t train, int8_t sensor_num) {
+void TRIGGER_STOP_AROUND(train_position_info_t* train_position_info, sensor_triggers_t* triggers, int16_t train, int8_t sensor_num) {
     track_node* current_location = train_position_info->last_sensor;
     track_node* destination = get_sensor_node_from_num(current_location, sensor_num);
 
@@ -759,34 +816,96 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
 
     find_path(current_location, destination, train_position_info->current_path, &(train_position_info->path_length));
 
+    int32_t distance_at_node[TRACK_MAX];
+
     int print_index = -10;
     printf(COM2, "\033[s\033[%d;%dH\e[2KPath Length: %d\033[u", 40 + print_index++, 60, train_position_info->path_length);
 
     int i;
-    for(i = 0; i < train_position_info->path_length; ++i) {
-
-        if(i < train_position_info->path_length - 1) {
-            /*if(BRANCH) {
-                if(STRAIGHT) {
-                    switch_straight
-                } else {
-                    switch_curved
-                }
-            }*/
-
-            if(train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_AHEAD].dest ||
-                train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_CURVED].dest) {
-                //_set_stop_around_trigger + 10CM
-                printf(COM2, "\033[s\033[%d;%dH\e[2KNode %s to %s requires a reverse\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
-                
-                /*int sensor_before_distance = get_sensor_before_distance(current_location, distance_between_track_nodes(current_location, train_position_info->current_path[i], false) - train_position_info->stopping_distance(9, false));
-                printf(COM2, "\033[s\033[%d;%dH\e[2KSensor before distance: %d\033[u", 40 + print_index++, 60, sensor_before_distance);
-                _set_stop_around_trigger(train_position_info, triggers, sensor_before_distance, 0);*/
-            }
+    for(i = 0; i < train_position_info->path_length - 1; ++i) {
+        if(i == 0) {
+            distance_at_node[i] = 0;
         } else {
-            //_set_stop_around_trigger (destination)
+            distance_at_node[i] = distance_at_node[i - 1] + get_track_node_length(train_position_info->current_path[i]);
+        }
+
+        //If the node is a branch, we'll need to set the branch to the right direction
+        if(train_position_info->current_path[i]->type == NODE_BRANCH) {
+            int send_switch_command_distance = distance_at_node[i - 1] - 100;
+            int sensor_before_distance = -1;
+
+            int j;
+            for(j = i - 2; j >= 0; --j) {
+                if(distance_at_node[j] < send_switch_command_distance && train_position_info->current_path[j]->type == NODE_SENSOR) {
+                    sensor_before_distance = train_position_info->current_path[j]->num;
+                    break;
+                }
+            }
+
+            ASSERT(sensor_before_distance != -1);
+            //int sensor_before_distance = get_sensor_before_distance(current_location, distance_between_track_nodes(current_location, train_position_info->current_path[i], false) - train_position_info->stopping_distance(9, false));
+            //(void)sensor_before_distance;
+
+            //uint32_t sensor_group = (sensor_before_distance) / 8;
+            //uint32_t sensor_index = (sensor_before_distance) % 8;
+            //send_term_heavy_msg(false, "Setting sens trigger on: %s sg %d si %d", get_sensor_node_from_num(train_position_info->last_sensor,sensor_to_trigger_at)->name,sensor_group,sensor_index);
+            //triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
+            //triggers->action[sensor_before_distance].type = TRIGGER_SET_SWITCH;
+            //triggers->action[sensor_before_distance].num1 = train_position_info->current_path[i]->num;
+            uint8_t Byte=0;
+
+            if(train_position_info->current_path[i]->edge[DIR_STRAIGHT].dest == train_position_info->current_path[i+1]) {
+                //switch_straight
+                printf(COM2, "\033[s\033[%d;%dH\e[2KBranch %s is being set to straight Triggered at sensor: %d\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, sensor_before_distance);
+                    Byte = DIR_STRAIGHT;
+                //triggers->action[sensor_before_distance].byte1 = DIR_STRAIGHT;
+
+            } else if( train_position_info->current_path[i]->edge[DIR_CURVED].dest == train_position_info->current_path[i+1]) {
+                //switch_curved
+                printf(COM2, "\033[s\033[%d;%dH\e[2KBranch %s is being set to curved Triggered at sensor: %d\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, sensor_before_distance);
+                //triggers->action[sensor_before_distance].byte1 = DIR_CURVED;
+                Byte = DIR_CURVED;
+            } else {
+                //Don't know how this would happen...
+                ASSERT(0);
+            }
+            sensor_triggers_set(triggers,sensor_before_distance,TRIGGER_SET_SWITCH, &Byte,&(train_position_info->current_path[i]->num));
+        }
+
+        //Check to see if we need to reverse
+        if(train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_AHEAD].dest ||
+            train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_CURVED].dest) {
+            //_set_stop_around_trigger + 10CM
+            printf(COM2, "\033[s\033[%d;%dH\e[2KNode %s to %s requires a reverse\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
+            
+            /*int sensor_before_distance = get_sensor_before_distance(current_location, distance_between_track_nodes(current_location, train_position_info->current_path[i], false) - train_position_info->stopping_distance(9, false));
+            printf(COM2, "\033[s\033[%d;%dH\e[2KSensor before distance: %d\033[u", 40 + print_index++, 60, sensor_before_distance);
+            _set_stop_around_trigger(train_position_info, triggers, sensor_before_distance, 0);*/
+        }
+    } 
+
+    int send_stop_command_distance = distance_at_node[i - 1] - train_position_info->stopping_distance(9, false);
+    int sensor_before_distance = -1;
+
+    for(i = train_position_info->path_length - 2; i >= 0; --i) {
+        if(distance_at_node[i] < send_stop_command_distance && train_position_info->current_path[i]->type == NODE_SENSOR) {
+            sensor_before_distance = train_position_info->current_path[i]->num;
+            break;
         }
     }
+
+    ASSERT(sensor_before_distance != -1);
+
+    sensor_triggers_set(triggers,sensor_before_distance,TRIGGER_STOP_AROUND, NULL,&(train_position_info->current_path[i + 1]->num));
+
+    /*uint32_t sensor_group = (sensor_before_distance) / 8;
+    uint32_t sensor_index = (sensor_before_distance) % 8;
+    triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
+    triggers->action[sensor_before_distance].type = TRIGGER_STOP_AROUND;
+    triggers->action[sensor_before_distance].byte1 = sensor_num;
+    triggers->action[sensor_before_distance].num1 = 0;*/
+
+    //printf(COM2, "\033[s\033[%d;%dH\e[2KDestination is %s\033[u", 40 + print_index++, 60, train_position_info->current_path[i + 1]->name);
 
     //tcs_train_set_speed(train, 9);
 }

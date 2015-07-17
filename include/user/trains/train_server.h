@@ -35,7 +35,6 @@ typedef struct train_server_sensor_msg_t {
 } train_server_sensor_msg_t;
 
 
-
 typedef struct {
     uint16_t average_velocity;
     uint16_t average_velocity_count;

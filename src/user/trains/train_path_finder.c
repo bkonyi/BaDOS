@@ -50,6 +50,10 @@ void find_path(track_node* source, track_node* destination, track_node** path, i
     for(i = 0; i < TRACK_MAX; ++i) {
         track_node* temp_node = &track_start[i];
 
+        if(temp_node == NULL) {
+            continue;
+        }
+
         priority_heap_node_t heap_node;
         heap_node.track_node = temp_node;
 
@@ -69,14 +73,14 @@ void find_path(track_node* source, track_node* destination, track_node** path, i
 
         track_edge* straight_edge = &min_node->edge[DIR_AHEAD];
         track_edge* curved_edge = &min_node->edge[DIR_CURVED];
-        track_edge* reverse_straight_edge = &min_node->reverse->edge[DIR_AHEAD];
-        track_edge* reverse_curved_edge = &min_node->reverse->edge[DIR_CURVED];
+        //track_edge* reverse_straight_edge = &min_node->reverse->edge[DIR_AHEAD];
+        //track_edge* reverse_curved_edge = &min_node->reverse->edge[DIR_CURVED];
 
         //Update all the weights for the neighbor nodes
         calculate_weights(&min_heap, &min_node_full, straight_edge, prev);
         calculate_weights(&min_heap, &min_node_full, curved_edge, prev);
-        calculate_weights(&min_heap, &min_node_full, reverse_straight_edge, prev);
-        calculate_weights(&min_heap, &min_node_full, reverse_curved_edge, prev);
+        //calculate_weights(&min_heap, &min_node_full, reverse_straight_edge, prev);
+        //calculate_weights(&min_heap, &min_node_full, reverse_curved_edge, prev);
     }
 
     int16_t path_indexes[TRACK_MAX];
