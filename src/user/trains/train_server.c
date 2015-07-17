@@ -27,7 +27,6 @@ static uint32_t _get_stopping_distance(int speed, bool is_under_over) ;
 
 static void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) ;
 static void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff);
-static void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) ;
 static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) ;
 static void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff);
 static int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) ;
@@ -55,7 +54,7 @@ void train_server(void) {
     int16_t train_number = -1; //The number associated wiht the train
     int16_t train_slot   = -1; //The slot that the train is registered to.
     int32_t distance_estimation;
-    sensor_triggers_t sensor_triggers;
+    //sensor_triggers_t sensor_triggers;
 
     int32_t last_distance_update_time = 0; //The last time the expected distance for the train was updated
     int conductor_tid; //Used when destroying conductors
@@ -64,7 +63,8 @@ void train_server(void) {
     bool initial_sensor_reading_received = false; //Has the train gotten its first sensor update to be used for finding the train
     int8_t finding_initial_sensor_state[10]; //The first sensor update used when finding the 
     
-    _init_sensor_triggers(&sensor_triggers);
+    //sensor_triggers_init(&sensor_triggers);
+    SENSOR_TRIGGER_INFO_INIT(sensor_triggers);
 
     bool is_stopping_at_landmark = false;
 
@@ -196,21 +196,10 @@ void train_server(void) {
 	}
 }
 
-void _init_sensor_triggers(sensor_triggers_t* triggers) {
-    int i;
-    for(i = 0; i < 10; ++i) {
-        triggers->sensors[i] = 0;
-    }
-    for(i = 0; i < 80; i ++) {
-        triggers->action[i].type = TRIGGER_NONE;
-    }
-}
+
 
 void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) {
-    uint32_t sensor_group = (sensor_num) / 8;
-    uint32_t sensor_index = (sensor_num) % 8;
-    triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
-    triggers->action[sensor_num].type = TRIGGER_STOP_AT;
+    sensor_triggers_set(triggers,sensor_num,TRIGGER_STOP_AT,NULL,NULL);
 }
 
 void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff) {
@@ -228,10 +217,8 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
     uint32_t sensor_group = (sensor_to_trigger_at) / 8;
     uint32_t sensor_index = (sensor_to_trigger_at) % 8;
     send_term_heavy_msg(false, "Setting sens trigger on: %s sg %d si %d", get_sensor_node_from_num(tpi->last_sensor,sensor_to_trigger_at)->name,sensor_group,sensor_index);
-    triggers->sensors[sensor_group] |= 1<<(7-sensor_index);
-    triggers->action[sensor_to_trigger_at].type = TRIGGER_STOP_AROUND;
-    triggers->action[sensor_to_trigger_at].byte1 = sensor_num;
-    triggers->action[sensor_to_trigger_at].num1 = mm_diff;
+
+    sensor_triggers_set(triggers,sensor_to_trigger_at,TRIGGER_STOP_AROUND,((uint8_t*)&sensor_num),&mm_diff);
 }
 
 int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) {
@@ -272,30 +259,33 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     return distance;
 }
 
-void _unset_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_group,int16_t sensor_index) {
-    triggers->sensors[sensor_group] &= ~(1<<(7-sensor_index));
-}
+
 void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) {
     //Check if we have a trigger set for this sensor and sensor_group.
-    if(((1<<(7-sensor_index)) & triggers->sensors[sensor_group]) != 0 ) {
+    int32_t action_index = (sensor_group*8)+sensor_index;
+    if(sensor_triggers_has_triggers(triggers, action_index)) {
+        sensor_trigger_info_t* sti;
         //Act on the action related to the stop sensor
-        int32_t action_index = (sensor_group*8)+sensor_index;
-        switch(triggers->action[action_index].type) {
-            case TRIGGER_STOP_AT:
-                tcs_train_set_speed(train_number, 0); 
-                break;
-            case TRIGGER_STOP_AROUND:
-                handle_train_stop_around_sensor(tpi,train_number,triggers->action[action_index].byte1,triggers->action[action_index].num1);
-                _unset_sensor_trigger(triggers,sensor_group,sensor_index);
-                break;
-            case TRIGGER_NONE:
-                printf(COM2, "\e[s\e[60;40HAction Index: %d\e[u", action_index);
-                Delay(200);
-                ASSERT(0);
-                break;
-            default:
-                ASSERT(0);
+        while((sti = sensor_triggers_get(triggers,action_index)) != NULL){
+            switch(sti->type) {
+                case TRIGGER_STOP_AT:
+                    tcs_train_set_speed(train_number, 0); 
+                    break;
+                case TRIGGER_STOP_AROUND:
+                    handle_train_stop_around_sensor(tpi,train_number,sti->byte1,sti->num1);
+                    sensor_trigger_unset(triggers,sensor_group,sensor_index);
+                    break;
+                case TRIGGER_NONE:
+                    printf(COM2, "\e[s\e[60;40HAction Index: %d\e[u", action_index);
+                    Delay(200);
+                    ASSERT(0);
+                    break;
+                default:
+                    ASSERT(0);
+            }
+            sensor_triggers_add_free_slot(triggers, sti);
         }
+        
          
     }
 }

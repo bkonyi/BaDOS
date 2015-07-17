@@ -3,7 +3,7 @@
 #include <common.h>
 #include <track/track_node.h>
 #include <track/track_data.h>
-
+#include <trains/sensor_triggers.h>
 #define MAX_AV_SENSORS_FROM 4
 #define MAX_STORED_SPEEDS 7 //Can't make this any larger or else things just die...
 #define GET_SPEED_INDEX(speed) (((speed) < 9) ? 0 : ((speed) - 8))
@@ -34,22 +34,7 @@ typedef struct train_server_sensor_msg_t {
     char sensors[SENSOR_MESSAGE_SIZE];
 } train_server_sensor_msg_t;
 
-typedef enum sensor_trigger_type_t {
-    TRIGGER_NONE=1,
-    TRIGGER_STOP_AT ,
-    TRIGGER_STOP_AROUND
-}sensor_trigger_type_t;
 
-typedef struct sensor_trigger_info_t {
-    sensor_trigger_type_t type;
-    int32_t num1;
-    int8_t byte1;
-}sensor_trigger_info_t;
-
-typedef struct sensor_triggers_t {
-    int8_t  sensors[10];
-    sensor_trigger_info_t action[80]; //each sensor gets a command
-}sensor_triggers_t;
 
 typedef struct {
     uint16_t average_velocity;
