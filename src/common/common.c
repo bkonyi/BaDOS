@@ -45,6 +45,15 @@ size_t strlen(char* str) {
     }
     return count;
 }
+size_t strnlen(char* str,size_t maxlen) {
+    char* s = str;
+    size_t count =0;
+    while(*s != '\0' && count < maxlen) {
+        count++;
+        s++;
+    }
+    return count;
+}
 
 char char_to_upper(char a) {
     if('a'<= a && a <= 'z'){

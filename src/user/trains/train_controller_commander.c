@@ -8,6 +8,7 @@
 #include <trains/track_position_server.h>
 #include <task_priorities.h>
 #include <trains/train_server.h>
+#include <terminal/terminal_debug_log.h>
 
 #define REVERSE_DELAY_TICKS 450 //4500ms
 
@@ -135,6 +136,7 @@ void train_controller_commander_server(void) {
         Reply(sending_tid, (char*)NULL, 0);
         switch(data.command) {
             case TRAIN_SET_SPEED:
+                send_term_debug_log_msg("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaB");
                 handle_train_set_speed(trains, (int8_t)data.var1, data.var2);
                 break;
             case TRAIN_REVERSE_BEGIN:
