@@ -67,44 +67,29 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 	ASSERT(dist != 0);
 	return dist;
 }
-uint32_t distance_between_track_nodes_using_path( track_node** path, track_node* start, track_node * end){
-	bool start_counting = false;
+uint32_t distance_between_track_nodes_using_path(track_node** start, track_node * end){
+
 	if(start == NULL  ) {
 		Delay(200);ASSERT(0);
 		return 0;
 	}else if(end == NULL){
 		Delay(200);ASSERT(0);
 		return 0;
-	}else if(start == end) {
-		Delay(200);ASSERT(0);
-		return 0;
 	}
-	track_node* iterator_node; 
+	track_node** iterator_node; 
 	uint32_t dist =0;//get_track_node_length(start);
-	uint32_t edge = 0;
-	int i ;
 	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
 	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
-	for(i =0 ; i < TRACK_MAX; i++) {
-		iterator_node = path[i];
-		if(!start_counting && iterator_node == start){
-			start_counting=true;
-		}
 
-		if(start_counting){
-			
-			if(iterator_node == end){
-				//send_term_debug_log_msg("dbtnup got last node %s", end->name);
-				break;
-			} 
-			dist += get_track_node_length(iterator_node);
-			edge++;
-		}
+	for(iterator_node = start ; iterator_node != NULL && iterator_node[0] != NULL && iterator_node[0] != end; iterator_node++) { 
+		//printf(COM2,"INTTER 0x%x end 0x%x\r\n",(uint32_t)iterator_node,(uint32_t)end);
+		dist += get_track_node_length(iterator_node[0]);
 	}
-	if (i == (TRACK_MAX)) {
-			Delay(200);ASSERT(0);
-			return 0;
-		}	
+
+	if ( iterator_node == NULL ) {
+		Delay(200);ASSERT(0);
+		return 0;
+	}	
 	ASSERT(dist != 0);
 	return dist;
 }
@@ -278,7 +263,8 @@ int get_sensor_before_distance_using_path(track_node** path,track_node* start_se
 			ASSERT(0);
 			}
 			//send_term_debug_log_msg("Our Node %s Node we are looking for %s",iterator_node->name,next_node->name);
-	        segment_dist = distance_between_track_nodes_using_path(path,iterator_node, next_node);
+
+	        segment_dist = distance_between_track_nodes_using_path((path+i), next_node);
 	        //send_term_debug_log_msg("  NodeName:%s Segdis:%d ToDis:%d Des Dis:%d", iterator_node->name, segment_dist, partial_distance + segment_dist, distance);
 	        partial_distance += segment_dist;
 
@@ -293,3 +279,13 @@ int get_sensor_before_distance_using_path(track_node** path,track_node* start_se
     return -2;
 }
 
+track_node**get_path_iterator(track_node** path,track_node* node) {
+	while(path[0] != NULL){
+		send_term_debug_log_msg("Gonk");
+		if(path[0] == node) {
+			return path;
+		}
+		path++;
+	}
+	return NULL;
+}

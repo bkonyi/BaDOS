@@ -269,7 +269,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     //Get distance to that point
     if(use_path) {
         send_term_debug_log_msg("dbtnup 2 %s dest %s",start_node->name,destination_sensor->name);
-        distance = distance_between_track_nodes_using_path(tpi->current_path, start_node,destination_sensor);
+        distance = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, start_node),destination_sensor);
         send_term_debug_log_msg("Dist using path: %d",distance);
     }else {
         distance = distance_between_track_nodes(start_node,destination_sensor,false);
@@ -291,7 +291,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     if(runoff_limit != NULL){
         if(use_path) {
             send_term_debug_log_msg("dbtnup 3 0x%x",(uint32_t)runoff_limit);
-            runoff_length = distance_between_track_nodes_using_path(tpi->current_path,destination_sensor,runoff_limit);
+            runoff_length = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path,destination_sensor),runoff_limit);
         }else {
             runoff_length = distance_between_track_nodes(destination_sensor,runoff_limit,false);
         }
@@ -717,7 +717,7 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
             }
             if(use_path){
                 send_term_debug_log_msg("dbtnup 4");
-                segment_dist = distance_between_track_nodes_using_path(tpi->current_path,prev_node, iterator_node);
+                segment_dist = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path,prev_node), iterator_node);
             }else {
                 segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
             }
