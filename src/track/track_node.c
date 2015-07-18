@@ -32,7 +32,6 @@ uint32_t get_track_node_length(track_node* node) {
 	}else {
 		return node->edge[node->state].dist;
 	}
-
 }
 
 static track_node* distance_between_track_nodes_next(track_node* node, bool* flip_switches) {
@@ -44,6 +43,7 @@ static track_node* distance_between_track_nodes_next(track_node* node, bool* fli
 	}
 	return node->edge[index].dest;
 }
+
 uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool broken_switch){
 	if(start == NULL || end == NULL || start == end) {
 		return 0;
@@ -66,6 +66,41 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 	ASSERT(dist != 0);
 	return dist;
 }
+uint32_t distance_between_track_nodes_using_path( track_node** path, track_node* start, track_node * end, bool broken_switch){
+	bool start_counting = false;
+	if(start == NULL || end == NULL || start == end) {
+		return 0;
+	}
+	track_node* iterator_node; 
+	uint32_t dist =get_track_node_length(start);
+	uint32_t edge = 0;
+	int i ;
+	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
+	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
+	for(i =0 ; i < TRACK_MAX; i++) {
+		iterator_node = path[i];
+		if(!start_counting && iterator_node == start){
+			start_counting=true;
+		}
+
+		if(start_counting){
+			if(iterator_node == start || iterator_node == NULL){
+				//We have a cycle and didn't find a sensor
+				return 0;
+			}
+			if(iterator_node == end) break;
+			dist += get_track_node_length(iterator_node);
+			edge++;
+		}
+
+		if (i == (TRACK_MAX-1)) {
+			return 0;
+		}	
+		
+	}
+	ASSERT(dist != 0);
+	return dist;
+}
 
 uint32_t dist_between_node_and_num(track_node* start, int num) {
 	if(start == NULL || start->num == num) {
@@ -73,7 +108,7 @@ uint32_t dist_between_node_and_num(track_node* start, int num) {
 	}
 	bool broken_switch = false;
 	track_node* iterator_node; 
-	uint32_t dist =get_track_node_length(start);
+	uint32_t dist = get_track_node_length(start);
 	uint32_t edge = 0;
 
 	for(iterator_node = get_next_track_node(start) ;iterator_node->num !=num   ;
@@ -119,6 +154,28 @@ track_node* get_next_sensor_or_exit( track_node* node) {
 		}else if(iterator_node->type == NODE_SENSOR || iterator_node->type == NODE_EXIT) {
 			return iterator_node;
 		}
+	}
+	return NULL;
+}
+track_node* get_next_sensor_or_exit_using_path(track_node** path, track_node* node) {
+	track_node* iterator_node;
+
+	if(node == NULL || node->type == NODE_EXIT) return NULL;
+	int i ;
+	bool start_looking = false;
+	for(i =0 ; i < TRACK_MAX; i++) {
+		iterator_node = path[i];
+		if(!start_looking && iterator_node == node){
+			start_looking = true;
+		}
+		if (start_looking){
+			if(iterator_node == node) { 
+			//We have a cycle and didn't find a sensor
+				return NULL;
+			}else if(iterator_node->type == NODE_SENSOR || iterator_node->type == NODE_EXIT) {
+				return iterator_node;
+			}
+		}		
 	}
 	return NULL;
 }
@@ -180,6 +237,40 @@ int get_sensor_before_distance(track_node* start_sensor, int distance) {
             	return iterator_node->num;
             }
     }
-
     return -2;
 }
+int get_sensor_before_distance_using_path(track_node** path,track_node* start_sensor, int distance) {
+    ASSERT(start_sensor->type == NODE_SENSOR);
+    track_node* iterator_node;
+    uint32_t partial_distance = 0;
+    uint32_t segment_dist = 0;
+    int print_index = 0;
+    bool start_looking = false;
+    if(distance < 0) {
+    	return -1;
+    }
+    int i ;
+	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
+	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
+	for(i =0 ; i < TRACK_MAX; i++) {
+		iterator_node = path[i];
+		if(!start_looking && iterator_node == start_sensor) {
+			start_looking = true;
+		}
+		if(start_looking){
+			track_node* next_node = get_next_sensor_or_exit_using_path(path,iterator_node);
+	        segment_dist = distance_between_track_nodes_using_path(path,iterator_node, next_node, false);
+	        printf(COM2, "\033[s \033[%d;%dHIterator Node Name: %s Segment distance: %d Total Distance: %d Desired Distance: %d\033[u", 40 + print_index++, 60, iterator_node->name, segment_dist, partial_distance + segment_dist, distance);
+	        partial_distance += segment_dist;
+
+	        if(partial_distance >= distance || next_node->type == NODE_EXIT) {
+	  		    send_term_heavy_msg(false, "Going to trigger at sensor: %s Current Sensor: %s", iterator_node->name, start_sensor->name);
+	        	return iterator_node->num;
+	        }	
+		}
+		
+		
+	}
+    return -2;
+}
+
