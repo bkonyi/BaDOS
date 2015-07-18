@@ -57,6 +57,10 @@ uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over) {
     //That's the best polynomial fit for our stopping distances for this train
     distance = ((big_speed * big_speed) * -39252) + (1445900 * big_speed) - 4266500;
 
+    if(distance < 0) {
+        return 0;
+    }
+
     return ((uint16_t)(distance / 10000));
 }
 
@@ -88,6 +92,10 @@ uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over) {
         distance = ((big_speed * big_speed) * 17518) - (218360 * big_speed) + 829660;
     }
 
+    if(distance < 0) {
+        return 0;
+    }
+
     return ((uint16_t)(distance / 1000));
 }
 
@@ -116,7 +124,11 @@ uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over) {
     //That's the best polynomial fit for our stopping distances for this train
     distance = ((big_speed * big_speed) * -27181) + (1302900 * big_speed) - 3213400;
 
-    return (((uint16_t)(distance / 10000)) - 100); //-100 is a manual offset
+    if(distance < 0) {
+        return 0;
+    }
+
+    return (((uint16_t)(distance / 10000)));
 }
 
 void load_default_calibration(train_position_info_t* train_position_info) {
