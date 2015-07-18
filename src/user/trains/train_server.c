@@ -17,22 +17,20 @@ static void train_conductor(void);
 
 static void handle_sensor_data(int16_t train, int16_t slot, int8_t* sensor_data, sensor_triggers_t* ,train_position_info_t* train_position_info); 
 static bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info);
-//static void handle_register_stop_sensor(int8_t* stop_sensors, int8_t sensor_num);
 
 static void handle_update_train_position_info(int16_t train, int16_t slot, train_position_info_t* train_position_info, int32_t time,uint32_t);
-static int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
-static int _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
+static int32_t _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out);
+static int32_t _train_position_get_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t* av);
 static void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_number,int8_t sensor_num, int32_t mm_diff); 
 static void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switch_num, int16_t direction);
 static void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int16_t switch_number, int8_t switch_direction);
-//static int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff);
 
 static void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) ;
 static void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff);
 static void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* triggers,uint32_t train_number, int32_t sensor_group, int32_t sensor_index) ;
 static void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff);
 static int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff) ;
-static int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track_node* node, uint32_t* av_out) ; 
+static int32_t _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track_node* node, uint32_t* av_out) ; 
 static void handle_goto_destination(train_position_info_t* train_position_info, sensor_triggers_t* triggers, int16_t train_num, int8_t sensor_num);
 static void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* train_position_info);
 
@@ -62,10 +60,6 @@ typedef struct train_server_sensor_msg_t {
     char sensors[SENSOR_MESSAGE_SIZE];
 } train_server_sensor_msg_t;
 
-#define MAX_CONDUCTORS 32 //Arbitrary
-
-CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
-
 typedef enum {
     CONDUCTOR_TRAIN_STOP = 0,
     CONDUCTOR_SET_SWITCH = 1,
@@ -79,6 +73,23 @@ typedef struct {
     int32_t num1;
     int8_t byte1;
 } conductor_info_t;
+
+void train_position_info_init(train_position_info_t* tpi) {
+    tpi->speed = 0;
+    tpi->ticks_at_last_sensor = 0;
+    tpi->last_sensor = NULL;
+    tpi->next_sensor_estimated_time = 0;
+    tpi->average_velocity = 0;
+    tpi->last_stopping_distance = 0;
+    tpi->next_sensor = NULL;
+    tpi->sensor_error_next_sensor = NULL;
+    tpi->switch_error_next_sensor = NULL;
+    tpi->is_under_over = true; //Assume we are starting at speed 0 so this doesn't really matter
+    tpi->stopping_offset = 0;
+    tpi->ok_to_record_av_velocities = false;
+
+    RING_BUFFER_INIT(tpi->conductor_tids, MAX_CONDUCTORS);
+}
 
 void train_server(void) {
     //The bigger of the 2 should be the size we use for receive
@@ -105,10 +116,6 @@ void train_server(void) {
 
     train_position_info_t train_position_info;
     train_position_info_init(&train_position_info);
-
-    conductor_buffer_t conductor_buffer;
-    RING_BUFFER_INIT(conductor_buffer, MAX_CONDUCTORS);
-
 
     //CURRENTLY A STEM CELL TRAIN,
     //need to obtain train info
@@ -163,8 +170,10 @@ void train_server(void) {
                 //Invalidate any predictions we made
                 //Kill our conductor
                 //Resurrect him with a new delay
-                while(!IS_BUFFER_EMPTY(conductor_buffer)) {
-                    POP_FRONT(conductor_buffer, conductor_tid);
+
+                //TODO figure out if this is necessary
+                while(!IS_BUFFER_EMPTY(train_position_info.conductor_tids)) {
+                    POP_FRONT(train_position_info.conductor_tids, conductor_tid);
                     Destroy(conductor_tid);
                 }
 
@@ -229,9 +238,76 @@ void train_server(void) {
 	}
 }
 
+void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_INIT;
+    msg.num1 = train_num;
+    msg.num2 = slot;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
+}
 
+void train_trigger_stop_on_sensor(tid_t tid, int8_t sensor_num) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_REGISTER_STOP_SENSOR;
+    msg.num1 = sensor_num;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
 
-void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) {
+void train_find_initial_position(tid_t tid) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_FIND_INIT_POSITION;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_send_sensor_update(tid_t tid, int8_t* sensors) {
+    train_server_sensor_msg_t sensor_update;
+    sensor_update.command = TRAIN_SERVER_SENSOR_DATA;
+    memcpy(sensor_update.sensors, sensors, SENSOR_MESSAGE_SIZE);
+    Send(tid, (char*)&sensor_update, sizeof(train_server_sensor_msg_t), NULL, 0);
+}
+
+void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_diff) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_STOP_AROUND_SENSOR;
+    msg.num1 = sensor_num;
+    msg.num2 = mm_diff;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
+}
+
+void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM * MAX_STORED_SPEEDS);
+}
+
+void train_server_set_speed(tid_t tid, uint16_t speed) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_SPEED;
+    msg.num1 = speed;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_STOP_OFFSET;
+    msg.num1 = mm_diff;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_server_goto_destination(tid_t tid, int8_t sensor_num) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_GOTO_DESTINATION;
+    msg.num1 = sensor_num;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_server_set_reversing(tid_t tid) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_REVERSING;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers, int16_t sensor_num) {
     sensor_triggers_set(triggers, sensor_num, TRIGGER_STOP_AT, NULL, NULL);
 }
 
@@ -353,90 +429,6 @@ void train_conductor(void) {
 
     //Die
     Exit();
-}
-
-void train_position_info_init(train_position_info_t* tpi) {
-    tpi->speed = 0;
-    tpi->ticks_at_last_sensor = 0;
-    tpi->last_sensor = NULL;
-    tpi->next_sensor_estimated_time = 0;
-    tpi->average_velocity = 0;
-    tpi->last_stopping_distance = 0;
-    tpi->next_sensor = NULL;
-    tpi->sensor_error_next_sensor = NULL;
-    tpi->switch_error_next_sensor = NULL;
-    tpi->conductor_tid = -1;
-    tpi->is_under_over = true; //Assume we are starting at speed 0 so this doesn't really matter
-    tpi->stopping_offset = 0;
-    tpi->ok_to_record_av_velocities = false;
-}
-
-void train_send_stop_around_sensor_msg(tid_t tid, int8_t sensor_num,int32_t mm_diff) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_STOP_AROUND_SENSOR;
-    msg.num1 = sensor_num;
-    msg.num2 = mm_diff;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
-}
-
-void train_server_specialize(tid_t tid, uint32_t train_num, int8_t slot) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_INIT;
-    msg.num1 = train_num;
-    msg.num2 = slot;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
-}
-
-void train_trigger_stop_on_sensor(tid_t tid, int8_t sensor_num) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_REGISTER_STOP_SENSOR;
-    msg.num1 = sensor_num;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
-}
-
-void train_find_initial_position(tid_t tid) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_FIND_INIT_POSITION;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
-}
-
-void train_send_sensor_update(tid_t tid, int8_t* sensors) {
-    train_server_sensor_msg_t sensor_update;
-    sensor_update.command = TRAIN_SERVER_SENSOR_DATA;
-    memcpy(sensor_update.sensors, sensors, SENSOR_MESSAGE_SIZE);
-    Send(tid, (char*)&sensor_update, sizeof(train_server_sensor_msg_t), NULL, 0);
-}
-
-void train_request_calibration_info(tid_t tid, avg_velocity_t average_velocity_info[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS]) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_REQUEST_CALIBRATION_INFO;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)average_velocity_info, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM * MAX_STORED_SPEEDS);
-}
-
-void train_server_set_speed(tid_t tid, uint16_t speed) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_SET_SPEED;
-    msg.num1 = speed;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
-}
-void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_SET_STOP_OFFSET;
-    msg.num1 = mm_diff;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
-}
-
-void train_server_goto_destination(tid_t tid, int8_t sensor_num) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_GOTO_DESTINATION;
-    msg.num1 = sensor_num;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
-}
-
-void train_server_set_reversing(tid_t tid) {
-    train_server_msg_t msg;
-    msg.command = TRAIN_SERVER_SET_REVERSING;
-    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
 void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t mm_diff) {
@@ -713,13 +705,17 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
     tpi->last_stopping_distance = tpi->stopping_distance(tpi->speed, false);
     //get time to that spot
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance);
+
     //Start a conductor
-    tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
+    tid_t conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
     conductor_info_t conductor_info;
     conductor_info.command = CONDUCTOR_TRAIN_STOP;
     conductor_info.delay = time;
     conductor_info.train_number = train_number;
-    Send(tpi->conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
+    Send(conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
+
+    int result = 0;
+    PUSH_BACK(tpi->conductor_tids, conductor_tid, result); //TODO figure out if this is necessary
 }
 
 void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switch_num, int16_t direction) {
@@ -738,14 +734,17 @@ void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switc
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance);
 
     //Start a conducter
-    tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
+    tid_t conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
 
     conductor_info_t conductor_info;
     conductor_info.command = CONDUCTOR_SET_SWITCH;
     conductor_info.num1 = switch_num;
     conductor_info.byte1 = (direction == DIR_STRAIGHT) ? 'S' : 'C';
     conductor_info.delay = time;
-    Send(tpi->conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
+    Send(conductor_tid,(char*)&conductor_info,sizeof(conductor_info_t),NULL,0);
+
+    int result = 0;
+    PUSH_BACK(tpi->conductor_tids, conductor_tid, result); //TODO figure out if this is necessary
 }
 
 void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int16_t switch_number, int8_t switch_direction) {
@@ -763,11 +762,14 @@ void handle_train_set_switch_and_reverse(train_position_info_t* train_position_i
     //get time to that spot
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance);
     //Start a conductor
-    tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
+    tid_t conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
     conductor_info_t conductor_info;
     conductor_info.command = CONDUCTOR_REVERSE_TRAIN;
     conductor_info.delay = time;
-    conductor_info.train_number = train_number;*/
+    conductor_info.train_number = train_number;
+
+    int result = 0;
+    PUSH_BACK(tpi->conductor_tids, conductor_tid, result); //TODO figure out if this is necessary*/
 }
 
 int _train_position_update_av_velocity(train_position_info_t* tpi, track_node* from, track_node* to, uint32_t V, uint32_t* av_out) {
