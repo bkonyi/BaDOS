@@ -47,6 +47,7 @@ int min(int val1, int val2);
 char* strcpy(char* dest, char* src);
 char* strlcpy(char* dest, char* src, uint32_t maxlen);
 size_t strlen(char* str);
+size_t strnlen(char* str,size_t maxlen);
 int32_t strcmp(char* a, char* b);
 
 int8_t sensor_to_id(char* sensor_name);

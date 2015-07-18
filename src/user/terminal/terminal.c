@@ -49,7 +49,7 @@
 #define RECENT_SENSORS_DATA_ROW      TERM_SENSORS_DATA_ROW 
 #define RECENT_SENSORS_DATA_COLUMN   38
 
-#define TERM_DEBUG_LOG_COL  57
+#define TERM_DEBUG_LOG_COL  80
 #define TERM_DEBUG_LOG_ROW  (TERM_INPUT_ROW +3)
 
 
@@ -379,7 +379,7 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     int count=0;
     do{
         term_move_cursor(TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1);
-        printf(COM2,"%s",debug_log->entries[dbl_iterator]);
+        printf(COM2,"%d: %s",count ,debug_log->entries[dbl_iterator]);
         dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
         if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
         count++;
