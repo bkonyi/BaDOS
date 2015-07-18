@@ -214,29 +214,34 @@ void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num)
 }
 
 void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff,bool use_path) {
-    
-    uint32_t distance =0;
+    send_term_debug_log_msg( "_set_stop_around_trigger #:%d 1",sensor_num);
+    int32_t distance =0;
     int16_t sensor_to_trigger_at; 
 
     distance = _distance_to_send_stop_command(tpi,tpi->last_sensor,sensor_num,mm_diff, use_path);
     if(distance < 0){
-        send_term_heavy_msg(false, "Stop around instruction given too late");
+        Delay(1000);
+        ASSERT(0);
         return;
     }
     if(use_path){
+        send_term_debug_log_msg( "DIst %d",distance);
         sensor_to_trigger_at =  get_sensor_before_distance_using_path(tpi->current_path,tpi->last_sensor,distance);
     }else {
-         sensor_to_trigger_at =  get_sensor_before_distance(tpi->last_sensor,distance);
+        send_term_debug_log_msg( "SCrew dist %d",distance);
+        sensor_to_trigger_at =  get_sensor_before_distance(tpi->last_sensor,distance);
     }
    
 
-    uint32_t sensor_group = (sensor_to_trigger_at) / 8;
+    /*uint32_t sensor_group = (sensor_to_trigger_at) / 8;
     uint32_t sensor_index = (sensor_to_trigger_at) % 8;
-    send_term_heavy_msg(false, "Setting sens trigger on: %s sg %d si %d", get_sensor_node_from_num(tpi->last_sensor,sensor_to_trigger_at)->name,sensor_group,sensor_index);
+    send_term_heavy_msg(false, "Setting sens trigger on: %s sg %d si %d", get_sensor_node_from_num(tpi->last_sensor,sensor_to_trigger_at)->name,sensor_group,sensor_index);*/
 
     if(use_path){
+        send_term_debug_log_msg( "_set_stop_around_trigger #:%d 2",sensor_to_trigger_at);
         sensor_triggers_set(triggers,sensor_to_trigger_at,TRIGGER_STOP_AROUND_USING_PATH,((uint8_t*)&sensor_num),&mm_diff);
     }else {
+        send_term_debug_log_msg( "_set_stop_around_trigger #:%d 3",sensor_num);
         sensor_triggers_set(triggers,sensor_to_trigger_at,TRIGGER_STOP_AROUND,NULL,NULL);  
     }
     
@@ -245,58 +250,67 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
 int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* start_node,uint32_t destination_sensor_num, int32_t mm_diff,bool use_path) {
     int32_t distance =0;
     //int16_t sensor_to_trigger_at; 
-    int print_index = 0;
 
     track_node * destination_sensor = get_sensor_node_from_num(start_node,destination_sensor_num); 
-    send_term_debug_log_msg( "Destination Sensor Name: %s Dest Num: %d Actual Num: %d \033[u", 35 + print_index++, 60, destination_sensor->name, destination_sensor->num, destination_sensor_num);
+    send_term_debug_log_msg( "Destination Sensor Name: %s Dest Num: %d Actual Num: %d", destination_sensor->name, destination_sensor->num, destination_sensor_num);
 
     if(start_node == destination_sensor) {
+        //TODO: MODIFY FOR USE WITH PATH
         start_node = get_next_sensor(start_node);
     }
 
     //We couldn't find a node...
     if(start_node == NULL) {
+        ASSERT(0);
         return -1;
     }
 
 
     //Get distance to that point
     if(use_path) {
-        distance = distance_between_track_nodes_using_path(tpi->current_path, start_node,destination_sensor,false);
+        send_term_debug_log_msg("dbtnup 2 %s dest %s",start_node->name,destination_sensor->name);
+        distance = distance_between_track_nodes_using_path(tpi->current_path, start_node,destination_sensor);
         send_term_debug_log_msg("Dist using path: %d",distance);
     }else {
         distance = distance_between_track_nodes(start_node,destination_sensor,false);
         send_term_debug_log_msg("Dist w/o path: %d",distance);
     }
     
-    send_term_debug_log_msg( "Distance between %s and %s: %d", 35 + print_index++, 60, tpi->last_sensor->name, destination_sensor->name, distance);
-    track_node * runoff_limit;
+    send_term_debug_log_msg( "Distance between %s and %s: %d", tpi->last_sensor->name, destination_sensor->name, distance);
+    track_node * runoff_limit = NULL;
     if(use_path){
         runoff_limit = get_next_sensor_or_exit_using_path(tpi->current_path,destination_sensor);
-    }else{
+    }
+   if(runoff_limit == NULL){
         runoff_limit = get_next_sensor_or_exit(destination_sensor);
+        use_path = false;
     }
     
 
-    uint32_t runoff_length ;
-    if(use_path) {
-        runoff_length = distance_between_track_nodes_using_path(tpi->current_path,destination_sensor,runoff_limit,false);
-    }else {
-        runoff_length = distance_between_track_nodes(destination_sensor,runoff_limit,false);
+    uint32_t runoff_length =0;
+    if(runoff_limit != NULL){
+        if(use_path) {
+            send_term_debug_log_msg("dbtnup 3 0x%x",(uint32_t)runoff_limit);
+            runoff_length = distance_between_track_nodes_using_path(tpi->current_path,destination_sensor,runoff_limit);
+        }else {
+            runoff_length = distance_between_track_nodes(destination_sensor,runoff_limit,false);
+        }
     }
-    
     if(mm_diff > runoff_length) {
         mm_diff = runoff_length;
     }
     distance += mm_diff;
-    send_term_debug_log_msg( "Distance w/diff: %d", 35 + print_index++, 60, distance);
+    send_term_debug_log_msg( "Distance w/diff: %d", distance);
 
     //account for the stopping_offset on this track
     distance += tpi->stopping_offset;
 
+    if(tpi->speed != 0) {
+        distance -= tpi->stopping_distance(tpi->speed, false);
+    }
+    
 
-    distance -= tpi->stopping_distance(tpi->speed, false);
-    send_term_debug_log_msg( "Distance -stopping dist: %d", 35 + print_index++, 60, distance);
+    send_term_debug_log_msg( "Distance -stopping dist: %d", distance);
     return distance;
 }
 
@@ -683,7 +697,16 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     prev_node = iterator_node;
     uint32_t av_velocity=0;
     //int print_index=0;
-    for(iterator_node = get_next_sensor_or_exit(start_sensor); distance >0  && iterator_node != NULL  ; iterator_node = get_next_sensor_or_exit(iterator_node)) {
+
+    if(use_path){
+        iterator_node = get_next_sensor_or_exit_using_path(tpi->current_path,start_sensor);
+    }else{
+        iterator_node = get_next_sensor_or_exit(start_sensor);
+    }
+    //for(iterator_node = get_next_sensor_or_exit(start_sensor); distance >0  && iterator_node != NULL  ; iterator_node = get_next_sensor_or_exit(iterator_node)) {
+    while(distance > 0 && iterator_node != NULL) {
+
+
             if(iterator_node->type == NODE_EXIT){
                 ASSERT(_train_position_get_prev_first_av_velocity(tpi,prev_node,&av_velocity) == 0);
                 //printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is an exit node");
@@ -693,7 +716,8 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
 
             }
             if(use_path){
-                segment_dist = distance_between_track_nodes_using_path(tpi->current_path,prev_node, iterator_node, false);
+                send_term_debug_log_msg("dbtnup 4");
+                segment_dist = distance_between_track_nodes_using_path(tpi->current_path,prev_node, iterator_node);
             }else {
                 segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
             }
@@ -709,6 +733,12 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
             time += (segment_dist*100)/av_velocity; // time is in 1/100ths of second so mult by 100 to get on the level
             distance -= segment_dist;
             prev_node = iterator_node;
+
+            if(use_path){
+                iterator_node = get_next_sensor_or_exit_using_path(tpi->current_path,start_sensor);
+            }else{
+                iterator_node = get_next_sensor_or_exit(start_sensor);
+            }
     }
 
     if(distance != 0) {
@@ -724,7 +754,7 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
     int time;
     int32_t distance;
     distance = _distance_to_send_stop_command(tpi,tpi->next_sensor, sensor_num,mm_diff,use_path);
-    Delay(2000);
+    //Delay(2000);
     ASSERT(distance>=0); // Given sensor was too late 
 
     //get stopping distance
@@ -735,6 +765,7 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
     //get time to that spot
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance,use_path);
     //Start a conducter
+    send_term_debug_log_msg("Estimated ticks %d", time);
     tpi->conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
     conductor_info_t conductor_info;
     conductor_info.command = CONDUCTOR_TRAIN_STOP;
@@ -883,8 +914,8 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
 
     int32_t distance_at_node[TRACK_MAX];
 
-    int print_index = -10;
-    printf(COM2, "\033[s\033[%d;%dH\e[2KPath Length: %d\033[u", 40 + print_index++, 60, train_position_info->path_length);
+    //int print_index = -10;
+    //printf(COM2, "\033[s\033[%d;%dH\e[2KPath Length: %d\033[u", 40 + print_index++, 60, train_position_info->path_length);
 
     int i;
     for(i = 0; i < train_position_info->path_length - 1; ++i) {
@@ -912,13 +943,13 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
 
             if(train_position_info->current_path[i]->edge[DIR_STRAIGHT].dest == train_position_info->current_path[i+1]) {
                 //switch_straight
-                printf(COM2, "\033[s\033[%d;%dH\e[2KBranch %s is being set to straight Triggered at sensor: %d\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, sensor_before_distance);
+                //printf(COM2, "\033[s\033[%d;%dH\e[2KBranch %s is being set to straight Triggered at sensor: %d\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, sensor_before_distance);
                     Byte = DIR_STRAIGHT;
                 //triggers->action[sensor_before_distance].byte1 = DIR_STRAIGHT;
 
             } else if( train_position_info->current_path[i]->edge[DIR_CURVED].dest == train_position_info->current_path[i+1]) {
                 //switch_curved
-                printf(COM2, "\033[s\033[%d;%dH\e[2KBranch %s is being set to curved Triggered at sensor: %d\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, sensor_before_distance);
+                //printf(COM2, "\033[s\033[%d;%dH\e[2KBranch %s is being set to curved Triggered at sensor: %d\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, sensor_before_distance);
                 //triggers->action[sensor_before_distance].byte1 = DIR_CURVED;
                 Byte = DIR_CURVED;
             } else {
@@ -932,7 +963,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
         if(train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_AHEAD].dest ||
             train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_CURVED].dest) {
             //_set_stop_around_trigger + 10CM
-            printf(COM2, "\033[s\033[%d;%dH\e[2KNode %s to %s requires a reverse\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
+            //printf(COM2, "\033[s\033[%d;%dH\e[2KNode %s to %s requires a reverse\033[u", 40 + print_index++, 60, train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
 
             int sensor_before_distance = distance_at_node[i - 1] - train_position_info->stopping_distance(9, false);
             int j;
@@ -970,7 +1001,8 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
     ASSERT(sensor_before_distance != -1);
 
     */
-    _set_stop_around_trigger(train_position_info,triggers,sensor_num, train_position_info->current_path[i + 1]->num,true);
+    send_term_debug_log_msg("goto func calling stop trigger #: %d",sensor_num);
+    _set_stop_around_trigger  (train_position_info,triggers,sensor_num, 0,true);
     //sensor_triggers_set(triggers,sensor_before_distance,TRIGGER_STOP_AROUND_USING_PATH, NULL,&(train_position_info->current_path[i + 1]->num));
 
     /*uint32_t sensor_group = (sensor_before_distance) / 8;

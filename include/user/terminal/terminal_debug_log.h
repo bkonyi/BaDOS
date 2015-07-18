@@ -1,7 +1,7 @@
 #ifndef _TERMINAL_DEBUG_LOG_H_
 #define _TERMINAL_DEBUG_LOG_H_
 #define DEBUG_LOG_MAX_LEN 60
-#define DEBUG_LOG_MAX_DEPTH 15
+#define DEBUG_LOG_MAX_DEPTH 24
 
 typedef struct debug_log_t {
 	#ifdef DEBUG_LOG

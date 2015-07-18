@@ -28,11 +28,7 @@ void sensor_trigger_unset(sensor_triggers_t* triggers,int16_t sensor_group,int16
 }
 
 void sensor_triggers_set(sensor_triggers_t *sensor_triggers,int32_t sensor_num,sensor_trigger_type_t trigger_type, uint8_t* byte, int32_t* num) {
-    if(byte != NULL && num != NULL) {
-        send_term_debug_log_msg("Calling: sensor_triggers_set #:%d byte:0x%x num:0x%x",sensor_num,byte,num);
-    }else {
-        send_term_debug_log_msg("Calling: sensor_triggers_set #:%d",sensor_num);
-    }
+    //send_term_debug_log_msg("Calling: triggerset #:%d type: %d", sensor_num, trigger_type);
     
 
 	uint8_t Byte = 0;
