@@ -808,7 +808,7 @@ int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track
     return 0;
 }
 
-void TRIGGER_STOP_AROUND(train_position_info_t* train_position_info, sensor_triggers_t* triggers, int16_t train, int8_t sensor_num) {
+void handle_goto_destination(train_position_info_t* train_position_info, sensor_triggers_t* triggers, int16_t train, int8_t sensor_num) {
     track_node* current_location = train_position_info->last_sensor;
     track_node* destination = get_sensor_node_from_num(current_location, sensor_num);
 
