@@ -25,12 +25,14 @@ void load_calibration(int16_t train, train_position_info_t* train_position_info)
             break;
     }
 }
+
 void _set_defaults(train_position_info_t* train_position_info, uint16_t* velocities) {
     int i;
     for(i = 0; i < MAX_STORED_SPEEDS; i ++) {
         train_position_info->default_av_velocity[i]=velocities[i];
     }
 }
+
 void load_train_62_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 365, 448, 509, 547, 552, 558 };
     train_position_info->stopping_distance = train_62_stopping_distance;

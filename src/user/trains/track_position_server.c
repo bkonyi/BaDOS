@@ -265,16 +265,11 @@ bool track_nodes_set_switch(track_node* track_branch_nodes[],uint32_t switch_num
 //Messaging the trains doesn't have a specific struct form yet
 void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
 	train_information_t* iterator; 
-	train_server_sensor_msg_t sensor_update;
-	sensor_update.command = TRAIN_SERVER_SENSOR_DATA;
-
-	//TODO make a macro for size of sensor request
-	memcpy(sensor_update.sensors, sensors, TPS_SENSOR_MESSAGE_SIZE);
-	//bwprintf(COM2,"GEEESH 0x%x\r\n",*((uint32_t*)(sensors+10) ));
 	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
-		Send(iterator->server_tid, (char*)&sensor_update, sizeof(train_server_sensor_msg_t), NULL, 0);
+		train_send_sensor_update(iterator->server_tid, sensors);
 	}
 }
+
 void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
 	train_information_t* iterator; 
 	//if(IS_QUEUE_EMPTY(*train_queue)) return;
@@ -282,6 +277,7 @@ void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
 		Send(iterator->server_tid,NULL,0,NULL,0);
 	}
 }
+
 uint32_t switch_num_to_index(uint32_t switch_num) {
 	
 	ASSERT(is_valid_switch_number(switch_num));

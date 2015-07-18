@@ -10,7 +10,6 @@ void send_term_debug_log_msg(char * message, ...) {
         return;
     #endif
 
-  
     char log_entry[DEBUG_LOG_MAX_LEN*4];
 
     va_list va;
