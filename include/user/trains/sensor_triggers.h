@@ -11,15 +11,17 @@ typedef enum sensor_trigger_type_t {
     TRIGGER_STOP_AT ,
     TRIGGER_STOP_AROUND,
     TRIGGER_STOP_AROUND_USING_PATH,
-    TRIGGER_SET_SWITCH
-}sensor_trigger_type_t;
+    TRIGGER_SET_SWITCH,
+    TRIGGER_SET_SWITCH_AND_REVERSE
+} sensor_trigger_type_t;
+
 
 typedef struct sensor_trigger_info_t {
     sensor_trigger_type_t type;
     int32_t num1;
     int8_t byte1;
     struct sensor_trigger_info_t* next; // Used for queueing
-}sensor_trigger_info_t;
+} sensor_trigger_info_t;
 
 CREATE_QUEUE_TYPE(sensor_trigger_info_q,sensor_trigger_info_t);
 
@@ -27,7 +29,7 @@ typedef struct sensor_triggers_t {
     int8_t  sensors[10];
     sensor_trigger_info_q actions[SENSOR_TRIGGER_NUM_SENSORS]; //each sensor gets a command
     sensor_trigger_info_q * free_slots;
-}sensor_triggers_t;
+} sensor_triggers_t;
 
 
 

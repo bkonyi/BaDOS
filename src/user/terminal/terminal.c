@@ -9,6 +9,7 @@
 #include <task_priorities.h>
 #include <track_maps.h>
 #include <track/track_node.h>
+#include <terminal/terminal_debug_log.h>
 #define RIGHT_BAR_COL             75
 #define TERM_SENSORS_ROW          4
 #define TERM_SENSORS_DATA_ROW     TERM_SENSORS_ROW + 3
@@ -48,6 +49,12 @@
 #define RECENT_SENSORS_DATA_ROW      TERM_SENSORS_DATA_ROW 
 #define RECENT_SENSORS_DATA_COLUMN   38
 
+#define TERM_DEBUG_LOG_COL  57
+#define TERM_DEBUG_LOG_ROW  (TERM_INPUT_ROW +15)
+
+
+
+
 CREATE_NON_POINTER_BUFFER_TYPE(recent_sensors_buffer_t, int, NUM_RECENT_SENSORS);
 
 
@@ -79,6 +86,7 @@ static void handle_update_train_slot_error(int8_t slot, int32_t err);
 static void handle_command_success_message(char *cmd) ;
 static void _clear_user_input(void);
 static void handle_display_average_velocity_information(int16_t train, avg_velocity_t*** average_velocity_info);
+static void _handle_debug_log_entry(debug_log_t * debug_log, char* msg);
 
 static void handle_initialize_track_switches(void);
 
@@ -95,6 +103,9 @@ void terminal_server(void) {
     int recent_sensors[NUM_RECENT_SENSORS];
     int recent_sensors_index = 0;
     bool map_initialized = false;
+    debug_log_t debug_log;
+    debug_log.size =0;
+    debug_log.iterator =0;
 
     int i;
     for(i = 0; i < 10; ++i) {
@@ -247,6 +258,13 @@ void terminal_server(void) {
                 handle_display_average_velocity_information(data->num1, data->average_velocity_info);
                 Reply(sending_tid, (char*)NULL, 0);            
                 break;
+            case TERMINAL_DEBUG_LOG_ENTRY:
+                //Null terminate it just in case
+                input_buffer[MAX_RECEIVE_LENGTH-1] = '\0';
+                //place debug message in log
+                _handle_debug_log_entry(&debug_log,((char*)input_buffer)+(sizeof(terminal_data_t)));
+               
+                break;
             default:
                 ASSERT(0);
                 break;
@@ -337,6 +355,38 @@ void send_term_update_dist_msg (uint32_t slot, int32_t dist)  {
 
 void send_term_update_err_msg(uint32_t slot, int32_t dist) {
     handle_terminal_send_2_ints(TERMINAL_UPDATE_TRAIN_ERROR, slot, dist);
+}
+
+
+void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
+    int msg_len = strlen(msg);
+    int i;
+    term_save_cursor();
+
+    if(debug_log->size < DEBUG_LOG_MAX_DEPTH) debug_log->size++;
+
+    for(i = 0; i < DEBUG_LOG_MAX_LEN; i ++){
+        if(i < msg_len) {
+            debug_log->entries[debug_log->iterator][i] = msg[i];
+        }else {
+            debug_log->entries[debug_log->iterator][i] = ' '; 
+        }
+    }
+
+    debug_log->entries[debug_log->iterator][DEBUG_LOG_MAX_LEN-1] = '\0';
+    
+    int dbl_iterator = debug_log->iterator;
+    int count=0;
+    do{
+        term_move_cursor(TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1);
+        printf(COM2,"%d: %s",count ,debug_log->entries[dbl_iterator]);
+        dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
+        if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
+        count++;
+    }while(count < debug_log->size);
+    term_restore_cursor();
+    debug_log->iterator = (debug_log->iterator + 1) % DEBUG_LOG_MAX_DEPTH;
+
 }
 
 void handle_update_train_slot_distance(int8_t slot, int32_t dist) {
