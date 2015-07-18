@@ -136,7 +136,6 @@ void train_controller_commander_server(void) {
         Reply(sending_tid, (char*)NULL, 0);
         switch(data.command) {
             case TRAIN_SET_SPEED:
-                send_term_debug_log_msg("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaB");
                 handle_train_set_speed(trains, (int8_t)data.var1, data.var2);
                 break;
             case TRAIN_REVERSE_BEGIN:

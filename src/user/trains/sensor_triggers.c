@@ -1,5 +1,5 @@
 #include <trains/sensor_triggers.h>
-
+#include <terminal/terminal_debug_log.h>
 void _set_trigger_info(sensor_trigger_info_t* trigger_info, sensor_trigger_type_t type, int8_t byte, int32_t num ){
 	trigger_info->type = type;
 	trigger_info->num1 = num;
@@ -28,6 +28,8 @@ void sensor_trigger_unset(sensor_triggers_t* triggers,int16_t sensor_group,int16
 }
 
 void sensor_triggers_set(sensor_triggers_t *sensor_triggers,int32_t sensor_num,sensor_trigger_type_t trigger_type, uint8_t* byte, int32_t* num) {
+    //send_term_debug_log_msg("Calling: triggerset #:%d type: %d", sensor_num, trigger_type);
+    
 
 	uint8_t Byte = 0;
 	uint32_t Num = 0;

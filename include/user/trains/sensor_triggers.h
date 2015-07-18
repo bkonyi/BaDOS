@@ -10,9 +10,11 @@ typedef enum sensor_trigger_type_t {
     TRIGGER_NONE=1,
     TRIGGER_STOP_AT ,
     TRIGGER_STOP_AROUND,
+    TRIGGER_STOP_AROUND_USING_PATH,
     TRIGGER_SET_SWITCH,
     TRIGGER_SET_SWITCH_AND_REVERSE
 } sensor_trigger_type_t;
+
 
 typedef struct sensor_trigger_info_t {
     sensor_trigger_type_t type;

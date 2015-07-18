@@ -6,9 +6,9 @@
 #include <trains/train_server_types.h>
 void send_term_debug_log_msg(char * message, ...) {
  
-    #ifndef DEBUG_LOG
-        return;
-    #endif
+	#ifndef DEBUG_LOG
+		return;
+	#endif
 
     char log_entry[DEBUG_LOG_MAX_LEN*4];
 
