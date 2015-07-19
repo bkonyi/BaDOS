@@ -21,6 +21,13 @@ typedef struct train_position_info_t {
     int16_t last_stopping_distance;
     int32_t stopping_offset;
 
+    //Expected last sensor after stopping around sensor
+    int8_t expected_stop_around_sensor;
+
+    //Train orientation information
+    bool is_reversed;
+    int16_t reverse_offset;
+
     //Position information
     track_node* last_sensor;
     uint32_t ticks_at_last_sensor;
@@ -34,6 +41,7 @@ typedef struct train_position_info_t {
 
     //Speed information
     int16_t speed;
+    int16_t last_speed;
     bool is_under_over;
 
     //Average velocity information
@@ -66,5 +74,6 @@ void train_server_set_speed(tid_t tid, uint16_t speed);
 void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff);
 void train_server_goto_destination(tid_t tid, int8_t sensor_num);
 void train_server_set_reversing(tid_t tid);
+void train_server_stopped_at_destination(tid_t tid);
 
 #endif // _TRAIN_SERVER_H_

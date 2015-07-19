@@ -1,5 +1,6 @@
 #include <trains/train_calibration_loader.h>
 #include <terminal/terminal.h>
+#include <terminal/terminal_debug_log.h>
 
 static void load_train_62_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over);
@@ -10,6 +11,8 @@ static uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_default_calibration(train_position_info_t* train_position_info);
 
 void load_calibration(int16_t train, train_position_info_t* train_position_info) {
+    send_term_debug_log_msg("Loading calibration info for: %d", train);
+
     switch(train) {
         case 62:
             load_train_62_calibration_info(train_position_info);
@@ -102,6 +105,7 @@ uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over) {
 }
 
 void load_train_66_calibration_info(train_position_info_t* train_position_info) {
+    send_term_debug_log_msg("Loading train 66 calibration info");
     uint16_t velocities[MAX_STORED_SPEEDS] = { 412, 454, 485, 534, 587, 606, 632 };
     train_position_info->stopping_distance = train_66_stopping_distance;
     _set_defaults(train_position_info,velocities);
