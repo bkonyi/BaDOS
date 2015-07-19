@@ -67,6 +67,7 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 	ASSERT(dist != 0);
 	return dist;
 }
+
 uint32_t distance_between_track_nodes_using_path( track_node** path, track_node* start, track_node * end){
 	bool start_counting = false;
 	if(start == NULL  ) {
@@ -132,6 +133,48 @@ uint32_t dist_between_node_and_num(track_node* start, int num) {
 	ASSERT(dist != 0);
 	return dist;
 }
+
+uint32_t dist_between_node_and_index_using_path( track_node** path, track_node* start, int num){
+	bool start_counting = false;
+	if(start == NULL  ) {
+		Delay(200);ASSERT(0);
+		return 0;
+	} else if(start->index == num) {
+		Delay(200);ASSERT(0);
+		return 0;
+	}
+	track_node* iterator_node; 
+	uint32_t dist =0;//get_track_node_length(start);
+	uint32_t edge = 0;
+	int i ;
+	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
+	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
+	for(i =0 ; i < TRACK_MAX; i++) {
+		iterator_node = path[i];
+		if(!start_counting && iterator_node == start){
+			send_term_debug_log_msg("Found start node");
+			start_counting=true;
+		}
+
+		if(start_counting){
+			
+			if(iterator_node->index == num){
+				//send_term_debug_log_msg("dbtnup got last node %s", end->name);
+				break;
+			} 
+			dist += get_track_node_length(iterator_node);
+			edge++;
+		}
+	}
+	if (i == (TRACK_MAX)) {
+			Delay(200);ASSERT(0);
+			return 0;
+	}	
+
+	ASSERT(dist != 0);
+	return dist;
+}
+
 track_node* get_next_sensor( track_node* node) {
 	track_node* iterator_node;
 

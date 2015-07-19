@@ -68,11 +68,10 @@ void stop_controller(void);
 int register_train(int8_t train, int8_t slot);
 
 /**
- * @brief Finds the initial position of all registered trains.
- * @details Sends stop commands to all possible trains, and then moves each registered train
- * slowly, one at a time, in order to find their initial position on the track.
+ * @brief Finds the initial position of a registered trains.
+ * @details Moves registered train slowly, one at a time, in order to find their initial position on the track.
  */
-void find_trains(void);
+void find_train(int16_t train);
 
 int tcs_train_request_calibration_info(int8_t train);
 

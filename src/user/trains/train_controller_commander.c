@@ -43,7 +43,7 @@ typedef enum {
     START_CONTROLLER,
     STOP_CONTROLLER,
     TRAIN_REGISTER,
-    FIND_TRAINS,
+    FIND_TRAIN,
     TRAIN_TRIGGER_STOP_ON_SENSOR,
     TRAIN_CONTROLLER_UKNOWN_COMMAND,
     SWITCH_INITIALIZE_DIRECTIONS,
@@ -88,7 +88,7 @@ static void handle_stop_controller(void);
 
 static void handle_train_register(train_data_t* trains, int16_t* train_slots, int8_t train, int8_t slot);
 
-static void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
+static void handle_find_train(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS], int16_t train);
 
 static void handle_trigger_train_stop_on_sensor(train_data_t* trains, int8_t train, int8_t sensor_num);
 
@@ -175,8 +175,8 @@ void train_controller_commander_server(void) {
                     send_term_heavy_msg(true, "Cannot register trains until the track is initialized");
                 }
                 break;
-            case FIND_TRAINS:
-                handle_find_trains(trains, registered_trains);
+            case FIND_TRAIN:
+                handle_find_train(trains, registered_trains, data.var1);
                 break;
             case TRAIN_TRIGGER_STOP_ON_SENSOR:
                 handle_trigger_train_stop_on_sensor(trains, data.var1, data.var2);
@@ -299,9 +299,10 @@ int register_train(int8_t train, int8_t slot) {
     return 0;
 }
 
-void find_trains(void) {
+void find_train(int16_t train) {
     train_controller_data_t data;
-    data.command = FIND_TRAINS;
+    data.command = FIND_TRAIN;
+    data.var1 = train;
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 }
@@ -521,18 +522,14 @@ void handle_train_register(train_data_t* trains, int16_t* train_slot, int8_t tra
     trains[(int16_t)train].server_tid = tid;
     train_server_specialize(tid, train, slot);
 }
-void handle_find_trains(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]) {    
-    int i;
-    for(i = 1; i < MAX_TRAIN_NUM; ++i) {
-        handle_train_set_speed(trains, i, 0);
-    }
 
+void handle_find_train(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS], int16_t train) {    
+    int i;
     for(i = 0; i < MAX_REGISTERED_TRAINS; ++i) {
-        if(registered_trains[i] != INVALID_SLOT) {
+        if(registered_trains[i] == train) {
             train_find_initial_position(trains[registered_trains[i]].server_tid);
         }
     }
-
 }
 
 void handle_request_calibration_info(train_data_t* trains, int16_t train) {

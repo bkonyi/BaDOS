@@ -43,6 +43,7 @@ bool is_valid_switch_number(uint32_t sw_num) ;
 uint32_t get_track_node_length(track_node* node);
 uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool switch_broken);
 uint32_t dist_between_node_and_num(track_node* start, int num);
+uint32_t dist_between_node_and_index_using_path( track_node** path, track_node* start, int num);
 int get_sensor_before_distance(track_node* start_sensor, int distance);
 int get_sensor_before_distance_using_path(track_node** path,track_node* start_sensor, int distance);
 track_node* get_next_sensor_or_exit( track_node* node);
