@@ -75,5 +75,6 @@ void train_server_send_set_stop_offset_msg(tid_t tid, int32_t mm_diff);
 void train_server_goto_destination(tid_t tid, int8_t sensor_num);
 void train_server_set_reversing(tid_t tid);
 void train_server_stopped_at_destination(tid_t tid);
+void train_server_set_location(tid_t tid, int8_t sensor_num);
 
 #endif // _TRAIN_SERVER_H_

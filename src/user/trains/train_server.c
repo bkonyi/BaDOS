@@ -37,6 +37,8 @@ static void handle_goto_destination(train_position_info_t* train_position_info, 
 static void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* train_position_info);
 static void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_position_info_t* train_position_info);
 
+static void handle_set_location(train_position_info_t* train_position_info, int16_t train, int8_t slot, int8_t sensor);
+
 typedef enum train_server_cmd_t {
     TRAIN_SERVER_INIT                   = 1,
     TRAIN_SERVER_SENSOR_DATA            = 2,
@@ -50,7 +52,8 @@ typedef enum train_server_cmd_t {
     TRAIN_SERVER_SET_STOP_OFFSET        = 10,
     TRAIN_SERVER_GOTO_DESTINATION       = 11,
     TRAIN_SERVER_SET_REVERSING          = 12,
-    TRAIN_SERVER_STOPPED_AT_DESTINATION = 13
+    TRAIN_SERVER_STOPPED_AT_DESTINATION = 13,
+    TRAIN_SERVER_SET_LOCATION           = 14
 } train_server_cmd_t;
 
 typedef struct train_server_msg_t {
@@ -240,6 +243,9 @@ void train_server(void) {
             case TRAIN_SERVER_SET_REVERSING:
                 handle_train_reversing(train_number, train_slot, &train_position_info);
                 break;
+            case TRAIN_SERVER_SET_LOCATION:
+                handle_set_location(&train_position_info, train_number, train_slot, train_server_message->num1);
+                break;
             default:
                 //Invalid command
                 bwprintf(COM2, "Invalid train command: %d from TID: %d\r\n", train_server_message->command, requester);
@@ -321,6 +327,13 @@ void train_server_set_reversing(tid_t tid) {
 void train_server_stopped_at_destination(tid_t tid) {
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_STOPPED_AT_DESTINATION;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_server_set_location(tid_t tid, int8_t sensor_num) {
+    train_server_msg_t msg;
+    msg.num1 = sensor_num;
+    msg.command = TRAIN_SERVER_SET_LOCATION;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
@@ -637,7 +650,7 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
                 train_position_info->switch_error_next_sensor = NULL;
             }
 
-            load_calibration(train,train_position_info);
+            load_calibration(train, train_position_info);
             return true;
         }
     }
@@ -815,16 +828,18 @@ void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_nu
 void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switch_num, int16_t direction){
     int time;
     int32_t distance = 0;
-    int16_t switch_node_num = switch_num;
+    //int16_t switch_node_num = switch_num;
 
     //We've got 4 switches with weird assignments, so we need to have a special case for them
-    if(0x99 <= switch_node_num && switch_node_num <=0x9c){
+    /*if(0x99 <= switch_node_num && switch_node_num <=0x9c){
         switch_node_num -= (153 - 19);
-    }
+    }*/
 
-    distance = dist_between_node_and_index_using_path(tpi->current_path, tpi->next_sensor, 80 + ((switch_node_num - 1) * 2));
+    //distance = dist_between_node_and_index_using_path(tpi->current_path, tpi->next_sensor, 80 + ((switch_node_num - 1) * 2));
 
-    distance -= 300;
+    //distance -= 300;
+    //TODO remove this
+    distance = 0;
 
     //get time to that spot
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance, true);
@@ -985,10 +1000,6 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
 
     send_term_debug_log_msg("Path Length: %d", train_position_info->path_length);
 
-        //TODO change this from being hardcoded to taking an actual speed
-    //Also, not sure why this can't be above...
-    train_position_info->speed = 9;
-
     int i;
     for(i = 0; i < train_position_info->path_length; ++i) {
         send_term_debug_log_msg("Path[%d] = %s", i, train_position_info->current_path[i]->name);
@@ -1042,7 +1053,13 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
             int distance = distance_at_node[i - 1] - train_position_info->stopping_distance(train_position_info->speed, false);
             int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), distance);
 
-            ASSERT(sensor_before_distance != -1);
+            if(sensor_before_distance < 0) {
+                send_term_debug_log_msg("Node %s to %s requires a reverse", train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
+                send_term_debug_log_msg("Distance: %d is too close!", distance);
+                send_term_debug_log_msg("Stopping distance: %d DistanceAtNode: %d", train_position_info->stopping_distance(train_position_info->speed, false), distance_at_node[i - 1]);
+
+                ASSERT(sensor_before_distance != -1);
+            }
 
             int16_t direction;
             if(train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_AHEAD].dest) {
@@ -1056,6 +1073,10 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
             sensor_triggers_set(triggers, sensor_before_distance, TRIGGER_SET_SWITCH_AND_REVERSE, (uint8_t*)&direction, &(train_position_info->current_path[i]->num));
         }
     } 
+
+    //TODO change this from being hardcoded to taking an actual speed
+    //Also, not sure why this can't be above...
+    train_position_info->speed = 9;
 
     send_term_debug_log_msg("Setting stop destination at node: %s", train_position_info->current_path[i]->name);
     _set_stop_around_trigger(train_position_info, triggers, sensor_num, 0, true);
@@ -1090,7 +1111,7 @@ void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_posi
     send_term_debug_log_msg("Last Num: %d Next Num: %d Expected Sensor Num: %d",train_position_info->last_sensor->num, train_position_info->next_sensor->num, train_position_info->expected_stop_around_sensor);
 
     if(train_position_info->last_sensor->num != train_position_info->expected_stop_around_sensor &&
-        train_position_info->next_sensor->num == train_position_info->expected_stop_around_sensor) {
+        get_next_sensor(train_position_info->last_sensor)->num == train_position_info->expected_stop_around_sensor) {
         //Our stopping distance stuff is accurate enough that we can assume we're really close to this sensor
         uint32_t average_velocity = 0;
 
@@ -1099,4 +1120,28 @@ void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_posi
         handle_update_train_position_info(train_number, slot, train_position_info, Time(), average_velocity);
         (void)_train_position_get_av_velocity_at_speed;
     }
+}
+
+void handle_set_location(train_position_info_t* train_position_info, int16_t train, int8_t slot, int8_t sensor) {
+    train_position_info->last_sensor = tps_set_train_sensor(train, sensor);
+    ASSERT(train_position_info->last_sensor != NULL);
+
+    send_term_heavy_msg(false, "Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
+    update_terminal_train_slot_current_location(train, slot, sensor);
+
+    train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
+    
+    update_terminal_train_slot_next_location(train, slot, (train_position_info->next_sensor == NULL) ? -1 
+        : sensor_to_id((char*)(train_position_info->next_sensor->name)));
+
+    if(train_position_info->next_sensor != NULL) {
+        //Set the predicted nodes for error cases
+        train_position_info->sensor_error_next_sensor = get_next_sensor(train_position_info->next_sensor);
+        train_position_info->switch_error_next_sensor = get_next_sensor_switch_broken(train_position_info->last_sensor);
+    } else {
+        train_position_info->sensor_error_next_sensor = NULL;
+        train_position_info->switch_error_next_sensor = NULL;
+    }
+
+    load_calibration(train, train_position_info);
 }

@@ -190,7 +190,11 @@ void process_input(char* input) {
             } else {
                 send_term_heavy_msg(true, "Sending train: %d to destination: %s", target_train_number, third);
             }
-
+        } else if(strcmp(argv[0], "find" )== 0) {
+            target_train_number = strtoi(second);
+            int8_t sensor_id = sensor_to_id(third);
+            set_train_location(target_train_number, sensor_id);
+            send_term_find_msg();
         } else {
 			send_term_heavy_msg(true,"Invalid Command");
 		}

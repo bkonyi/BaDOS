@@ -50,7 +50,8 @@ typedef enum {
     REQUEST_CALIBRATION_INFO,
     TRAIN_TRIGGER_STOP_AROUND_SENSOR,
     SET_TRAIN_STOP_OFFSET,
-    GOTO_LOCATION
+    GOTO_LOCATION,
+    SET_TRAIN_LOCATION
 } train_controller_command_t;
 
 typedef struct {
@@ -98,6 +99,8 @@ static void handle_initialize_track_switches(void);
 static void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor_num,uint32_t mm_diff);
 static void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int32_t mm_diff);
 static void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
+static void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
+
 
 void train_controller_commander_server(void) {
     int sending_tid;
@@ -192,6 +195,9 @@ void train_controller_commander_server(void) {
                 break;
             case GOTO_LOCATION:
                 handle_goto_location(trains, data.var1, data.var2);
+                break;
+            case SET_TRAIN_LOCATION:
+                handle_set_train_location(trains, data.var1, data.var2);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -371,6 +377,22 @@ int tcs_goto_destination(int16_t train, int8_t sensor_num) {
 
 void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int32_t mm_diff) {
     train_server_send_set_stop_offset_msg(trains[(uint16_t)train_num].server_tid,mm_diff);
+}
+
+int set_train_location(int16_t train, int8_t sensor_num) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    } else if(sensor_num >= 80) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = SET_TRAIN_LOCATION;
+    data.var1 = train;
+    data.var2 = sensor_num;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+    return 0;
 }
 
 int tcs_train_request_calibration_info(int8_t train) {
@@ -557,5 +579,11 @@ void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor
 void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num) {
     if(trains[train_num].server_tid != -1) {
         train_server_goto_destination(trains[train_num].server_tid, sensor_num);
+    }
+}
+
+void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num) {
+    if(trains[train_num].server_tid != -1) {
+        train_server_set_location(trains[train_num].server_tid, sensor_num);
     }
 }
