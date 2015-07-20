@@ -45,10 +45,11 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 uint32_t dist_between_node_and_num(track_node* start, int num);
 uint32_t dist_between_node_and_index_using_path( track_node** path, track_node* start, int num);
 int get_sensor_before_distance(track_node* start_sensor, int distance);
-int get_sensor_before_distance_using_path(track_node** path,track_node* start_sensor, int distance);
+int get_sensor_before_distance_using_path(track_node** start, int distance);
 track_node* get_next_sensor_or_exit( track_node* node);
-track_node* get_next_sensor_or_exit_using_path(track_node** path, track_node* node) ;
-uint32_t distance_between_track_nodes_using_path( track_node** path, track_node* start, track_node * end);
+track_node* get_next_sensor_or_exit_using_path(track_node** node) ;
+uint32_t distance_between_track_nodes_using_path(track_node** start, track_node * end);
+track_node**get_path_iterator(track_node** path,track_node* node) ;
 /**
  * @brief Pass it any sensor track node and it  will find the other node based on their position relative to each other
  */

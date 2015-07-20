@@ -339,11 +339,10 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
         ASSERT(0);
         return;
     }
-    if(use_path) {
-        send_term_debug_log_msg("Using path to calculate sensor to trigger stop at");
-        sensor_to_trigger_at =  get_sensor_before_distance_using_path(tpi->current_path,tpi->last_sensor,distance);
-    } else {
-        send_term_debug_log_msg("Using track state to calculate sensor to trigger stop at");
+
+    if(use_path){
+        sensor_to_trigger_at =  get_sensor_before_distance_using_path(get_path_iterator(tpi->current_path,tpi->last_sensor),distance);
+    }else {
         sensor_to_trigger_at =  get_sensor_before_distance(tpi->last_sensor,distance);
     }
    
@@ -375,14 +374,14 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
 
     //Get distance to that point
     if(use_path) {
-        distance = distance_between_track_nodes_using_path(tpi->current_path, start_node,destination_sensor);
+        distance = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, start_node),destination_sensor);
     }else {
         distance = distance_between_track_nodes(start_node,destination_sensor,false);
     }
     
     track_node * runoff_limit = NULL;
     if(use_path){
-        runoff_limit = get_next_sensor_or_exit_using_path(tpi->current_path,destination_sensor);
+        runoff_limit = get_next_sensor_or_exit_using_path(get_path_iterator(tpi->current_path,destination_sensor));
     }
    if(runoff_limit == NULL){
         runoff_limit = get_next_sensor_or_exit(destination_sensor);
@@ -393,7 +392,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     uint32_t runoff_length =0;
     if(runoff_limit != NULL){
         if(use_path) {
-            runoff_length = distance_between_track_nodes_using_path(tpi->current_path,destination_sensor,runoff_limit);
+            runoff_length = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path,destination_sensor),runoff_limit);
         }else {
             runoff_length = distance_between_track_nodes(destination_sensor,runoff_limit,false);
         }
@@ -729,14 +728,16 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     uint32_t av_velocity=0;
 
     if(use_path){
-        iterator_node = get_next_sensor_or_exit_using_path(tpi->current_path,start_sensor);
+        iterator_node = get_next_sensor_or_exit_using_path(get_path_iterator(tpi->current_path,start_sensor));
     }else{
         iterator_node = get_next_sensor_or_exit(start_sensor);
     }
 
-    int result;
 
+    int result;
+    send_term_debug_log_msg("ETTD sens: %s dist: %d",start_sensor->name,distance);
     while(distance > 0 && iterator_node != NULL) {
+
             if(iterator_node->type == NODE_EXIT){
                 result = _train_position_get_prev_first_av_velocity(tpi,prev_node,&av_velocity);
             } else {
@@ -749,7 +750,8 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
             }
 
             if(use_path){
-                segment_dist = distance_between_track_nodes_using_path(tpi->current_path,prev_node, iterator_node);
+
+                segment_dist = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path,prev_node), iterator_node);
             }else {
                 segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
             }
@@ -763,10 +765,11 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
             prev_node = iterator_node;
 
             if(use_path){
-                iterator_node = get_next_sensor_or_exit_using_path(tpi->current_path,start_sensor);
+                iterator_node = get_next_sensor_or_exit_using_path(get_path_iterator(tpi->current_path,start_sensor));
             }else{
                 iterator_node = get_next_sensor_or_exit(start_sensor);
             }
+            send_term_debug_log_msg("time: %d",time);
     }
 
     if(distance != 0) {
@@ -820,9 +823,9 @@ void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switc
         switch_node_num -= (153 - 19);
     }
 
-    distance = dist_between_node_and_index_using_path(tpi->current_path, tpi->next_sensor, 80 + ((switch_node_num - 1) * 2));
+    distance = dist_between_node_and_index_using_path(get_path_iterator(tpi->current_path, tpi->next_sensor), 80 + ((switch_node_num - 1) * 2));
 
-    distance -= 200;
+    distance -= 300;
 
     //get time to that spot
     time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance, true);
@@ -847,7 +850,7 @@ void handle_train_set_switch_and_reverse(train_position_info_t* train_position_i
     //This is the reversing code which will hopefully work soon
     int time;
     int32_t distance;
-    distance = distance_between_track_nodes_using_path(train_position_info->current_path, train_position_info->last_sensor, get_next_track_node(train_position_info->last_sensor));
+    distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->last_sensor), get_next_track_node(train_position_info->last_sensor));
 
     if(train_position_info->is_reversed) {
         distance -= train_position_info->reverse_offset;
@@ -1007,7 +1010,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
                 send_switch_command_distance -= train_position_info->reverse_offset;
             }
 
-            int sensor_before_distance = get_sensor_before_distance_using_path(train_position_info->current_path, current_location, send_switch_command_distance);
+            int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), send_switch_command_distance);
 
             if(sensor_before_distance < 0) {
                 send_term_debug_log_msg("Branch: %s Distatnode: %d Send switch distance: %d", train_position_info->current_path[i]->name, distance_at_node[i-1], send_switch_command_distance);
@@ -1038,7 +1041,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
             train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_CURVED].dest) {
 
             int distance = distance_at_node[i - 1] - train_position_info->stopping_distance(train_position_info->speed, false);
-            int sensor_before_distance = get_sensor_before_distance_using_path(train_position_info->current_path, current_location, distance);
+            int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), distance);
 
             ASSERT(sensor_before_distance != -1);
 

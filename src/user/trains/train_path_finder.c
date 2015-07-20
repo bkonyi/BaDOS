@@ -4,7 +4,7 @@
 #include <io/io.h>
 #include <syscalls.h>
 
-#define MAX_PATH_LENGTH TRACK_MAX
+#define MAX_PATH_LENGTH (TRACK_MAX +1)
 
 static void calculate_weights(priority_heap_t* min_heap, priority_heap_node_t* previous, track_edge* edge, int16_t* previous_nodes) {
     //If the distance of the edge is 0, the edge doesn't exist
