@@ -226,7 +226,7 @@ void _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trig
     }
     if(use_path){
         send_term_debug_log_msg( "DIst %d",distance);
-        sensor_to_trigger_at =  get_sensor_before_distance_using_path(tpi->current_path,tpi->last_sensor,distance);
+        sensor_to_trigger_at =  get_sensor_before_distance_using_path(get_path_iterator(tpi->current_path,tpi->last_sensor),distance);
     }else {
         send_term_debug_log_msg( "SCrew dist %d",distance);
         sensor_to_trigger_at =  get_sensor_before_distance(tpi->last_sensor,distance);
@@ -279,7 +279,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     send_term_debug_log_msg( "Distance between %s and %s: %d", tpi->last_sensor->name, destination_sensor->name, distance);
     track_node * runoff_limit = NULL;
     if(use_path){
-        runoff_limit = get_next_sensor_or_exit_using_path(tpi->current_path,destination_sensor);
+        runoff_limit = get_next_sensor_or_exit_using_path(get_path_iterator(tpi->current_path,destination_sensor));
     }
    if(runoff_limit == NULL){
         runoff_limit = get_next_sensor_or_exit(destination_sensor);
@@ -699,14 +699,14 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
     //int print_index=0;
 
     if(use_path){
-        iterator_node = get_next_sensor_or_exit_using_path(tpi->current_path,start_sensor);
+        iterator_node = get_next_sensor_or_exit_using_path(get_path_iterator(tpi->current_path,start_sensor));
     }else{
         iterator_node = get_next_sensor_or_exit(start_sensor);
     }
     //for(iterator_node = get_next_sensor_or_exit(start_sensor); distance >0  && iterator_node != NULL  ; iterator_node = get_next_sensor_or_exit(iterator_node)) {
     while(distance > 0 && iterator_node != NULL) {
 
-
+            
             if(iterator_node->type == NODE_EXIT){
                 ASSERT(_train_position_get_prev_first_av_velocity(tpi,prev_node,&av_velocity) == 0);
                 //printf(COM2, "\e[s\e[%d;%dH%s\n\e[u", 25+print_index++,60,"This is an exit node");
@@ -735,7 +735,7 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
             prev_node = iterator_node;
 
             if(use_path){
-                iterator_node = get_next_sensor_or_exit_using_path(tpi->current_path,start_sensor);
+                iterator_node = get_next_sensor_or_exit_using_path(get_path_iterator(tpi->current_path,start_sensor));
             }else{
                 iterator_node = get_next_sensor_or_exit(start_sensor);
             }
