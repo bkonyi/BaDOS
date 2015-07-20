@@ -721,7 +721,7 @@ int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sens
 
 int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sensor, int distance, bool use_path) {
     ASSERT(start_sensor->type == NODE_SENSOR);
-
+    if(distance<=0) return 0;
     track_node* iterator_node = start_sensor,*prev_node;
     uint32_t time = 0,segment_dist=0;
     prev_node = iterator_node;
@@ -750,7 +750,6 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
             }
 
             if(use_path){
-
                 segment_dist = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path,prev_node), iterator_node);
             }else {
                 segment_dist = distance_between_track_nodes(prev_node, iterator_node, false);
@@ -823,7 +822,7 @@ void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switc
         switch_node_num -= (153 - 19);
     }
 
-    distance = dist_between_node_and_index_using_path(get_path_iterator(tpi->current_path, tpi->next_sensor), 80 + ((switch_node_num - 1) * 2));
+    distance = dist_between_node_and_index_using_path(tpi->current_path, tpi->next_sensor, 80 + ((switch_node_num - 1) * 2));
 
     distance -= 300;
 

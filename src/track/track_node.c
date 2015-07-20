@@ -292,7 +292,7 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
 		//send_term_debug_log_msg("Our Node %s Node we are looking for %s",iterator_node->name,next_node->name);
 
         segment_dist = distance_between_track_nodes_using_path(iterator_node, next_node);
-        send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name,next_node->name, segment_dist);
+        //send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name,next_node->name, segment_dist);
         partial_distance += segment_dist;
 
         if(partial_distance >= distance || next_node->type == NODE_EXIT) {
