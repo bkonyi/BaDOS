@@ -36,6 +36,7 @@ static int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi
 static void handle_goto_destination(train_position_info_t* train_position_info, sensor_triggers_t* triggers, int16_t train_num, int8_t sensor_num);
 static void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* train_position_info);
 static void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_position_info_t* train_position_info);
+static void _handle_train_track_position_update(train_position_info_t* tpi);
 
 typedef enum train_server_cmd_t {
     TRAIN_SERVER_INIT                   = 1,
@@ -94,6 +95,10 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->ok_to_record_av_velocities = false;
     tpi->is_reversed = false;
     tpi->reverse_offset = 180; //18cm from front of pickup to rear of back wheels
+    tpi->last_tick_time_seen =0;
+    tpi->leading_end_node = NULL;
+    tpi->leading_end_offset_in_node =0;
+
 
     RING_BUFFER_INIT(tpi->conductor_tids, MAX_CONDUCTORS);
 }
@@ -497,6 +502,9 @@ void handle_set_stop_offset(train_position_info_t* train_position_info,int32_t m
 }
 
 void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data, sensor_triggers_t* sensor_triggers,train_position_info_t* train_position_info)   {
+    //every time we get a tick from the sensor data coming in, keep track of it.
+    train_position_info->last_tick_time_seen =  *((uint32_t*)(sensor_data+12));
+
     if(train_position_info->last_sensor != NULL) {
         track_node* last_sensor_track_node = train_position_info->last_sensor;
         track_node* sensor_error_next_sensor = train_position_info->sensor_error_next_sensor;
@@ -584,7 +592,7 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
                 //Send our time in mm / s
                 send_term_update_velocity_msg(slot, velocity);
 
-                //Currently sends the distance between the last 2 sensors that we just passed by, in mm
+                //Currently sends the distance between the last 2 sensors that we just passed by, in mmticks_at_last_sensor
                 //send_term_update_dist_msg(slot, distance );
                 int32_t time_difference = time - train_position_info->next_sensor_estimated_time;
                 
@@ -595,6 +603,39 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
             }
         }
     }
+
+    _handle_train_track_position_update(train_position_info);
+}
+
+void _handle_train_track_position_update(train_position_info_t* tpi){
+    track_node* node_at_sensor = tpi->last_sensor; // The node where the sensor is located
+    if(node_at_sensor == NULL) return;
+
+    uint32_t    av_velocity = tpi->average_velocity;
+    uint32_t    last_time   = tpi->last_tick_time_seen;
+    uint32_t    last_node_time = tpi->ticks_at_last_sensor;
+    uint32_t time = last_time - last_node_time;
+    int offset_from_node = 0;
+    offset_from_node = (av_velocity*time)/100;
+
+
+    if(tpi->is_reversed){
+        offset_from_node +=180;
+    }else{
+        offset_from_node +=50;
+    }
+    track_node* iterator_node = node_at_sensor;
+    //iterate over the track until the length of the train is inside one of the nodes
+    
+    while(offset_from_node > get_track_node_length(iterator_node)){
+        offset_from_node -= get_track_node_length(iterator_node);
+        iterator_node = get_next_track_node(iterator_node);
+    }
+    tpi->leading_end_offset_in_node = offset_from_node;
+    tpi->leading_end_node = iterator_node;
+
+    //send_term_debug_log_msg("trackpos sens: %s tip: %s off %d",node_at_sensor->name,tpi->leading_end_node->name,tpi->leading_end_offset_in_node);
+    
 }
 
 bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info) {
