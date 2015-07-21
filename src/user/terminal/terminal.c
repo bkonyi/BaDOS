@@ -106,8 +106,7 @@ void terminal_server(void) {
     int recent_sensors_index = 0;
     bool map_initialized = false;
     debug_log_t debug_log;
-    debug_log.size =0;
-    debug_log.iterator =0;
+    debug_log_init(&debug_log);
 
     int i;
     for(i = 0; i < 10; ++i) {
@@ -379,9 +378,14 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     
     int dbl_iterator = debug_log->iterator;
     int count=0;
+    char border_char = '\\';
+    if(debug_log->border_switch == true){
+        border_char = '|';
+    }
+    debug_log->border_switch = !(debug_log->border_switch);
     do{
         term_move_cursor(TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1);
-        printf(COM2,"%d: %s",count ,debug_log->entries[dbl_iterator]);
+        printf(COM2,"%c%d: %s%c",border_char,count ,debug_log->entries[dbl_iterator],border_char);
         dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
         if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
         count++;
