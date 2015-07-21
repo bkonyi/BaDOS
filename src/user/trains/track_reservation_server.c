@@ -11,6 +11,7 @@ void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_
 bool _handle_node_reserve(track_node* node, int train_num);
 void _handle_node_release(track_node* node, int train_num);
 void _handle_reservation_init(void);
+track_node* _next_reservation_node(track_node* node, int train_num);
 
 void track_reservation_server(void) {
 	track_res_msg_t message;
@@ -80,6 +81,11 @@ bool track_reserve_node(track_node* node,int train_num) {
 void track_release_node(track_node* node,int train_num) {
 	_send_track_res_msg(TR_RELEASE,node,train_num,NULL);
 }
+void _set_track_node_reservation(track_node* node, int num){
+	ASSERT(node == NULL);
+	node->reserved_by = num;
+	node->reverse->reserved_by = num;
+}
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response){
 	track_res_msg_t msg;
@@ -100,8 +106,7 @@ void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_
 bool _handle_node_reserve(track_node* node, int train_num){
 	if(node->reserved_by == -1 ){
 		ASSERT(node->reverse->reserved_by == -1);
-		node->reserved_by = train_num;
-		node->reverse->reserved_by = train_num;
+		_set_track_node_reservation(node,train_num);
 		return true;
 	}
 	return false;
@@ -109,6 +114,64 @@ bool _handle_node_reserve(track_node* node, int train_num){
 void _handle_node_release(track_node* node, int train_num){
 	ASSERT(node->reserved_by == train_num);
 	ASSERT(node->reverse->reserved_by != -1);
-	node->reserved_by = -1;
-	node->reverse->reserved_by = -1;
+	_set_track_node_reservation(node,-1);
 }
+track_node* _next_reservation_node(track_node* node, int train_num) {
+	ASSERT(node->reserved_by == train_num);
+	if(node == NULL) return NULL;
+
+	if(node->edge[DIR_AHEAD].dest->reserved_by == train_num) {
+		return node->edge[DIR_AHEAD].dest;
+	}else if(node->edge[DIR_CURVED].dest->reserved_by == train_num){
+		return node->edge[DIR_CURVED].dest;
+	}else{ 
+		//No adjacent nodes return NULL
+		return NULL;
+	}
+}
+
+bool _reserve_tracks_from_point(int train_num, track_node* our_node, int offset_in_node,int stopping_distance) {
+	track_node* iterator_node;
+
+	//TODO: TRAIN_PANIC
+	ASSERT(our_node->reserved_by == train_num);
+
+	//we add our offset into our current node so that when we subtract it in the
+		//loop that follows then then it takes into account that the have that
+		//much distance that won't contribute to the stopping distance
+	stopping_distance+= offset_in_node;
+	
+	for(iterator_node = our_node; iterator_node != NULL && stopping_distance > 0; get_next_track_node (iterator_node)){
+		if(iterator_node->reserved_by != train_num && iterator_node->reserved_by != -1){
+			//TODO: Train panic, and say we couldn't reserve it ?? Maybe?
+			return false;
+		}
+		stopping_distance-= get_track_node_length(iterator_node);
+		_set_track_node_reservation(iterator_node,train_num);
+	}
+	return true;
+}
+void _release_track_from_point(int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+
+	int dist = stopping_distance *(-1);
+	track_node* iterator_node;
+
+	for(iterator_node = our_node->reverse; iterator_node != NULL && stopping_distance > 0; get_next_track_node (iterator_node)){
+
+		if(dist >200){
+			//Keep iterating until we've hit enough track to compensate for the length of the train
+			_set_track_node_reservation(iterator_node,-1);
+		}
+		dist+=get_track_node_length(iterator_node);
+	}
+
+}
+bool track_handle_reservations(int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+
+	bool bool_result =_reserve_tracks_from_point(train_num, our_node, offset_in_node, stopping_distance);
+
+	_release_track_from_point(train_num, our_node, offset_in_node, stopping_distance);
+
+	return bool_result;
+}
+
