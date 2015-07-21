@@ -19,6 +19,7 @@
 #include <task_priorities.h>
 #include <servers.h>
 #include <trains/track_position_server.h>
+#include <trains/track_reservation_server.h>
 #define SET_DELAY_INFO(delay, iterations) (((uint64_t)(delay)) << 32) | ((uint32_t)(iterations))
 
 void first_user_task(void) {
@@ -59,6 +60,9 @@ void first_user_task(void) {
     ASSERT(tid == TRAIN_CONTROLLER_SERVER_ID);
     tid = CreateName(TRAIN_POSITION_SERVER_PRIORITY, track_position_server, TRAIN_CONTROLLER_SERVER);
     ASSERT(tid == TRAIN_POSITION_SERVER_ID);
+
+    tid = CreateName(TRACK_RESERVATION_SERVER_PRIORITY, track_reservation_server, TRACK_RESERVATION_SERVER);
+    ASSERT(tid == TRACK_RESERVATION_SERVER_ID);
     
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */

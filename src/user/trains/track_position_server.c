@@ -5,7 +5,7 @@
 #include <queue.h>
 #include <trains/train_server.h>
 #include <terminal/terminal.h>
-
+#include <trains/track_reservation_server.h>
 #define TPS_SENSOR_MESSAGE_SIZE SENSOR_MESSAGE_SIZE
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
 
@@ -45,6 +45,8 @@ void track_position_server(void) {
 	
 	track_node track_nodes[TRACK_MAX];
 
+	//Initialize the track reservation server with the initial track node
+	track_reservation_init(track_nodes);
 	tps_tpi_queue_t tpi_queue_filled,tpi_queue_free;
 
 	train_information_t train_info[MAX_NUM_TRAINS];
