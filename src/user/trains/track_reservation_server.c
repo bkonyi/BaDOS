@@ -17,7 +17,7 @@ void track_reservation_server(void) {
 	int requester;
 	track_res_msg_t response;
 	response.type = TR_UNSET;
-	
+
 	//Initialize
 	_handle_reservation_init();
 	
@@ -98,13 +98,17 @@ void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_
 
 }
 bool _handle_node_reserve(track_node* node, int train_num){
-	if(node->reserved_by == -1){
+	if(node->reserved_by == -1 ){
+		ASSERT(node->reverse->reserved_by == -1);
 		node->reserved_by = train_num;
+		node->reverse->reserved_by = train_num;
 		return true;
 	}
 	return false;
 }
 void _handle_node_release(track_node* node, int train_num){
 	ASSERT(node->reserved_by == train_num);
+	ASSERT(node->reverse->reserved_by != -1);
 	node->reserved_by = -1;
+	node->reverse->reserved_by = -1;
 }
