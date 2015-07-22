@@ -127,10 +127,13 @@ void train_server(void) {
     SENSOR_TRIGGER_INFO_INIT(sensor_triggers);
 
     bool is_stopping_at_landmark = false;
+    
 
     train_position_info_t train_position_info;
     train_position_info_init(&train_position_info);
 
+
+    QUEUE_INIT(train_position_info.reserved_node_queue);
     //CURRENTLY A STEM CELL TRAIN,
     //need to obtain train info
     Receive(&requester,message, message_size);
@@ -633,7 +636,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     //iterate over the track until the length of the train is inside one of the nodes
     
     while(offset_from_node > get_track_node_length(iterator_node)){
-        offset_from_node -= get_track_node_length(iterator_node);
+    offset_from_node -= get_track_node_length(iterator_node);
         iterator_node = get_next_track_node(iterator_node);
     }
     tpi->leading_end_offset_in_node = offset_from_node;
@@ -648,7 +651,7 @@ void _handle_train_reservations(train_position_info_t* tpi) {
         return;  
     } 
 
-    result = track_handle_reservations(tpi->train_num, tpi->last_sensor, tpi->leading_end_offset_in_node, tpi->stopping_distance(tpi->speed, false));
+    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, tpi->last_sensor, tpi->leading_end_offset_in_node, tpi->stopping_distance(tpi->speed, false));
     if(result == false){
        tcs_train_set_speed(tpi->train_num, 0); 
     }

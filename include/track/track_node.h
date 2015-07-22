@@ -34,6 +34,7 @@ struct track_node {
   int state;
   int reserved_by;
   int16_t index;
+  track_node* next_reserved;
 };
 
 track_node* get_next_track_node(track_node* start_node);

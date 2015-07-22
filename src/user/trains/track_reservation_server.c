@@ -4,13 +4,15 @@
 #include <servers.h>
 #include <track_data.h>
 #include <terminal/terminal_debug_log.h>
-
+#include <common.h>
 //TRACK_RESERVATION_SERVER_ID
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response);
 bool _handle_node_reserve(track_node* node, int train_num);
 void _handle_node_release(track_node* node, int train_num);
 void _handle_reservation_init(void);
+void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
+
 track_node* _next_reservation_node(track_node* node, int train_num);
 
 void track_reservation_server(void) {
@@ -151,7 +153,8 @@ track_node* _next_reservation_node(track_node* node, int train_num) {
 	}
 }
 
-bool _reserve_tracks_from_point(int train_num, track_node* our_node, int offset_in_node,int stopping_distance) {
+bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node,int stopping_distance) {
+	bool nodes_added = false;
 	ASSERT(our_node !=NULL);
 	if(our_node == NULL) return false;
 	track_node* iterator_node;
@@ -177,14 +180,24 @@ bool _reserve_tracks_from_point(int train_num, track_node* our_node, int offset_
 		
 		if(!track_reserve_node(iterator_node,train_num)) {
 			return false;
-		}
+		}else{
+            bool exists_in;
+            RESERVED_VALUE_EXISTS_IN(*res_queue,iterator_node,exists_in);
+            if(!exists_in){
+            	nodes_added = true;
+                RESERVED_PUSH_BACK(*res_queue,iterator_node);
+            }
+        }
 
 		stopping_distance-= get_track_node_length(iterator_node);
 	}
+	if(nodes_added){
+		_print_reserved_tracks(res_queue,train_num);
+	}
 	return true;
 }
-void _release_track_from_point(int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
-
+void _release_track_from_point(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+	bool nodes_removed = false;
 	int dist =  -1 * (offset_in_node - 200);
 	track_node* iterator_node;
 	
@@ -194,14 +207,34 @@ void _release_track_from_point(int train_num, track_node* our_node, int offset_i
 			//Keep iterating until we've hit enough track to compensate for the length of the train
 			//send_term_debug_log_msg("tp %s off %d",our_node->name,offset_in_node);
 			track_release_node(iterator_node,train_num);
+			RESERVED_REMOVE_VALUE(*res_queue,iterator_node);
+			nodes_removed = true;
 		}
 		dist+=get_track_node_length(iterator_node);
 	}
+	if(nodes_removed == true) {
+		_print_reserved_tracks(res_queue,train_num);
+	}
 
 }
-bool track_handle_reservations(int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
-	bool bool_result =_reserve_tracks_from_point(train_num, our_node, offset_in_node, stopping_distance);
-	_release_track_from_point(train_num, our_node, offset_in_node, stopping_distance);
+bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+	bool bool_result =_reserve_tracks_from_point(res_queue,train_num, our_node, offset_in_node, stopping_distance);
+	_release_track_from_point(res_queue, train_num, our_node, offset_in_node, stopping_distance);
 	return bool_result;
+}
+
+
+void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num){
+	track_node* iterator_node = res_queue->head;
+	char buff[DEBUG_LOG_MAX_LEN];
+	char* buff_it = buff;
+	sprintf(buff_it,"RES TR %d: ",train_num);
+	buff_it += strlen(buff_it);
+	while (iterator_node != NULL) {
+		sprintf(buff_it,"%s ",iterator_node->name);
+		buff_it += strlen(buff_it);
+		iterator_node ++;
+	}
+	send_term_debug_log_msg("%s",buff);
 }
 
