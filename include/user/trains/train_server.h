@@ -28,6 +28,9 @@ typedef struct train_position_info_t {
     bool is_reversed;
     int16_t reverse_offset;
 
+    int16_t train_num;
+    int16_t train_slot;
+
     //Position information
     track_node* last_sensor;
     uint32_t ticks_at_last_sensor;
@@ -49,6 +52,8 @@ typedef struct train_position_info_t {
     avg_velocity_t average_velocities[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS];
     uint32_t default_av_velocity[MAX_STORED_SPEEDS];
     uint32_t average_velocity;
+
+    //Position inside the node
     int leading_end_offset_in_node;
     track_node *leading_end_node;
     uint32_t last_tick_time_seen;

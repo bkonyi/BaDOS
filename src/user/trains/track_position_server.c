@@ -46,7 +46,7 @@ void track_position_server(void) {
 	track_node track_nodes[TRACK_MAX];
 
 	//Initialize the track reservation server with the initial track node
-	track_reservation_init(track_nodes);
+	
 	tps_tpi_queue_t tpi_queue_filled,tpi_queue_free;
 
 	train_information_t train_info[MAX_NUM_TRAINS];
@@ -103,7 +103,7 @@ void track_position_server(void) {
 								ASSERT(0);
 								break;
 						}
-
+						track_reservation_init(track_nodes);
 						//Reinitialize the stuck sensor array
 						found_stuck_sensors = false;
 						fill_track_branch_data(track_nodes, track_branch_nodes);

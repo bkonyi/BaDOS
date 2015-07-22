@@ -10,6 +10,7 @@
 #include <track_maps.h>
 #include <track/track_node.h>
 #include <terminal/terminal_debug_log.h>
+
 #define RIGHT_BAR_COL             75
 #define TERM_SENSORS_ROW          4
 #define TERM_SENSORS_DATA_ROW     TERM_SENSORS_ROW + 3
