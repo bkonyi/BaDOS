@@ -16,6 +16,9 @@
 CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
 
 typedef struct train_position_info_t {
+    //Train information
+    uint16_t train;
+
     //Calculates stopping distances for a given speed
     uint16_t (*stopping_distance)(uint16_t, bool);
     int16_t last_stopping_distance;
@@ -23,6 +26,8 @@ typedef struct train_position_info_t {
 
     //Expected last sensor after stopping around sensor
     int8_t expected_stop_around_sensor;
+
+    track_node* reverse_path_start;
 
     //Train orientation information
     bool is_reversed;
@@ -39,6 +44,10 @@ typedef struct train_position_info_t {
     //The live conductors for the train
     conductor_buffer_t conductor_tids;
 
+    //Short move information
+    //Takes in a speed and a distance to travel
+    uint32_t (*short_move_time)(uint16_t, int16_t);
+
     //Speed information
     int16_t speed;
     int16_t last_speed;
@@ -54,6 +63,10 @@ typedef struct train_position_info_t {
     track_node* current_path[TRACK_MAX];
     int path_length;
     int8_t destination;
+    bool waiting_on_reverse;
+    bool ready_to_recalculate_path;
+    bool temp;
+
 } train_position_info_t;
 
 void train_position_info_init(train_position_info_t* tpi);

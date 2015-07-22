@@ -4,10 +4,12 @@
 
 static void load_train_62_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over);
+static uint32_t train_62_short_move_time(uint16_t speed, int16_t distance);
 static void load_train_65_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_train_66_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over);
+static uint32_t train_66_short_move_time(uint16_t speed, int16_t distance);
 static void load_default_calibration(train_position_info_t* train_position_info);
 
 void load_calibration(int16_t train, train_position_info_t* train_position_info) {
@@ -39,6 +41,8 @@ void _set_defaults(train_position_info_t* train_position_info, uint16_t* velocit
 void load_train_62_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 365, 448, 509, 547, 552, 558 };
     train_position_info->stopping_distance = train_62_stopping_distance;
+    train_position_info->short_move_time = train_62_short_move_time;
+
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -69,9 +73,35 @@ uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over) {
     return ((uint16_t)(distance / 10000));
 }
 
+uint32_t train_62_short_move_time(uint16_t speed, int16_t distance) {
+    if(distance <= 0) {
+        return 0;
+    }
+
+    uint64_t long_distance = distance;
+    uint32_t result = 0;
+
+    speed = 12; //Maybe we'll do something with this later.
+
+    switch(speed) {
+        case 12:
+            //This calculates f(x) = (1/322) * (sqrt(6440000 * x - 528910491) + 32647)
+            //which is the equation for determining time to move a certain distance
+            result = (sqrt(6440000ULL * long_distance - 528910591ULL) + 32647ULL) / 322;
+            break;
+        default:
+            ASSERT(0);
+            break;
+    }
+
+    return result;
+}
+
 void load_train_65_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 239, 292, 352, 419, 484, 556 };
     train_position_info->stopping_distance = train_65_stopping_distance;
+    train_position_info->short_move_time = train_62_short_move_time; //TODO change this
+
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -108,6 +138,8 @@ void load_train_66_calibration_info(train_position_info_t* train_position_info) 
     send_term_debug_log_msg("Loading train 66 calibration info");
     uint16_t velocities[MAX_STORED_SPEEDS] = { 412, 454, 485, 534, 587, 606, 632 };
     train_position_info->stopping_distance = train_66_stopping_distance;
+    train_position_info->short_move_time = train_66_short_move_time;
+
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -137,11 +169,36 @@ uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over) {
     return (((uint16_t)(distance / 10000)));
 }
 
+uint32_t train_66_short_move_time(uint16_t speed, int16_t distance) {
+    if(distance <= 0) {
+        return 0;
+    }
+
+    uint64_t long_distance = distance;
+    uint32_t result = 0;
+
+    speed = 12; //Maybe we'll do something with this later.
+
+    switch(speed) {
+        case 12:
+            //This calculates f(x) = (5/274) * (sqrt(219200 * x - 16747751) + 6013)
+            //which is the equation for determining time to move a certain distance
+            result = 5 * (sqrt(219200ULL * long_distance - 16747751ULL) + 6013ULL) / 274;
+            break;
+        default:
+            ASSERT(0);
+            break;
+    }
+
+    return result;
+}
+
 void load_default_calibration(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 0, 0, 0, 0, 0, 0, 0 };
     _set_defaults(train_position_info,velocities);
     //Since we already have these stopping distances...
     train_position_info->stopping_distance = train_65_stopping_distance; 
+    train_position_info->short_move_time = train_62_short_move_time; //I love consistency, can't you tell?
 
     int i, j, k;
     for(i = 0; i < 80; ++i) {

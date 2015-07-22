@@ -122,45 +122,32 @@ uint32_t dist_between_node_and_num(track_node* start, int num) {
 	return dist;
 }
 
-uint32_t dist_between_node_and_index_using_path( track_node** path, track_node* start, int num){
-	bool start_counting = false;
-	if(start == NULL  ) {
+uint32_t dist_between_node_and_index_using_path( track_node** path_start, int num){
+	if(path_start == NULL) {
 		Delay(200);ASSERT(0);
 		return 0;
-	} else if(start->index == num) {
+	}else if(path_start[0] == NULL  ) {
+		Delay(200);ASSERT(0);
+		return 0;
+	} else if(path_start[0]->index == num) {
 		Delay(200);ASSERT(0);
 		return 0;
 	}
-	track_node* iterator_node; 
+	track_node** iterator_path_node; 
 	uint32_t dist =0;//get_track_node_length(start);
-	uint32_t edge = 0;
-	int i ;
+
 	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
 	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
-	for(i =0 ; i < TRACK_MAX; i++) {
-		iterator_node = path[i];
-		if(!start_counting && iterator_node == start){
-			send_term_debug_log_msg("Found start node");
-			start_counting=true;
-		}
-
-		if(start_counting){
-			
-			if(iterator_node->index == num){
-				//send_term_debug_log_msg("dbtnup got last node %s", end->name);
-				break;
-			} 
-			dist += get_track_node_length(iterator_node);
-			edge++;
-		}
+	for(iterator_path_node = path_start ; iterator_path_node != NULL && iterator_path_node[0] !=NULL; iterator_path_node++) {
+		if(iterator_path_node[0]->index == num){
+			//send_term_debug_log_msg("dbtnup got last node %s", end->name);
+			ASSERT(dist!=0);
+			return dist;
+		} 
+		dist += get_track_node_length(iterator_path_node[0]);	
 	}
-	if (i == (TRACK_MAX)) {
-			Delay(200);ASSERT(0);
-			return 0;
-	}	
-
-	ASSERT(dist != 0);
-	return dist;
+	ASSERT(0);
+	return 0;
 }
 
 track_node* get_next_sensor( track_node* node) {
@@ -179,6 +166,7 @@ track_node* get_next_sensor( track_node* node) {
 	}
 	return NULL;
 }
+
 track_node* get_next_sensor_or_exit( track_node* node) {
 	track_node* iterator_node;
 
@@ -195,6 +183,7 @@ track_node* get_next_sensor_or_exit( track_node* node) {
 	}
 	return NULL;
 }
+
 track_node* get_next_sensor_or_exit_using_path( track_node** node) {
 	track_node** iterator_node;
 
@@ -235,21 +224,21 @@ track_node* get_next_sensor_switch_broken( track_node* node) {
 	}
 	return NULL;
 }
-track_node* get_sensor_node_from_num(track_node* start, int num) {
-	ASSERT(start->type == NODE_SENSOR);
 
-	int index_num = start->num;
+track_node* get_sensor_node_from_num(track_node* start, int num) {
+	//ASSERT(start->type == NODE_SENSOR);
+
+	int index_num = start->index;
 	track_node* base = start - index_num;
 	return base+num;
 }
 
 
 int get_sensor_before_distance(track_node* start_sensor, int distance) {
-    ASSERT(start_sensor->type == NODE_SENSOR);
+    //ASSERT(start_sensor->type == NODE_SENSOR);
     track_node* iterator_node;
     uint32_t partial_distance = 0;
     uint32_t segment_dist = 0;
-    int print_index = 0;
 
     if(distance < 0) {
     	return -1;
@@ -258,7 +247,6 @@ int get_sensor_before_distance(track_node* start_sensor, int distance) {
     for(iterator_node = start_sensor; iterator_node != NULL; iterator_node = get_next_sensor_or_exit(iterator_node)) {
             track_node* next_node = get_next_sensor_or_exit(iterator_node);
             segment_dist = distance_between_track_nodes(iterator_node, next_node, false);
-            printf(COM2, "\033[s\033[%d;%dHIterator Node Name: %s Segment distance: %d Total Distance: %d Desired Distance: %d\033[u", 40 + print_index++, 60, iterator_node->name, segment_dist, partial_distance + segment_dist, distance);
             partial_distance += segment_dist;
 
             if(partial_distance >= distance || next_node->type == NODE_EXIT) {
@@ -268,8 +256,9 @@ int get_sensor_before_distance(track_node* start_sensor, int distance) {
     }
     return -2;
 }
+
 int get_sensor_before_distance_using_path(track_node** start, int distance) {
-    ASSERT(start[0]->type == NODE_SENSOR);
+    //ASSERT(start[0]->type == NODE_SENSOR);
 
     track_node** iterator_node;
     uint32_t partial_distance = 0;
@@ -282,7 +271,7 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
 	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
 	for(iterator_node = start ;iterator_node != NULL; iterator_node++) {
 		//send_term_debug_log_msg("gsbdup name %s", iterator_node->name);
-		if(!(iterator_node[0]->type == NODE_SENSOR  || iterator_node[0]->type == NODE_EXIT)) continue;
+		//if(!(iterator_node[0]->type == NODE_SENSOR  || iterator_node[0]->type == NODE_EXIT)) continue;
 
 		track_node* next_node = get_next_sensor_or_exit_using_path(iterator_node);
 		if(next_node== NULL){

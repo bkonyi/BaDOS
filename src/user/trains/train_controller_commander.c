@@ -475,7 +475,6 @@ void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
     if(speed == REVERSE_COMMAND) {
         trains[(uint16_t)train].is_reversing = false;
         train_server_set_reversing(trains[(uint16_t)train].server_tid);
-        Delay(100); //TODO don't do this...
     }
 
 }
