@@ -1,5 +1,6 @@
 #include <trains/train_calibration_loader.h>
 #include <terminal/terminal.h>
+#include <terminal/terminal_debug_log.h>
 
 static void load_train_58_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_58_stopping_distance(uint16_t speed, bool is_under_over);
@@ -14,6 +15,8 @@ static uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_default_calibration(train_position_info_t* train_position_info);
 
 void load_calibration(int16_t train, train_position_info_t* train_position_info) {
+    send_term_debug_log_msg("Loading calibration info for: %d", train);
+
     switch(train) {
         case 58:
             load_train_58_calibration_info(train_position_info);
@@ -88,6 +91,10 @@ uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over) {
     //That's the best polynomial fit for our stopping distances for this train
     distance = ((big_speed * big_speed) * -39252) + (1445900 * big_speed) - 4266500;
 
+    if(distance < 0) {
+        return 0;
+    }
+
     return ((uint16_t)(distance / 10000));
 }
 
@@ -140,10 +147,15 @@ uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over) {
         distance = ((big_speed * big_speed) * 17518) - (218360 * big_speed) + 829660;
     }
 
+    if(distance < 0) {
+        return 0;
+    }
+
     return ((uint16_t)(distance / 1000));
 }
 
 void load_train_66_calibration_info(train_position_info_t* train_position_info) {
+    send_term_debug_log_msg("Loading train 66 calibration info");
     uint16_t velocities[MAX_STORED_SPEEDS] = { 412, 454, 485, 534, 587, 606, 632 };
     train_position_info->stopping_distance = train_66_stopping_distance;
     _set_defaults(train_position_info,velocities);
@@ -168,7 +180,11 @@ uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over) {
     //That's the best polynomial fit for our stopping distances for this train
     distance = ((big_speed * big_speed) * -27181) + (1302900 * big_speed) - 3213400;
 
-    return (((uint16_t)(distance / 10000)) - 100); //-100 is a manual offset
+    if(distance < 0) {
+        return 0;
+    }
+
+    return (((uint16_t)(distance / 10000)));
 }
 
 void load_default_calibration(train_position_info_t* train_position_info) {

@@ -240,7 +240,11 @@ void process_input(char* input) {
 			if(result != 0) {
 				send_term_heavy_msg(true, "Invalid train number for calibration info");
 			}
-		} else {
+		} else if(strcmp(argv[0], "find" )== 0) {
+            target_train_number = strtoi(second);
+            find_train(target_train_number);
+            send_term_find_msg();
+        } else {
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	} else if( argc == 1) {
@@ -252,10 +256,7 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "g") == 0) {
 			start_controller();
 			send_term_start_msg();
-		} else if(strcmp(argv[0], "find" )== 0) {
-			find_trains();
-			send_term_find_msg();
-		}else if(strcmp(argv[0], "tracks" )== 0) {
+		} else if(strcmp(argv[0], "tracks" )== 0) {
 			
 			send_term_heavy_msg(true,"Available track options: smallloop, bigloop, megaloop, 8A, 8B, bigloopflare");
 		}  else{
