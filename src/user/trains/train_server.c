@@ -48,7 +48,7 @@ static void _train_server_send_speed(int16_t train, int16_t speed);
 static void train_speed_courrier(void);
 
 
-#define BRANCH_STOP_OFFSET 200
+#define BRANCH_STOP_OFFSET 215
 #define SHORT_MOVE_DEFAULT_SPEED 12
 #define SWITCH_NONE -1
 #define DIR_NONE -1
@@ -589,7 +589,6 @@ void train_conductor(void) {
             tcs_train_set_speed(conductor_info.train_number, 0);
             //TODO might want to change this
             Delay(360); //Delay as long as it will probably take us to stop
-            send_term_debug_log_msg("CONDUCTOR_REVERSE_TRAIN reversing train and recalulating");
             train_reverse(conductor_info.train_number);
             _train_server_recalculate_path_to_destination(train_server_tid);
             break;
@@ -598,15 +597,12 @@ void train_conductor(void) {
             tcs_train_set_speed(conductor_info.train_number, 0);
             Delay(conductor_info.delay); //Delay as long as it will probably take us to stop
             train_reverse(conductor_info.train_number);
-            send_term_debug_log_msg("Short move done!");
-            send_term_debug_log_msg("Setting switch %d to: %c", conductor_info.num2, (conductor_info.byte1 == DIR_STRAIGHT) ? 'S' : 'C');
             tcs_switch_set_direction(conductor_info.num2, (conductor_info.byte1 == DIR_STRAIGHT) ? 'S' : 'C');   
             _train_server_recalculate_path_to_destination(train_server_tid);
             break;
         case CONDUCTOR_SHORT_MOVE:
             send_term_debug_log_msg("CONDUCTOR_SHORT_MOVE Stopping short move (no reverse)...");
             tcs_train_set_speed(conductor_info.train_number, 0);
-            send_term_debug_log_msg("Set speed!");
             break;
         default:
             ASSERT(0);
@@ -1127,13 +1123,12 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
     send_term_debug_log_msg("Path Length: %d", train_position_info->path_length);
 
     int i;
-    /*for(i = 0; i < train_position_info->path_length; ++i) {
+    for(i = 0; i < train_position_info->path_length; ++i) {
         send_term_debug_log_msg("Path[%d] = %s", i, train_position_info->current_path[i]->name);
-    }*/
+    }
 
 
     //TODO change this from being hardcoded to taking an actual speed
-    //Also, not sure why this can't be above...
     train_position_info->speed = 9;
 
     for(i = 0; i < train_position_info->path_length - 1; ++i) {
@@ -1150,7 +1145,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
                     send_switch_command_distance -= train_position_info->reverse_offset;
                 }
 
-                int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), send_switch_command_distance);
+                int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, train_position_info->current_path[0]), send_switch_command_distance);
 
                 if(sensor_before_distance < 0) {
                     send_term_debug_log_msg("Branch: %s Distatnode: %d Send switch distance: %d", train_position_info->current_path[i]->name, distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->current_path[0]), train_position_info->current_path[i-1]), send_switch_command_distance);

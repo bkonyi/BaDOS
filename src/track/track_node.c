@@ -284,8 +284,8 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
         //send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name,next_node->name, segment_dist);
         partial_distance += segment_dist;
 
-        if(partial_distance >= distance || next_node->type == NODE_EXIT) {
-  		    send_term_heavy_msg(false, "Will trigger at sensor: %s", iterator_node[0]->name);
+        if((partial_distance >= distance && iterator_node[0]->type == NODE_SENSOR) || next_node->type == NODE_EXIT) {
+  		    send_term_debug_log_msg("Will trigger at sensor: %s", iterator_node[0]->name);
         	return iterator_node[0]->num;
         }	
 	}

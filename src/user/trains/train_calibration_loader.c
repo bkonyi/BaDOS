@@ -85,16 +85,22 @@ uint32_t train_62_short_move_time(uint16_t speed, int16_t distance) {
 
     switch(speed) {
         case 12:
-            //This calculates f(x) = (1/322) * (sqrt(6440000 * x - 528910491) + 32647)
-            //which is the equation for determining time to move a certain distance
-            result = (sqrt(6440000ULL * long_distance - 528910591ULL) + 32647ULL) / 322;
+            if(long_distance >= 83) { 
+                //This calculates f(x) = (1/322) * (sqrt(6440000 * x - 528910491) + 32647)
+                //which is the equation for determining time to move a certain distance
+                result = (sqrt(6440000ULL * long_distance - 528910591ULL) + 32647ULL) / 322;
+            } else {
+                //We don't want to calculate the square root of a negative number...
+                //Just assume the distance is 0
+                result = 250;
+            }
             break;
         default:
             ASSERT(0);
             break;
     }
 
-    return result;
+    return result + 1;
 }
 
 void load_train_65_calibration_info(train_position_info_t* train_position_info) {
