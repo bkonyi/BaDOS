@@ -82,6 +82,7 @@ typedef struct task_descriptor_t {
 
     request_t* last_request;
     message_waiting_queue_t message_queue;
+    tid_t blocked_on;
 
 } task_descriptor_t;
 

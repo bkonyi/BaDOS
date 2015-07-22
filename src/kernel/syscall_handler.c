@@ -67,6 +67,8 @@ static int handle_Send(global_data_t* global_data, int tid, char* msg, int msgle
 
         //Reschedule the receive blocked task.
         receiving_task->state = TASK_RUNNING_STATE_READY;
+        receiving_task->blocked_on = 0;
+
         schedule(global_data, receiving_task);
     } else {
         //If not, queue up the message for tid, and become reply blocked
@@ -74,6 +76,7 @@ static int handle_Send(global_data_t* global_data, int tid, char* msg, int msgle
     }
 
     active_task->state = TASK_RUNNING_STATE_REPLY_BLOCKED;
+    active_task->blocked_on = receiving_task->generational_tid;
 
     //We assume the transaction isn't complete for now
     return -3;
@@ -143,6 +146,7 @@ static int handle_Reply(global_data_t* global_data, int tid, char* reply, int re
 
     //Reschedule the reply blocked task
     sending_task->state = TASK_RUNNING_STATE_READY;
+    sending_task->blocked_on = 0;
     schedule(global_data, sending_task);
 
     return 0;

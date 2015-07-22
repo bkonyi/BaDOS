@@ -57,7 +57,7 @@ void first_user_task(void) {
 
     tid = CreateName(TRAIN_CONTROLLER_COMMAND_SERVER, train_controller_commander_server, TRAIN_CONTROLLER_SERVER);
     ASSERT(tid == TRAIN_CONTROLLER_SERVER_ID);
-    tid = CreateName(TRAIN_POSITION_SERVER_PRIORITY, track_position_server, TRAIN_CONTROLLER_SERVER);
+    tid = CreateName(TRAIN_POSITION_SERVER_PRIORITY, track_position_server, "TRAIN_POSITION_SERVER");
     ASSERT(tid == TRAIN_POSITION_SERVER_ID);
     
     /*******************************************************************/

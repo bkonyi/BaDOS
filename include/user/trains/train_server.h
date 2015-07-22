@@ -65,7 +65,7 @@ typedef struct train_position_info_t {
     int8_t destination;
     bool waiting_on_reverse;
     bool ready_to_recalculate_path;
-    bool temp;
+    bool at_branch_after_reverse;
 
 } train_position_info_t;
 
