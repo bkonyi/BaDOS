@@ -404,12 +404,6 @@ int _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* trigg
 
     distance = _distance_to_send_stop_command(tpi,tpi->last_sensor,sensor_num,mm_diff, use_path);
 
-    if(distance < 0){
-        Delay(1000);
-        ASSERT(0);
-        return -1;
-    }
-
     //If we're within 75cm of the stopping location after stopping distance, we can just short move to the destination
     if(distance <= 750) {
 
@@ -505,6 +499,7 @@ int32_t _distance_to_send_stop_command(train_position_info_t* tpi,track_node* st
     }
 
     if(tpi->is_reversed) {
+        send_term_debug_log_msg("Added reverse offset!");
         distance -= tpi->reverse_offset;
     }
     
@@ -606,11 +601,8 @@ void train_conductor(void) {
             _train_server_recalculate_path_to_destination(train_server_tid);
         case CONDUCTOR_SHORT_MOVE:
             send_term_debug_log_msg("Stopping short move, no reverse...");
-            Delay(100);
             tcs_train_set_speed(conductor_info.train_number, 0);
             send_term_debug_log_msg("Set speed!");
-            Delay(100);
-
             break;
         default:
             ASSERT(0);
@@ -997,7 +989,7 @@ void handle_train_set_switch_and_reverse(train_position_info_t* train_position_i
     //This is the reversing code which will hopefully work soon
     int time;
     int32_t distance;
-    distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->last_sensor), get_next_track_node(train_position_info->last_sensor));
+    distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->last_sensor), get_next_track_node(train_position_info->last_sensor)) + BRANCH_STOP_OFFSET;
 
     if(train_position_info->is_reversed) {
         distance -= train_position_info->reverse_offset;
@@ -1132,14 +1124,12 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
 
     find_path(current_location, destination, train_position_info->current_path, &(train_position_info->path_length));
 
-    int32_t distance_at_node[TRACK_MAX];
-
     send_term_debug_log_msg("Path Length: %d", train_position_info->path_length);
 
     int i;
-    for(i = 0; i < train_position_info->path_length; ++i) {
+    /*for(i = 0; i < train_position_info->path_length; ++i) {
         send_term_debug_log_msg("Path[%d] = %s", i, train_position_info->current_path[i]->name);
-    }
+    }*/
 
 
     //TODO change this from being hardcoded to taking an actual speed
@@ -1147,13 +1137,6 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
     train_position_info->speed = 9;
 
     for(i = 0; i < train_position_info->path_length - 1; ++i) {
-
-        if(i == 0) {
-            distance_at_node[i] = 0;
-        } else {
-            distance_at_node[i] = distance_at_node[i - 1] + get_track_node_length(train_position_info->current_path[i]);
-        }
-
             //If the node is a branch, we'll need to set the branch to the right direction
         if(train_position_info->current_path[i]->type == NODE_BRANCH) {
             if(i == 0) {
@@ -1161,7 +1144,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
                 //This should only happen after a reverse, so the switch should be set
                 //TODO set the switch?
             } else {
-                int send_switch_command_distance = distance_at_node[i] - 100;
+                int send_switch_command_distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->current_path[0]), train_position_info->current_path[i]) - 100;
 
                 if(train_position_info->is_reversed) {
                     send_switch_command_distance -= train_position_info->reverse_offset;
@@ -1170,7 +1153,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
                 int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), send_switch_command_distance);
 
                 if(sensor_before_distance < 0) {
-                    send_term_debug_log_msg("Branch: %s Distatnode: %d Send switch distance: %d", train_position_info->current_path[i]->name, distance_at_node[i-1], send_switch_command_distance);
+                    send_term_debug_log_msg("Branch: %s Distatnode: %d Send switch distance: %d", train_position_info->current_path[i]->name, distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->current_path[0]), train_position_info->current_path[i-1]), send_switch_command_distance);
                     Delay(100);
                     ASSERT(sensor_before_distance >= 0);
                 }
@@ -1198,27 +1181,32 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
         if(train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_AHEAD].dest ||
             train_position_info->current_path[i+1] == train_position_info->current_path[i]->reverse->edge[DIR_CURVED].dest) {
 
-            int distance = distance_at_node[i] - train_position_info->stopping_distance(train_position_info->speed, false);
+            int distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->current_path[0]), train_position_info->current_path[i]) - train_position_info->stopping_distance(train_position_info->speed, false);
 
-            send_term_debug_log_msg("Reverse distance: %d", distance);
+            if(train_position_info->is_reversed) {
+                send_term_debug_log_msg("Accounting for reverse offset");
+                distance -= train_position_info->reverse_offset;
+            }
+
+            send_term_debug_log_msg("Reverse distance: %d", distance + train_position_info->stopping_distance(train_position_info->speed, false));
             
             if(distance <= 750) {
                 send_term_debug_log_msg("Node %s to %s requires a reverse", train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
                 send_term_debug_log_msg("Distance: %d is closer than 75cm after stop!", distance);
 
-                int32_t short_move_distance = distance_at_node[i] + BRANCH_STOP_OFFSET;
+                int32_t short_move_distance = distance + train_position_info->stopping_distance(train_position_info->speed, false) + BRANCH_STOP_OFFSET;
 
                 _prepare_short_move_reverse(train_position_info, train_position_info->current_path[i], short_move_distance);
                 return;
             }
 
-            int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), distance);
+            int sensor_before_distance = get_sensor_before_distance_using_path(get_path_iterator(train_position_info->current_path, current_location), distance + BRANCH_STOP_OFFSET);
 
             if(sensor_before_distance < 0) {
                 send_term_debug_log_msg("Node %s to %s requires a reverse", train_position_info->current_path[i]->name, train_position_info->current_path[i + 1]->name);
                 send_term_debug_log_msg("Distance: %d is too close!", distance);
 
-                int32_t short_move_distance = distance_at_node[i] + BRANCH_STOP_OFFSET;
+                int32_t short_move_distance = distance + train_position_info->stopping_distance(train_position_info->speed, false) + BRANCH_STOP_OFFSET;
 
                 _prepare_short_move_reverse(train_position_info, train_position_info->current_path[i], short_move_distance);
                 return;
@@ -1239,7 +1227,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
             if(sensor_before_distance == train_position_info->current_path[0]->num) {
                 send_term_debug_log_msg("This needs to be a short move!");
 
-                int32_t short_move_distance = distance_at_node[i] + BRANCH_STOP_OFFSET;
+                int32_t short_move_distance = distance + train_position_info->stopping_distance(train_position_info->speed, false) + BRANCH_STOP_OFFSET;
 
                 _prepare_short_move_reverse(train_position_info, train_position_info->current_path[i], short_move_distance);
                 return;
@@ -1340,10 +1328,10 @@ void _do_short_move(train_position_info_t* tpi, int16_t train, int16_t speed, in
 }
 
 void _prepare_short_move_reverse(train_position_info_t* tpi, track_node* reverse_node, int32_t distance) {
-        //If we're reversed, take the length of the train into account in our distance
-    /*if(tpi->is_reversed) {
+    //If we're reversed, take the length of the train into account in our distance
+    if(tpi->is_reversed) {
         distance -= tpi->reverse_offset;
-    }*/
+    }
 
     //Figure out how long we need to move
     int32_t ticks = tpi->short_move_time(tpi->speed, distance);
