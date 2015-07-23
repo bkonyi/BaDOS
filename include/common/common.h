@@ -3,7 +3,7 @@
 
 #include <bwio.h>
 #include <syscalls.h>
-
+#include <terminal/terminal_debug_log.h>
 #define FOREVER for(;;)
 
 #define NULL 0
@@ -29,7 +29,7 @@ typedef uint8_t priority_t;
 //\e[2J \e[1;1H
 
 #ifdef ASSERTIONS
-	#define ASSERT(cond)  if(!(cond)) { bwprintf(COM2, "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Terminate(); } while(0)
+	#define ASSERT(cond)  if(!(cond)) { send_term_debug_log_msg( "ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Delay(1000);Terminate(); } while(0)
 	#define KASSERT(cond) if(!(cond)) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)
 #else
 	#define ASSERT(cond)  ((void)(cond));

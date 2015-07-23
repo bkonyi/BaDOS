@@ -273,11 +273,11 @@ void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
 }
 
 void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
-	train_information_t* iterator; 
+//	train_information_t* iterator; 
 	//if(IS_QUEUE_EMPTY(*train_queue)) return;
-	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
-		Send(iterator->server_tid,NULL,0,NULL,0);
-	}
+	//for( iterator = train_queue->head; iterator != NULL; iterator = /iterator->next) {
+	//	Send(iterator->server_tid,NULL,0,NULL,0);
+	//}
 }
 
 uint32_t switch_num_to_index(uint32_t switch_num) {

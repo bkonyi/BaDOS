@@ -380,7 +380,7 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     int dbl_iterator = debug_log->iterator;
     int count=0;
     char border_char = '\\';
-    if(debug_log->border_switch == true){
+    if(debug_log->border_switch == 1){
         border_char = '|';
     }
     debug_log->border_switch = !(debug_log->border_switch);

@@ -57,9 +57,17 @@ typedef struct train_position_info_t {
 
     //Position inside the node
     int leading_end_offset_in_node;
+    int sensor_offset_in_node;
     track_node *leading_end_node;
     uint32_t last_tick_time_seen;
     reserved_node_queue_t reserved_node_queue;
+    track_node *last_sensor_hit;
+    bool reservation_halted;
+    bool jesus_take_the_wheel; // let the train server manage it's movement
+    uint32_t last_position_time;
+    bool stopping;
+    bool stopping_position_set;
+    int32_t last_stopping_distance_in_res;
 
     //Information about our current path
     track_node* current_path[TRACK_MAX];

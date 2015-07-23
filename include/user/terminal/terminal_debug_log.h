@@ -3,7 +3,6 @@
 
 #define DEBUG_LOG_MAX_LEN 80
 #define DEBUG_LOG_MAX_DEPTH 24
-#include <common.h>
 typedef struct debug_log_t {
 	#ifdef DEBUG_LOG
     	char entries[DEBUG_LOG_MAX_DEPTH][DEBUG_LOG_MAX_LEN];
@@ -12,7 +11,7 @@ typedef struct debug_log_t {
     #endif
     int iterator;
     int size;
-    bool border_switch;
+    int border_switch;
 }debug_log_t;
 
 void send_term_debug_log_msg(char * message, ...);

@@ -33,5 +33,5 @@ void send_term_debug_log_msg(char * message, ...) {
 void debug_log_init(debug_log_t* debug_log){
     debug_log->size =0;
     debug_log->iterator =0;
-    debug_log->border_switch = false;
+    debug_log->border_switch = 1;
 }

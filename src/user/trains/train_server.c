@@ -38,6 +38,9 @@ static void handle_train_reversing(int16_t train, int8_t slot, train_position_in
 static void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_position_info_t* train_position_info);
 static void _handle_train_track_position_update(train_position_info_t* tpi);
 static void _handle_train_reservations(train_position_info_t* tpi);
+static void _train_server_send_speed(int16_t train, int16_t speed);
+
+
 
 typedef enum train_server_cmd_t {
     TRAIN_SERVER_INIT                   = 1,
@@ -100,8 +103,13 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->leading_end_node = NULL;
     tpi->leading_end_offset_in_node =0;
     tpi->stopping_distance = NULL;
-
-
+    tpi->last_sensor_hit = NULL;
+    tpi->reservation_halted = false;
+    tpi->jesus_take_the_wheel = true;
+    tpi->last_position_time=0;
+    tpi->sensor_offset_in_node =0;
+    tpi->stopping = true;
+    tpi->last_stopping_distance_in_res = 0;
     RING_BUFFER_INIT(tpi->conductor_tids, MAX_CONDUCTORS);
 }
 
@@ -205,7 +213,7 @@ void train_server(void) {
             case TRAIN_SERVER_FIND_INIT_POSITION:
                 finding_initial_position = true;
                 send_term_heavy_msg(false,"Finding train: %d", train_number);
-                tcs_train_set_speed(train_number, 2);
+                _train_server_send_speed(train_number, 2);
                 break;
             case TRAIN_SERVER_REQUEST_CALIBRATION_INFO:
                 Reply(requester, (char*)&train_position_info.average_velocities, sizeof(avg_velocity_t) * 80 * MAX_AV_SENSORS_FROM * MAX_STORED_SPEEDS);
@@ -224,8 +232,10 @@ void train_server(void) {
 
                 if(new_speed == 0) {
                     train_position_info.ok_to_record_av_velocities = false;
+                    train_position_info.stopping = true;
                 }else {
                     train_position_info.ok_to_record_av_velocities = true;
+                    train_position_info.stopping = false;
                 }
 
                 if(new_speed == 0 && is_stopping_at_landmark) {
@@ -435,7 +445,7 @@ void _handle_sensor_triggers(train_position_info_t* tpi, sensor_triggers_t* trig
         while((sti = sensor_triggers_get(triggers,action_index)) != NULL){
             switch(sti->type) {
                 case TRIGGER_STOP_AT:
-                    tcs_train_set_speed(train_number, 0); 
+                    _train_server_send_speed(train_number, 0); 
                     break;
                 case TRIGGER_STOP_AROUND:
                     send_term_debug_log_msg("Handling trigger: TRIGGER_STOP_AROUND at: %c%d", sensor_id_to_letter(action_index), sensor_id_to_number(action_index));
@@ -484,7 +494,7 @@ void train_conductor(void) {
     switch(conductor_info.command) {
         case CONDUCTOR_TRAIN_STOP:
             //Send the request to the train server
-            tcs_train_set_speed(conductor_info.train_number, 0);
+            _train_server_send_speed(conductor_info.train_number, 0);
             //TODO might want to change this
             Delay(360); //Delay as long as it will probably take us to stop
             train_server_stopped_at_destination(train_server_tid);
@@ -552,26 +562,52 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
                     ((sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0)) ||
                 (switch_error_next_sensor != NULL && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
-                //Make sure only our sensor is enabled
+                
+                //Ensure that another train isn't on the sensor we are looking for
+                if(!((*next_sensor)->reserved_by == -1 || (*next_sensor)->reserved_by == train_position_info->train_num)) {
+                    send_term_debug_log_msg("HoldOnHandsy tr %d sens %s",train_position_info->train_num,(*next_sensor)->name);
+                    break;
+                }
 
                 //Get the timestamp from the sensor data
                 time = *((uint32_t*)(sensor_data+12));
 
-                if((sensor_error_next_sensor != NULL && sensor_error_group == i && 
-                    (sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0)) {
-                    *next_sensor = sensor_error_next_sensor;
-                    update_error_expected_time = true;
-                    expected_group = sensor_error_group;
-                    expected_index = sensor_error_index;
+                if(  sensor_error_next_sensor != NULL && sensor_error_group == i && 
+                    (sensor_data[sensor_error_group] & (1 << (7 - sensor_error_index))) != 0) {
+                    if(!(sensor_error_next_sensor->reserved_by == train_position_info->train_num || sensor_error_next_sensor->reserved_by == -1)){
+                        //send_term_debug_log_msg("TRAAAIITOR");
+                        break;
+                        //Delay (20);
+                    }else{
+                        //send_term_debug_log_msg("Not TRAAAIITOR");
+                        //Delay (20);
+                        *next_sensor = sensor_error_next_sensor;
+                        update_error_expected_time = true;
+                        expected_group = sensor_error_group;
+                        expected_index = sensor_error_index;
+                    }
+
+                    
                 } else if((switch_error_next_sensor != NULL && switch_error_next_sensor != *next_sensor 
                     && switch_error_group == i && 
                     (sensor_data[switch_error_group] & (1 << (7 - switch_error_index))) != 0)) {
-                    *next_sensor = switch_error_next_sensor;
-                    expected_group = switch_error_group;
-                    expected_index = switch_error_index;
-                    update_error_expected_time = true;
-                    is_switch_error = true;
-                }                
+
+                    if(!(switch_error_next_sensor->reserved_by == -1 || switch_error_next_sensor->reserved_by == train_position_info->train_num)){
+                        //we can't own this piece of track
+                        break;
+
+                    }else {
+                        *next_sensor = switch_error_next_sensor;
+                        expected_group = switch_error_group;
+                        expected_index = switch_error_index;
+                        update_error_expected_time = true;
+                        is_switch_error = true;
+                    }
+
+                    
+                }          
+
+                train_position_info->last_sensor_hit =  *next_sensor;     
             
                 if(update_error_expected_time) {
                     //Distance between the last sensor and the one we just hit
@@ -620,23 +656,32 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     if(node_at_sensor == NULL) return;
 
     uint32_t    av_velocity = tpi->average_velocity;
-    uint32_t    last_time   = Time( );
-    uint32_t    last_node_time = tpi->ticks_at_last_sensor;
-    uint32_t time = last_time - last_node_time;
-    int offset_from_node = 0;
-    offset_from_node = (av_velocity*time)/100;
-
-
-    if(tpi->is_reversed){
-        offset_from_node +=180;
-    }else{
-        offset_from_node +=50;
+    if(tpi->last_position_time == 0){
+        tpi->last_position_time = Time();
     }
+    uint32_t    time_now   = Time( );
+    uint32_t    last_node_time = tpi->ticks_at_last_sensor;
+    uint32_t time = time_now - last_node_time;
+    //int offset_from_node = 0;
+    if(tpi->stopping ){
+        tpi->sensor_offset_in_node = distance_between_track_nodes(tpi->last_sensor,get_next_sensor_or_exit(tpi->last_sensor),false);
+    }else {
+      tpi->sensor_offset_in_node += (av_velocity*time);  
+    }
+    
+
+    int offset_from_node = tpi->sensor_offset_in_node;
+    if(tpi->is_reversed){
+        offset_from_node+=180;
+    }else{
+        offset_from_node+=50;
+    }
+
     track_node* iterator_node = node_at_sensor;
     //iterate over the track until the length of the train is inside one of the nodes
     
     while(offset_from_node > get_track_node_length(iterator_node)){
-    offset_from_node -= get_track_node_length(iterator_node);
+        offset_from_node -= get_track_node_length(iterator_node);
         iterator_node = get_next_track_node(iterator_node);
     }
     tpi->leading_end_offset_in_node = offset_from_node;
@@ -646,15 +691,39 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     
 }
 void _handle_train_reservations(train_position_info_t* tpi) {
+    if(!tpi->jesus_take_the_wheel) return;
     bool result;
+    int speed,cur_stop_dist;
+    //bool speed_back_up = false;
     if(tpi->stopping_distance == NULL){
         return;  
     } 
-
-    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, tpi->last_sensor, tpi->leading_end_offset_in_node, tpi->stopping_distance(tpi->speed, false));
-    if(result == false){
-       tcs_train_set_speed(tpi->train_num, 0); 
+    if(tpi->speed == 0){
+        speed = tpi->last_speed;
+        cur_stop_dist =  tpi->last_stopping_distance_in_res;
+    }else{
+        speed = tpi->speed;
+        cur_stop_dist =  tpi->stopping_distance(speed, false);
+        tpi->last_stopping_distance_in_res = cur_stop_dist;
     }
+
+    
+    //send_term_debug_log_msg("Stop dist for %d: %d OFF:%",tpi->train_num,cur_stop_dist);
+    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, tpi->last_sensor_hit, tpi->leading_end_offset_in_node,cur_stop_dist );
+    if(result == true ){
+        if(tpi->speed == 0 && tpi->reservation_halted ){
+            tpi->reservation_halted = false;
+            //send_term_debug_log_msg("%d Speeding to 10",tpi->train_num);
+            _train_server_send_speed(tpi->train_num, 10);
+        }
+    }else {
+        if(tpi->speed != 0){
+            tpi->reservation_halted = true;
+            //send_term_debug_log_msg("%d stopping to 0",tpi->train_num);
+            _train_server_send_speed(tpi->train_num, 0);
+        }
+    }
+
 }
 
 bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* initial_sensors, train_position_info_t* train_position_info) {
@@ -662,7 +731,7 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
     int i;
     for(i = 0; i < 10; ++i) {
         if(sensors[i] != initial_sensors[i]) {
-            tcs_train_set_speed(train, 0);
+            _train_server_send_speed(train, 0);
             int8_t diff = sensors[i] ^ initial_sensors[i];
 
             int j;
@@ -676,9 +745,12 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
 
             uint32_t sensor = (i * 8) + (7 - j);
             train_position_info->last_sensor = tps_set_train_sensor(train, sensor);
+            send_term_debug_log_msg("1Last sens set: %s",train_position_info->last_sensor->name );
             ASSERT(train_position_info->last_sensor != NULL);
 
             send_term_heavy_msg(false, "Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
+            train_position_info->last_sensor_hit = train_position_info->last_sensor;
+            send_term_debug_log_msg("Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
             update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)train_position_info->last_sensor->name));
 
             train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
@@ -696,10 +768,15 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
                 train_position_info->sensor_error_next_sensor = NULL;
                 train_position_info->switch_error_next_sensor = NULL;
             }
+            send_term_debug_log_msg("train %d pre reserving %s", train_position_info->train_num,train_position_info->last_sensor->name );
             //Reserve this piece of track
            ASSERT( track_reserve_node(train_position_info->last_sensor, train_position_info->train_num));
+           track_node* reverse_node = train_position_info->last_sensor->reverse;
+           ASSERT( track_reserve_node(reverse_node->edge[reverse_node->state].dest->reverse, train_position_info->train_num));
             ASSERT(train_position_info->last_sensor->reserved_by == train_position_info->train_num);
             load_calibration(train,train_position_info);
+
+            train_position_info->jesus_take_the_wheel = true;
             return true;
         }
     }
@@ -717,10 +794,13 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
 
     //Set our most recent sensor to the sensor we just hit.
     train_position_info->last_sensor = train_position_info->next_sensor;
+    send_term_debug_log_msg("2Last sens set: %s",train_position_info->last_sensor->name );
     train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
 
     //Update the terminal display
     update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)(train_position_info->last_sensor)->name));
+
+    train_position_info->sensor_offset_in_node = 0;
             
     if(train_position_info->next_sensor != NULL) {
         update_terminal_train_slot_next_location(train, slot, sensor_to_id((char*)(train_position_info->next_sensor->name)));
@@ -743,6 +823,8 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
 
         update_terminal_train_slot_next_location(train, slot, -1);
     }
+
+
 }
 
 int estimate_ticks_to_position(train_position_info_t* tpi,track_node* start_sensor, track_node* end_sensor,int mm_diff) {
@@ -1122,7 +1204,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
     _set_stop_around_trigger(train_position_info, triggers, sensor_num, 0, true);
 
     //Start the path
-    tcs_train_set_speed(train, 9);
+    _train_server_send_speed(train, 9);
 }
 
 void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* train_position_info) {
@@ -1161,3 +1243,25 @@ void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_posi
         (void)_train_position_get_av_velocity_at_speed;
     }
 }
+
+void train_speed_courrier(void) {
+    tid_t train_server_tid;
+    int16_t train_info[2];
+    Receive(&train_server_tid, (char*)train_info, sizeof(int16_t) * 2);
+    Reply(train_server_tid, (char*)NULL, 0);
+
+    tcs_train_set_speed(train_info[0], train_info[1]);
+
+    Exit();
+}
+
+void _train_server_send_speed(int16_t train, int16_t speed) {
+    tid_t tid = CreateName(30, train_speed_courrier, "TRAIN_SPEED_COURRIER");
+
+    int16_t train_info[2];
+    train_info[0] = train;
+    train_info[1] = speed;
+
+    Send(tid, (char*)train_info, sizeof(int16_t) * 2, (char*)NULL, 0);
+}
+

@@ -80,5 +80,6 @@ void tcs_initialize_track_switches(void);
 int tcs_send_stop_around_sensor_msg(int16_t train,int8_t sensor_num, int32_t mm_diff);
 int tcs_send_train_stop_offset_msg(int16_t train, int32_t mm_diff);
 int tcs_goto_destination(int16_t train, int8_t sensor_num);
+int tcs_speed_all_train(int8_t speed);
 
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__

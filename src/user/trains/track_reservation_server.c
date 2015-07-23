@@ -12,6 +12,7 @@ bool _handle_node_reserve(track_node* node, int train_num);
 void _handle_node_release(track_node* node, int train_num);
 void _handle_reservation_init(void);
 void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
+bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance);
 
 track_node* _next_reservation_node(track_node* node, int train_num);
 track_node* _track_reservation_flip(track_node* node);
@@ -19,8 +20,10 @@ track_node* _track_reservation_flip(track_node* node);
 void track_reservation_server(void) {
 	track_res_msg_t message;
 	int requester;
-	track_res_msg_t response;
-	response.type = TR_UNSET;
+	char char_message[(sizeof(track_res_msg_t))];
+	track_res_msg_t* response = (track_res_msg_t*)char_message;
+	bool* bool_response = (bool*)char_message;
+	response->type = TR_UNSET;
 	int response_size =0;
 
 	//Initialize
@@ -30,23 +33,28 @@ void track_reservation_server(void) {
 		Receive(&requester,(char*)&message,sizeof(track_res_msg_t));
 		switch(message.type){
 			case TR_RESERVE:
-				if(_handle_node_reserve(message.node, message.train_num)){
-					response.type = TR_RESERVE_APPROVE;
-
+			
+				if(_handle_node_reserve(message.our_node, message.train_num)){
+					response->type = TR_RESERVE_APPROVE;
 				} else {
-					send_term_debug_log_msg("Tr %d failed res %s", message.train_num,message.node->name);
-					response.type = TR_RESERVE_REJECT;
+					response->type = TR_RESERVE_REJECT;
 				}
 				response_size = sizeof(track_res_msg_t);
 				break;
 			case TR_RELEASE:
-				_handle_node_release(message.node, message.train_num);
+				_handle_node_release(message.our_node, message.train_num);
 				response_size =0;
+				break;
+			case TR_MAKE_RESERVATIONS:
+				ASSERT(message.res_queue != NULL);
+				*bool_response = _handle_track_handle_reservations(message.res_queue,message.train_num,message.our_node,message.offset_in_node,message.stopping_distance);
+					response_size =sizeof(bool);
+
 				break;
 			default:
 				ASSERT(0);
 		}
-		Reply(requester,(char*)&response, response_size);
+		Reply(requester,char_message, response_size);
 
 	}
 }
@@ -57,7 +65,7 @@ void _handle_reservation_init(void) {
 	Receive(&requester,(char*)&message,sizeof(track_res_msg_t));
 	ASSERT(message.type == TR_INIT);
 
-	track_node* node_base = message.node;
+	track_node* node_base = message.our_node;
 
 	for(i = 0; i < TRACK_MAX; i++) {
 		node_base[i].reserved_by = -1;
@@ -107,10 +115,10 @@ void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_
 	int response_size;
 
 	msg.type = type;
-	msg.node = node;
+	msg.our_node = node;
 	msg.train_num = train_num;
 	ASSERT(node != NULL);
-	ASSERT(msg.node != NULL);
+	ASSERT(msg.our_node != NULL);
 	if(response == NULL){
 		response_size = 0;
 	}else {
@@ -125,26 +133,25 @@ bool _handle_node_reserve(track_node* node, int train_num){
 	if(flip->type == NODE_BRANCH){
 		node = flip;
 	}
-
 	if(node->type == NODE_BRANCH){
 		if(node->reserved_by == train_num || node->reserved_by == -1){
 			//we need to reserve the whole branch
 			track_node *left, *right;
 			left = node->edge[0].dest->reverse;
 			right = node->edge[1].dest->reverse;
-
-			ASSERT(left->reserved_by == -1 || left->reserved_by == train_num) ;
+			if(!(left->reserved_by == -1 || left->reserved_by == train_num)){
+				send_term_debug_log_msg("fail node %s(%d) was was reserved by %d",left->name,train_num,left->reserved_by);
+			}
 			ASSERT(right->reserved_by == -1 || right->reserved_by == train_num);
-
 			_set_track_node_reservation(left,train_num);
 			_set_track_node_reservation(right,train_num);
+			ASSERT(node->reserved_by == train_num && left->reserved_by == train_num && right->reserved_by == train_num);
 			//send_term_debug_log_msg("train: %d A RESERVED: %s",train_num,node->name);
 			return  true;
 		}else{
 			//send_term_debug_log_msg("Reserve FAILED was reserved_by %d tried res of %d",node->reserved_by,train_num);
 			return false;
 		}
-		
 	}else {
 		if(node->reserved_by == -1  || node->reserved_by == train_num){
 			if(flip->reserved_by != -1 && flip->reserved_by != train_num){
@@ -177,6 +184,7 @@ void _handle_node_release(track_node* node, int train_num){
 
 		_set_track_node_reservation(left,-1);
 		_set_track_node_reservation(right,-1);
+		ASSERT(node->reserved_by == -1 && left->reserved_by == -1 && right->reserved_by == -1);
 		//send_term_debug_log_msg("train: %d A released: %s",train_num,node->name);
 	}else{
 		if(!(node->reserved_by == train_num || node->reserved_by == -1)) {
@@ -208,13 +216,14 @@ track_node* _next_reservation_node(track_node* node, int train_num) {
 bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node,int stopping_distance) {
 	bool nodes_added = false;
 	ASSERT(our_node !=NULL);
+	ASSERT(res_queue != NULL);
 	if(our_node == NULL) return false;
 	track_node* iterator_node;
 	//send_term_debug_log_msg("Reserve %d from %s with off %d",stopping_distance, our_node->name,offset_in_node);
 	//TODO: TRAIN_PANIC
 	if(!(our_node->reserved_by == train_num )){
-		send_term_debug_log_msg("%s Was reserved by: %d",our_node->name,our_node->reserved_by);
-		Delay(200);
+		send_term_debug_log_msg("%s(%d) Was reserved by: %d",our_node->name,train_num,our_node->reserved_by);
+		Delay(2000);
 		ASSERT(0);
 	}
 
@@ -222,7 +231,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 		//loop that follows then then it takes into account that the have that
 		//much distance that won't contribute to the stopping distance
 	stopping_distance+= offset_in_node;
-	stopping_distance += 25; // TODO: When the trains actually get calibrated remove this
+	stopping_distance += 500; // TODO: When the trains actually get calibrated remove this
 	for(iterator_node = our_node; iterator_node != NULL && stopping_distance >= 0;iterator_node= get_next_track_node (iterator_node)){
 		//send_term_debug_log_msg("track try to reserve %s",iterator_node->name);
 /*		if(iterator_node->reserved_by != train_num && iterator_node->reserved_by != -1){
@@ -230,7 +239,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 			return false;
 		}*/
 		
-		if(!track_reserve_node(iterator_node,train_num)) {
+		if(!_handle_node_reserve(iterator_node,train_num)) {
 			return false;
 		}else{
             bool exists_in;
@@ -245,16 +254,51 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 		stopping_distance-= get_track_node_length(iterator_node);
 	}
 	if(nodes_added){
+		//_print_reserved_tracks(res_queue,train_num);
+		//send_term_debug_log_msg("PRONT");
+		//track_clear_reservations(res_queue, train_num, our_node, offset_in_node,stopping_distance);
 		_print_reserved_tracks(res_queue,train_num);
 	}
 	return true;
 }
-void _release_track_from_point(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+void _release_track_from_point_behind(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
 	bool nodes_removed = false;
-	int dist =  -1 * (offset_in_node - 200);
+	int dist =  -1 * (offset_in_node );
 	track_node* iterator_node;
+	// /send_term_debug_log_msg("release(%d) ournode %s off: %d",train_num,our_node->name,offset_in_node);
+	/*
+	if(iterator_node->type == NODE_BRANCH || iterator_node->type == NODE_MERGE) {
+		dist+=get_track_node_length(iterator_node);
+		iterator_node = _next_reservation_node(iterator_node, train_num);
+	}*/
+		int count =0 ;
+		bool found_1_sens_behind = false;
+	for(iterator_node = _track_reservation_flip(our_node); iterator_node != NULL && iterator_node->reserved_by == train_num; iterator_node= _next_reservation_node (iterator_node, train_num)){
+		
+		
+		if(found_1_sens_behind || dist>0){
+			//Keep iterating until we've hit enough track to compensate for the length of the train
+			_handle_node_release(iterator_node,train_num);
+			RESERVED_REMOVE_VALUE(*res_queue,iterator_node);
+			nodes_removed = true;
+		}else if(count>=1 && iterator_node->type == NODE_SENSOR){
+			found_1_sens_behind = true;
+		}
+		
+		count++;
+		dist+=get_track_node_length(iterator_node);
+	}
+	if(nodes_removed == true) {
+		_print_reserved_tracks(res_queue,train_num);
+	}
+
+}
+void _release_track_from_point_ahead(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+	bool nodes_removed = false;
+	int dist =  -1 * (offset_in_node +50);
+	track_node* iterator_node = our_node;
 	
-	iterator_node = our_node->reverse;
+
 	if(iterator_node->type == NODE_BRANCH || iterator_node->type == NODE_MERGE) {
 		iterator_node = _next_reservation_node(iterator_node, train_num);
 		dist+=get_track_node_length(iterator_node);
@@ -274,10 +318,32 @@ void _release_track_from_point(reserved_node_queue_t* res_queue, int train_num, 
 	}
 
 }
-bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance){
 	bool bool_result =_reserve_tracks_from_point(res_queue,train_num, our_node, offset_in_node, stopping_distance);
-	_release_track_from_point(res_queue, train_num, our_node, offset_in_node, stopping_distance);
+	_release_track_from_point_behind(res_queue, train_num, our_node, offset_in_node, stopping_distance);
 	return bool_result;
+}
+bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+	ASSERT(res_queue != NULL);
+	ASSERT(our_node != NULL);
+	track_res_msg_t message;
+
+	message.type = TR_MAKE_RESERVATIONS;
+	message.res_queue = res_queue;
+	message.train_num = train_num;
+	message.our_node = our_node;
+	message.offset_in_node = offset_in_node;
+	message.stopping_distance = stopping_distance;
+
+	bool bool_result;
+	Send(TRACK_RESERVATION_SERVER_ID,(char*)&message, sizeof(track_res_msg_t),(char*)&bool_result,sizeof(bool));
+	return bool_result;
+
+	
+}
+void track_clear_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance) {
+	_release_track_from_point_ahead(res_queue, train_num, our_node, offset_in_node, stopping_distance);
+	_release_track_from_point_behind(res_queue, train_num, our_node, offset_in_node, stopping_distance);
 }
 
 
@@ -316,6 +382,7 @@ bool track_compare_reserved_node(track_node* node, track_node* b){
 	return false;
 	
 }
+
 track_node* _track_reservation_flip(track_node* node) {
 	return (node->edge[node->state].dest->reverse);
 }
