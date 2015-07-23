@@ -187,9 +187,14 @@ uint32_t train_66_short_move_time(uint16_t speed, int16_t distance) {
 
     switch(speed) {
         case 12:
-            //This calculates f(x) = (5/274) * (sqrt(219200 * x - 16747751) + 6013)
-            //which is the equation for determining time to move a certain distance
-            result = 5 * (sqrt(219200ULL * long_distance - 16747751ULL) + 6013ULL) / 274;
+            if(distance >= 77) {
+                //This calculates f(x) = (5/274) * (sqrt(219200 * x - 16747751) + 6013)
+                //which is the equation for determining time to move a certain distance
+                result = 5 * (sqrt(219200ULL * long_distance - 16747751ULL) + 6013ULL) / 274;
+            } else {
+                //Don't want to do a square root of a negative number..
+                result = 250;
+            }
             break;
         default:
             ASSERT(0);

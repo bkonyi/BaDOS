@@ -11,6 +11,11 @@ track_node* get_next_track_node(track_node* node) {
 	// if the switch is set correctly
 	return node->edge[node->state].dest;
 }
+
+track_node* get_next_track_node_in_path(track_node** node) {
+	return *(node + 1);
+}
+
 bool is_valid_switch_number(uint32_t sw_num) {
 	return (1<=sw_num && sw_num <=32)
             ||(0x99 <= sw_num && sw_num <=0x9c)
@@ -275,8 +280,7 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
 
 		track_node* next_node = get_next_sensor_or_exit_using_path(iterator_node);
 		if(next_node== NULL){
-			Delay(200);
-			ASSERT(0);
+			return -3;
 		}
 		//send_term_debug_log_msg("Our Node %s Node we are looking for %s",iterator_node->name,next_node->name);
 
@@ -285,7 +289,6 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
         partial_distance += segment_dist;
 
         if((partial_distance >= distance && iterator_node[0]->type == NODE_SENSOR) || next_node->type == NODE_EXIT) {
-  		    send_term_debug_log_msg("Will trigger at sensor: %s", iterator_node[0]->name);
         	return iterator_node[0]->num;
         }	
 	}
