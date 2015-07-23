@@ -134,7 +134,7 @@ uint32_t train_62_short_move_time(uint16_t speed, int16_t distance) {
 
 void load_train_64_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 473, 499, 551, 613, 620, 640 };
-    train_position_info->stopping_distance = train_62_stopping_distance;
+    train_position_info->stopping_distance = train_64_stopping_distance;
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {

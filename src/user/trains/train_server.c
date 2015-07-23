@@ -889,13 +889,13 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
             }
 
             uint32_t sensor = (i * 8) + (7 - j);
-            train_position_info->last_sensor = tps_set_train_sensor(train, sensor);
-            send_term_debug_log_msg("1Last sens set: %s",train_position_info->last_sensor->name );
-            ASSERT(train_position_info->last_sensor != NULL);
+            track_node* current_location = tps_set_train_sensor(train, sensor);
+            ASSERT(current_location!= NULL);
 
-            send_term_heavy_msg(false, "Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
-            train_position_info->last_sensor_hit = train_position_info->last_sensor;
-            send_term_debug_log_msg("Found train %d at Sensor: %s!", train, train_position_info->last_sensor->name);
+            train_position_info->last_sensor_hit = current_location;
+            
+            _set_train_location(train_position_info, train, slot, current_location);
+
             update_terminal_train_slot_current_location(train, slot, sensor_to_id((char*)train_position_info->last_sensor->name));
 
             train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
@@ -904,7 +904,6 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
 
             send_term_heavy_msg(false, "Found train %d at Sensor: %s!", train, current_location->name);
 
-            _set_train_location(train_position_info, train, slot, current_location);
 
             send_term_debug_log_msg("train %d pre reserving %s", train_position_info->train_num,train_position_info->last_sensor->name );
             //Reserve this piece of track
