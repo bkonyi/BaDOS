@@ -44,6 +44,46 @@
     (Q).count= 0;                                 \
 } while(0)
 
+
+#define QUEUE_VALUE_EXISTS_IN(Q,VALUE,RETVAL,NEXT_MEMBER) {\
+    RETVAL = false ;\
+            if((VALUE)!=NULL) {                                                  \
+                (Q).iterator = (Q).head;                                         \
+                (Q).iterator_previous = NULL;                                    \
+                while((Q).iterator != NULL) {                                    \
+                    if(VALUE == (Q).iterator) {                                  \
+                        RETVAL = true;                                           \
+                        break;                                                   \
+                    }                                                            \
+                    (Q).iterator_previous = (Q).iterator;                        \
+                    (Q).iterator = (Q).iterator->NEXT_MEMBER;                    \
+                }                                                                \
+            }\
+} while(0)
+
+#define QUEUE_REMOVE_VALUE(Q, INPUT, NEXT_MEMBER,COMPARE_FUNCTION) {                              \
+            if((INPUT)!=NULL) {                                                  \
+                if(COMPARE_FUNCTION((Q).head ,INPUT)) {                                          \
+                    (Q).iterator = (Q).head;                                     \
+                    (Q).head = (Q).head->NEXT_MEMBER;                            \
+                    (Q).iterator->NEXT_MEMBER = NULL;                            \
+                }else{                                                           \
+                    (Q).iterator = (Q).head;                                     \
+                    (Q).iterator_previous = NULL;                                \
+                    while((Q).iterator != NULL) {                                \
+                        if(COMPARE_FUNCTION((Q).iterator, INPUT)) {               \
+                            (Q).iterator_previous->NEXT_MEMBER = (Q).iterator->NEXT_MEMBER;\
+                            (Q).iterator->NEXT_MEMBER = NULL;                    \
+                            break;                                               \
+                        }                                                        \
+                        (Q).iterator_previous = (Q).iterator;                    \
+                        (Q).iterator = (Q).iterator->NEXT_MEMBER;                \
+                    } \
+                }\
+            }\
+        }while(0)\
+
+
 /**
  * @brief removes the head of the queue and stores it's pointer in VALUE
  * 

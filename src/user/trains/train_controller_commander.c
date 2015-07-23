@@ -51,7 +51,8 @@ typedef enum {
     TRAIN_TRIGGER_STOP_AROUND_SENSOR,
     SET_TRAIN_STOP_OFFSET,
     GOTO_LOCATION,
-    SET_TRAIN_LOCATION
+    SET_TRAIN_LOCATION,
+    TRAIN_ALL_SET_SPEED
 } train_controller_command_t;
 
 typedef struct {
@@ -100,7 +101,7 @@ static void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t
 static void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int32_t mm_diff);
 static void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
-
+static void handle_set_all_speeds(train_data_t* trains,int8_t speed);
 
 void train_controller_commander_server(void) {
     int sending_tid;
@@ -198,6 +199,8 @@ void train_controller_commander_server(void) {
                 break;
             case SET_TRAIN_LOCATION:
                 handle_set_train_location(trains, data.var1, data.var2);
+            case TRAIN_ALL_SET_SPEED:
+                handle_set_all_speeds(trains,data.var2);//var2 has speed
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -222,6 +225,27 @@ int tcs_train_set_speed(int8_t train, int8_t speed) {
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 
     return 0;
+}
+int tcs_speed_all_train(int8_t speed) {
+    if(speed > MAX_SPEED) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = TRAIN_ALL_SET_SPEED;
+    data.var2 = speed;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+
+    return 0;
+}
+void handle_set_all_speeds(train_data_t* trains,int8_t speed){
+    int i;
+    for(i = 0; i <= MAX_TRAIN_NUM; ++i) {
+        if(trains[i].slot != INVALID_SLOT){
+            handle_train_set_speed(trains,i,speed);
+        }
+    }
 }
 
 int train_reverse(int8_t train) {

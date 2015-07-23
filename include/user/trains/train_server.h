@@ -6,6 +6,7 @@
 #include <trains/sensor_triggers.h>
 #include <trains/train_server_types.h>
 #include <ring_buffer.h>
+#include <trains/track_reservation_server.h>
 
 #define MAX_AV_SENSORS_FROM 4
 #define MAX_STORED_SPEEDS 7 //Can't make this any larger or else things just die...
@@ -14,6 +15,7 @@
 #define MAX_CONDUCTORS 32 //Arbitrary
 
 CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
+
 
 typedef struct train_position_info_t {
     //Calculates stopping distances for a given speed
@@ -27,6 +29,9 @@ typedef struct train_position_info_t {
     //Train orientation information
     bool is_reversed;
     int16_t reverse_offset;
+
+    int16_t train_num;
+    int16_t train_slot;
 
     //Position information
     track_node* last_sensor;
@@ -49,6 +54,23 @@ typedef struct train_position_info_t {
     avg_velocity_t average_velocities[80][MAX_AV_SENSORS_FROM][MAX_STORED_SPEEDS];
     uint32_t default_av_velocity[MAX_STORED_SPEEDS];
     uint32_t average_velocity;
+
+    //Position inside the node
+    int leading_end_offset_in_node;
+    int sensor_offset_in_node;
+    track_node *leading_end_node;
+    uint32_t last_tick_time_seen;
+    reserved_node_queue_t reserved_node_queue;
+    track_node *last_sensor_hit;
+    bool reservation_halted;
+
+    // boolean value that will signify one the find command has finished so that sensor data doesn't come through and make a reseravtion before we can stake a claim.
+    bool jesus_take_the_wheel; 
+
+    uint32_t last_position_time;
+    bool stopping;
+    bool stopping_position_set;
+    int32_t last_stopping_distance_in_res;
 
     //Information about our current path
     track_node* current_path[TRACK_MAX];

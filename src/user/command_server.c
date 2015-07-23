@@ -248,7 +248,10 @@ void process_input(char* input) {
             target_train_number = strtoi(second);
             find_train(target_train_number);
             send_term_find_msg();
-        } else {
+        } else if(strcmp(first, "trs") == 0) {
+        	tcs_speed_all_train(strtoi(second));
+        	send_term_cmd_success_msg("trs");
+        }else {
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	} else if( argc == 1) {

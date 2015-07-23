@@ -4,7 +4,7 @@
 #include <bwio.h>
 #include <terminal/terminal_debug_log.h>
 #include <syscalls.h>
-
+#include <terminal/terminal_debug_log.h>
 #define FOREVER for(;;)
 
 #define NULL 0

@@ -5,7 +5,7 @@
 #include <queue.h>
 #include <trains/train_server.h>
 #include <terminal/terminal.h>
-
+#include <trains/track_reservation_server.h>
 #define TPS_SENSOR_MESSAGE_SIZE SENSOR_MESSAGE_SIZE
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
 
@@ -45,6 +45,8 @@ void track_position_server(void) {
 	
 	track_node track_nodes[TRACK_MAX];
 
+	//Initialize the track reservation server with the initial track node
+	
 	tps_tpi_queue_t tpi_queue_filled,tpi_queue_free;
 
 	train_information_t train_info[MAX_NUM_TRAINS];
@@ -101,7 +103,7 @@ void track_position_server(void) {
 								ASSERT(0);
 								break;
 						}
-
+						track_reservation_init(track_nodes);
 						//Reinitialize the stuck sensor array
 						found_stuck_sensors = false;
 						fill_track_branch_data(track_nodes, track_branch_nodes);
@@ -271,11 +273,11 @@ void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
 }
 
 void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
-	train_information_t* iterator; 
+//	train_information_t* iterator; 
 	//if(IS_QUEUE_EMPTY(*train_queue)) return;
-	for( iterator = train_queue->head; iterator != NULL; iterator = iterator->next) {
-		Send(iterator->server_tid,NULL,0,NULL,0);
-	}
+	//for( iterator = train_queue->head; iterator != NULL; iterator = /iterator->next) {
+	//	Send(iterator->server_tid,NULL,0,NULL,0);
+	//}
 }
 
 uint32_t switch_num_to_index(uint32_t switch_num) {
