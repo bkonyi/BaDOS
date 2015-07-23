@@ -75,7 +75,7 @@ int main(void) {
      */
     //For information on the bits being set here see the  ep93xx documentation
     //page 43
-    __asm__("MOV r10, #0");
+    /*__asm__("MOV r10, #0");
     __asm__("MCR p15, 0, r10, c7, c5, 0");
     __asm__("MRC p15, 0, r10, c1, c0, 0");
     __asm__("MOV r9, #1");
@@ -83,8 +83,29 @@ int main(void) {
     __asm__("ORR r10, r10, #4096"); //instruction cache
     __asm__("ORR r10, r10, r9"); //fast clock
     __asm__("ORR r10, r10, #2"); //data cache
-    __asm__("MCR p15, 0, r10, c1, c0, 0");
-    
+    __asm__("MCR p15, 0, r10, c1, c0, 0");*/
+
+    //We use this cache code so we don't kill our debug output when we
+    //Thanks Osman <3 
+    int val;
+    int val2;
+
+    //Instruction cache
+    asm("MRC p15, 0, %0, c1, c0, 0":"=r"(val));
+    val |= 1<<12;
+    asm("MCR p15, 0, %0, c1, c0, 0"::"r"(val));
+
+    //Data cache
+    asm("MRC p15, 0, %0, c1, c0, 0":"=r"(val));
+    val |= 1 << 2;
+    asm("MCR p15, 0, %0, c1, c0, 0"::"r"(val));
+
+    //Fast clock
+    asm("MRC p15, 0, %0, c1, c0, 0":"=r"(val));
+    asm("MOV %0, %1, LSL#30":"=r"(val2):"r"(1));
+    val |= val2;
+    asm("MRC p15, 0, %0, c1, c0, 0":"=r"(val));
+
     global_data_t global_data;
     initialize(&global_data);
 
@@ -144,10 +165,11 @@ int main(void) {
     }
 
     cleanup(&global_data);
-    //tid_t next_tid = global_data.task_handler_data.next_tid;
+    
+    tid_t next_tid = global_data.task_handler_data.next_tid;
 
-    /*setfifo(COM2, OFF);
-    bwprintf(COM2, "\r\nHi");
+    setfifo(COM2, OFF);
+    bwprintf(COM2,"\033[90;0H");
     bwprintf(COM2, "\e[2B\r\033[2KUser Task Total Time: %u\r\n", user_task_run_time / 2);
     int i;
     for(i = 0; i < next_tid; ++i) {
@@ -156,9 +178,9 @@ int main(void) {
         if(task->state != TASK_RUNNING_STATE_FREE) {
             uint32_t task_running_time = task->running_time;
             uint32_t percentage = (task_running_time * 10000) / user_task_run_time;
-            bwprintf(COM2, "\033[2KTID: %d\tRUNNING TIME: %u   \tPERCENTAGE: %u.%u%%  \t%s\r\n", task->generational_tid, task_running_time / 2, percentage / 100, percentage % 100, task->task_name);
+            bwprintf(COM2, "\r\e[2KTID: %d\tNAME: %s\t\033[42G%%: %u.%u%%\tBLOCKED ON: %d\r\n", task->generational_tid, task->task_name, percentage / 100, percentage % 100, task->blocked_on);
         }
-    }*/
+    }
 
     return 0;
 }

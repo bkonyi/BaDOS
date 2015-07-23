@@ -49,7 +49,7 @@ void command_server(void) {
 void process_input(char* input) {
 	char * argv[10];
 	int32_t result;
-	int32_t target_train_number, target_train_value;
+	int32_t target_train_number, target_train_value, time_milliseconds;
 	
 	int32_t argc = strtokenize(input,argv,10);
 	//if(argc < 0); TODO: INPUT TOO LARGE
@@ -68,7 +68,17 @@ void process_input(char* input) {
 			target_train_number = strtoi(second);
 			send_term_cmd_success_msg("stop_around_sensor");
 			tcs_send_stop_around_sensor_msg(target_train_number,sensor_to_id(third),strtoi(fourth));
-		}
+		} else if(strcmp(first, "sm") == 0) {
+            target_train_number = strtoi(second);
+            target_train_value = strtoi(third);
+            time_milliseconds = strtoi(fourth);
+
+            _set_speed(target_train_number,14);
+            send_term_heavy_msg(false,"Short moving train %d at speed %d for %dms",target_train_number, target_train_value, time_milliseconds);
+            Delay(time_milliseconds / 10);
+            _set_speed(target_train_number,0);
+            send_term_heavy_msg(true,"Done short moving train %d",target_train_number);
+        }
 	}else if(argc ==3){
 		first = argv[0];
 		second = argv[1];
@@ -282,7 +292,7 @@ int _set_speed(uint32_t train_num, uint32_t speed) {
 	return result;
 }
 int _set_switch(uint32_t switch_num,char state) {
-    send_term_switch_msg( switch_num,state);
+    send_term_heavy_msg(true, "sw %d %c", switch_num, state);
     int result = tcs_switch_set_direction(switch_num, state);
     if(result!=0) {
         send_term_heavy_msg(true,"Error setting switch through train controller");

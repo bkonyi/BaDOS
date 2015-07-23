@@ -88,6 +88,8 @@ void sprintf( char* dest, char *format, ... );
 
 void svprintf(char* dest, char* fmt, va_list va);
 
+uint32_t sqrt(uint64_t const n);
+
 /**
  * Structure necessary to represent a queue of task descriptors.
  */

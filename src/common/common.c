@@ -200,4 +200,18 @@ uint32_t rand(void) {
     return rand_val;
 }
 
-
+//Note: Once again, don't as me how.
+//http://stackoverflow.com/questions/21657491/an-efficient-algorithm-to-calculate-the-integer-square-root-isqrt-of-arbitrari
+uint32_t sqrt(uint64_t const n) {
+    uint64_t xk = n;
+    if (n == 0) return 0;
+    if (n == 18446744073709551615ULL) return 4294967295U;
+    do {
+        uint64_t const xk1 = (xk + n / xk) / 2;
+        if (xk1 >= xk) {
+            return xk;
+        } else {
+            xk = xk1;
+        }
+    } while (1);
+}

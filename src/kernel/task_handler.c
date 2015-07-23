@@ -70,6 +70,7 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
     next_descriptor->spsr    = USER_TASK_MODE;
     next_descriptor->pc      = (uint32_t) code;
     next_descriptor->priority = priority;
+    next_descriptor->blocked_on = 0;
 
     //Initialize the message queue
     QUEUE_INIT(next_descriptor->message_queue);

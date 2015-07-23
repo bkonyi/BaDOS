@@ -499,7 +499,6 @@ void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
     if(speed == REVERSE_COMMAND) {
         trains[(uint16_t)train].is_reversing = false;
         train_server_set_reversing(trains[(uint16_t)train].server_tid);
-        Delay(100); //TODO don't do this...
     }
 
 }
@@ -526,11 +525,14 @@ void handle_switch_set_direction(int16_t switch_num, char direction) {
         ASSERT(0);
         return;
     }
+
     tps_set_switch(switch_num,direction);
 
     putc(COM1, direction_code);
     putc(COM1, switch_num);
     putc(COM1, SWITCH_DEACTIVATE);
+
+    send_term_switch_msg(switch_num, direction);
 }
 
 void handle_start_track_query(void) {
