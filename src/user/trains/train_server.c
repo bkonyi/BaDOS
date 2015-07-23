@@ -924,23 +924,60 @@ int estimate_ticks_to_distance(train_position_info_t* tpi,track_node* start_sens
 }
 
 void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_number,int8_t sensor_num, int32_t mm_diff, bool use_path) {
-    int time;
+    int time = 0;
     int32_t distance;
-    distance = _distance_to_send_stop_command(tpi,tpi->next_sensor, sensor_num,mm_diff,use_path);
-    send_term_debug_log_msg("STOP_AROUND, Distance: %d", distance);
 
-    tpi->expected_stop_around_sensor = sensor_num;
+    send_term_debug_log_msg("[HANDLE_STOP] Called!");
 
-    if(distance < 0) {
-        send_term_debug_log_msg("Too late to stop! Distance to stop: %d", distance);
-        ASSERT(distance>=0); // Given sensor was too late 
+    if(use_path) {
+        //Get the distance that the stop command needs to be issued at. This is:
+        // -Distance from current location to destination plus
+        // -The stopping distance at this speed
+        int16_t distance = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, tpi->next_sensor), tpi->current_path[tpi->path_length - 1]) - tpi->stopping_distance(tpi->speed, false);
+
+        //If the train is currently in a reverse path, we need to deal with the offset
+        if(tpi->is_reversed) {
+            distance -= tpi->reverse_offset;
+        }
+
+        send_term_debug_log_msg("[HANDLE_STOP] Distance to stop: %d", distance);
+        send_term_debug_log_msg("[HANDLE_STOP] Last Sensor: %s, Next Sensor: %s", tpi->next_sensor->name, tpi->reverse_path_start->name);
+
+        if(distance < 0) {
+            send_term_debug_log_msg("[HANDLE_STOP] WARNING: Distance is less than 0! Sending stop immediately");
+            distance = 0;
+        }
+
+        //get stopping distance
+        tpi->last_stopping_distance = tpi->stopping_distance(tpi->speed, false);
+        //get time to that spot
+
+        //Calculate the time it will take to get to the location 
+        uint16_t speed_index = GET_SPEED_INDEX(tpi->speed);
+        int16_t velocity = tpi->average_velocities[tpi->next_sensor->num][0][speed_index].average_velocity;
+
+        time = (distance * 100) / velocity;
+
+        send_term_debug_log_msg("[HANDLE_STOP] Estimated ticks to switch and reverse: %d", time);
+        send_term_debug_log_msg("[HANDLE_STOP] Distance: %d Velocity: %d", distance, velocity);
+    } else {
+        distance = _distance_to_send_stop_command(tpi,tpi->next_sensor, sensor_num,mm_diff,use_path);
+        send_term_debug_log_msg("STOP_AROUND, Distance: %d", distance);
+
+        tpi->expected_stop_around_sensor = sensor_num;
+
+        if(distance < 0) {
+            send_term_debug_log_msg("Too late to stop! Distance to stop: %d", distance);
+            ASSERT(distance>=0); // Given sensor was too late 
+        }
+
+        //get stopping distance
+        tpi->last_stopping_distance = tpi->stopping_distance(tpi->speed, false);
+        //get time to that spot
+
+        time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance,use_path);
     }
 
-    //get stopping distance
-    tpi->last_stopping_distance = tpi->stopping_distance(tpi->speed, false);
-    //get time to that spot
-
-    time = estimate_ticks_to_distance(tpi,tpi->next_sensor, distance,use_path);
     //Start a conducter
     send_term_debug_log_msg("Estimated ticks %d", time);
     tid_t conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
@@ -989,22 +1026,24 @@ void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switc
 }
 
 void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int16_t switch_number, int8_t switch_direction, bool use_path) {
+
+    //Handle the switch that needs to be set
     handle_train_set_switch_direction(train_position_info, switch_number, switch_direction);
 
 
-    int16_t distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->next_sensor), train_position_info->reverse_path_start) + BRANCH_STOP_OFFSET;
+    //Get the distance that the stop command needs to be issued at. This is:
+    // -Distance from current location to destination plus
+    // -The offset needed to get the train past the merge minus
+    // -The stopping distance at this speed
+    int16_t distance = distance_between_track_nodes_using_path(get_path_iterator(train_position_info->current_path, train_position_info->next_sensor), train_position_info->reverse_path_start) + BRANCH_STOP_OFFSET - train_position_info->stopping_distance(train_position_info->speed, false);
 
-    send_term_debug_log_msg("[HANDLE_SW_RV] Distance to reverse: %d", distance);
-
-    //This is the reversing code which will hopefully work soon
-    int time;
-
-
-    send_term_debug_log_msg("Last Sensor: %s, Next Sensor: %s", train_position_info->next_sensor->name, train_position_info->reverse_path_start->name);
-
+    //If the train is currently in a reverse path, we need to deal with the offset
     if(train_position_info->is_reversed) {
         distance -= train_position_info->reverse_offset;
     }
+
+    send_term_debug_log_msg("[HANDLE_SW_RV] Distance to reverse: %d", distance);
+    send_term_debug_log_msg("[HANDLE_SW_RV] Last Sensor: %s, Next Sensor: %s", train_position_info->next_sensor->name, train_position_info->reverse_path_start->name);
 
     ASSERT(distance>=0); // Given sensor was too late 
 
@@ -1012,9 +1051,14 @@ void handle_train_set_switch_and_reverse(train_position_info_t* train_position_i
     train_position_info->last_stopping_distance = train_position_info->stopping_distance(train_position_info->speed, false);
     //get time to that spot
 
-    time = estimate_ticks_to_distance(train_position_info, train_position_info->next_sensor, distance, use_path);
+    //Calculate the time it will take to get to the location 
+    uint16_t speed_index = GET_SPEED_INDEX(train_position_info->speed);
+    int16_t velocity = train_position_info->average_velocities[train_position_info->next_sensor->num][0][speed_index].average_velocity;
 
-    send_term_debug_log_msg("Estimated ticks to switch and reverse: %d", time);
+    int time = (distance * 100) / velocity;
+
+    send_term_debug_log_msg("[HANDLE_SW_RV] Estimated ticks to switch and reverse: %d", time);
+    send_term_debug_log_msg("[HANDLE_SW_RV] Distance: %d Velocity: %d", distance, velocity);
 
     //Start a conductor
     tid_t conductor_tid = Create(TRAIN_CONDUCTOR_PRIORITY,train_conductor);
@@ -1194,7 +1238,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
         }
     }
 
-    //_set_stop_around_location_using_path(train_position_info, triggers, train_position_info->current_path[train_position_info->path_length - 1]);
+    _set_stop_around_location_using_path(train_position_info, triggers, train_position_info->current_path[train_position_info->path_length - 1]);
     (void)_set_stop_around_location_using_path;
 
     (void)_train_server_send_speed;
@@ -1305,7 +1349,7 @@ void _set_stop_around_location_using_path(train_position_info_t* tpi, sensor_tri
         //We ignore the speed here, as we only move at speed 12 during short moves
         int32_t ticks = tpi->short_move_time(tpi->speed, distance);
 
-        send_term_debug_log_msg("[GOTO (Reverse)] Moving at speed: %d for %d ticks for distance: %d", 12, ticks, distance);
+        send_term_debug_log_msg("[GOTO (Stop)] Moving at speed: %d for %d ticks for distance: %d", 12, ticks, distance);
         _do_short_move(tpi, tpi->train, 12, ticks, false, SWITCH_NONE, DIR_NONE);
 
         return;
@@ -1314,7 +1358,7 @@ void _set_stop_around_location_using_path(train_position_info_t* tpi, sensor_tri
     //TODO first arg shouldn't be null
     sensor_triggers_set(triggers, trigger_sensor, TRIGGER_STOP_AROUND_USING_PATH, (uint8_t*)(&destination->index), NULL);
 
-    send_term_debug_log_msg("Stop around trigger set!");
+    send_term_debug_log_msg("[GOTO (Stop)] Stop around trigger set at %c%d!", sensor_id_to_letter(trigger_sensor), sensor_id_to_number(trigger_sensor));
 
     _train_server_send_speed(tpi->train, tpi->speed);
 

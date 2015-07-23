@@ -272,21 +272,24 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
     if(distance < 0) {
     	return -1;
     }
+
+    send_term_debug_log_msg("[SENSOR_DIST_PATH] Distance: %d", distance);
+
 	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
 	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
 	for(iterator_node = start ;iterator_node != NULL; iterator_node++) {
 		//send_term_debug_log_msg("gsbdup name %s", iterator_node->name);
 		//if(!(iterator_node[0]->type == NODE_SENSOR  || iterator_node[0]->type == NODE_EXIT)) continue;
 
-		track_node* next_node = get_next_sensor_or_exit_using_path(iterator_node);
+		track_node* next_node = *(iterator_node + 1);//get_next_sensor_or_exit_using_path(iterator_node);
 		if(next_node== NULL){
 			return -3;
 		}
-		//send_term_debug_log_msg("Our Node %s Node we are looking for %s",iterator_node->name,next_node->name);
 
         segment_dist = distance_between_track_nodes_using_path(iterator_node, next_node);
-        //send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name,next_node->name, segment_dist);
+        send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name, next_node->name, segment_dist);
         partial_distance += segment_dist;
+        send_term_debug_log_msg("[SENSOR_DIST_PATH] Partial Distance: %d", partial_distance);
 
         if((partial_distance >= distance && iterator_node[0]->type == NODE_SENSOR) || next_node->type == NODE_EXIT) {
         	return iterator_node[0]->num;
