@@ -273,7 +273,7 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
     	return -1;
     }
 
-    send_term_debug_log_msg("[SENSOR_DIST_PATH] Distance: %d", distance);
+    //send_term_debug_log_msg("[SENSOR_DIST_PATH] Distance: %d", distance);
 
 	//for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
 	//	iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
@@ -287,9 +287,9 @@ int get_sensor_before_distance_using_path(track_node** start, int distance) {
 		}
 
         segment_dist = distance_between_track_nodes_using_path(iterator_node, next_node);
-        send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name, next_node->name, segment_dist);
+        //send_term_debug_log_msg("Segment DEEST (%s->%s) %d",iterator_node[0]->name, next_node->name, segment_dist);
         partial_distance += segment_dist;
-        send_term_debug_log_msg("[SENSOR_DIST_PATH] Partial Distance: %d", partial_distance);
+        //send_term_debug_log_msg("[SENSOR_DIST_PATH] Partial Distance: %d", partial_distance);
 
         if((partial_distance >= distance && iterator_node[0]->type == NODE_SENSOR) || next_node->type == NODE_EXIT) {
         	return iterator_node[0]->num;

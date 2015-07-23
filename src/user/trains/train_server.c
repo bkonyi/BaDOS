@@ -26,7 +26,7 @@ static int _train_position_get_av_velocity(train_position_info_t* tpi, track_nod
 static int _train_position_get_av_velocity_at_speed(train_position_info_t* tpi, track_node* from, track_node* to, int16_t speed, uint32_t* av_out);
 static void handle_train_stop_around_sensor(train_position_info_t* tpi,int32_t train_number,int8_t sensor_num, int32_t mm_diff, bool use_path); 
 static void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switch_num, int16_t direction);
-static void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int16_t switch_number, int8_t switch_direction, bool use_path);
+static void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int32_t switch_number, int8_t switch_direction, bool use_path);
 
 static void _set_stop_on_sensor_trigger(sensor_triggers_t* triggers,int16_t sensor_num) ;
 static int _set_stop_around_trigger(train_position_info_t* tpi,sensor_triggers_t* triggers,int16_t sensor_num, int32_t mm_diff, bool use_path);
@@ -54,6 +54,13 @@ static void _prepare_short_move_reverse(train_position_info_t* tpi, track_node* 
 static void _train_server_send_speed(int16_t train, int16_t speed);
 static void train_speed_courrier(void);
 
+static void _train_server_set_switch(int16_t switch_num, int16_t direction);
+static void train_switch_courrier(void);
+
+
+#define SET_SWITCHES(main, secondary) ((((int32_t)(main)) << 16) | (secondary))
+#define GET_MAIN_SWITCH(switches) ((int16_t)((switches) >> 16))
+#define GET_SECONDARY_SWITCH(switches) ((int16_t)(switches))
 
 #define BRANCH_STOP_OFFSET 220
 #define BRANCH_SWITCH_OFFSET 200
@@ -575,6 +582,7 @@ void train_conductor(void) {
             break;
     }
 
+    send_term_debug_log_msg("Conductor delay: %d", conductor_info.delay);
     //Delay until the specified time
     Delay(conductor_info.delay);
 
@@ -605,7 +613,14 @@ void train_conductor(void) {
             tcs_train_set_speed(conductor_info.train_number, 0);
             Delay(conductor_info.delay); //Delay as long as it will probably take us to stop
             train_reverse(conductor_info.train_number);
-            tcs_switch_set_direction(conductor_info.num2, (conductor_info.byte1 == DIR_STRAIGHT) ? 'S' : 'C');   
+
+            send_term_debug_log_msg("CONDUCTOR_SHORT_MOVE_REVERSE MAIN SWITCH: %d SECONDARY: %d RESULT: %d", GET_MAIN_SWITCH(conductor_info.num2), GET_SECONDARY_SWITCH(conductor_info.num2), tcs_switch_set_direction(GET_MAIN_SWITCH(conductor_info.num2), (conductor_info.byte1 == DIR_STRAIGHT) ? 'S' : 'C'));
+
+            tcs_switch_set_direction(GET_MAIN_SWITCH(conductor_info.num2), (conductor_info.byte1 == DIR_STRAIGHT) ? 'S' : 'C');
+
+            if(GET_SECONDARY_SWITCH(conductor_info.num2) != 0) {
+                tcs_switch_set_direction(GET_SECONDARY_SWITCH(conductor_info.num2), (conductor_info.byte1 == DIR_STRAIGHT) ? 'S' : 'C');
+            }   
             _train_server_recalculate_path_to_destination(train_server_tid);
             break;
         case CONDUCTOR_SHORT_MOVE:
@@ -1025,10 +1040,14 @@ void handle_train_set_switch_direction(train_position_info_t* tpi, int16_t switc
     PUSH_BACK(tpi->conductor_tids, conductor_tid, result); //TODO figure out if this is necessary
 }
 
-void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int16_t switch_number, int8_t switch_direction, bool use_path) {
+void handle_train_set_switch_and_reverse(train_position_info_t* train_position_info, int32_t train_number, int32_t switches, int8_t switch_direction, bool use_path) {
 
     //Handle the switch that needs to be set
-    handle_train_set_switch_direction(train_position_info, switch_number, switch_direction);
+    handle_train_set_switch_direction(train_position_info, GET_MAIN_SWITCH(switches), switch_direction);
+
+    if(GET_SECONDARY_SWITCH(switches) != 0) {
+        handle_train_set_switch_direction(train_position_info, GET_SECONDARY_SWITCH(switches), switch_direction);
+    }
 
 
     //Get the distance that the stop command needs to be issued at. This is:
@@ -1251,15 +1270,17 @@ void _set_switch_change(train_position_info_t* tpi, sensor_triggers_t* triggers,
     //We're already stopped at the branch, so we can switch it now
     if(distance == 0) {
         send_term_debug_log_msg("[GOTO (Switch)] We're stopped at the branch. Switching it now.");
-        tcs_switch_set_direction(current_path_node->num, (direction == DIR_AHEAD) ? 'S' : 'C');
+        _train_server_set_switch(current_path_node->num, direction);
         return;
     }
 
     //Subtract a train length so we don't switch too early
     distance -= BRANCH_SWITCH_OFFSET;
+    send_term_debug_log_msg("[GOTO (Switch)] Distance: %d", distance);
+
 
     //Find the sensor to trigger the switch to move
-    int16_t trigger_sensor = get_sensor_before_distance_using_path(path, distance - tpi->stopping_distance(tpi->speed, false));
+    int16_t trigger_sensor = get_sensor_before_distance_using_path(path, distance);
 
 
     //If we're already on the trigger sensor, we're probably not moving
@@ -1267,7 +1288,7 @@ void _set_switch_change(train_position_info_t* tpi, sensor_triggers_t* triggers,
     //If trigger_sensor < 0, we're too close or there's no sensor between us and the switch
     if(trigger_sensor < 0 || trigger_sensor == path[0]->index) {
         send_term_debug_log_msg("[GOTO (Switch)] Switch is too close. Switching it now.");
-        tcs_switch_set_direction(current_path_node->num, (direction == DIR_AHEAD) ? 'S' : 'C');
+        _train_server_set_switch(current_path_node->num, direction);
         return;
     } else {
         //Set the trigger to switch the branch around when we hit the sensor
@@ -1279,6 +1300,19 @@ void _set_switch_change(train_position_info_t* tpi, sensor_triggers_t* triggers,
 
 void _set_reverse_and_switch(train_position_info_t* tpi, sensor_triggers_t* triggers, track_node* current_path_node, int16_t distance, int8_t direction) {
     track_node** path = tpi->current_path;
+    track_node* next_path_node_straight = current_path_node->edge[DIR_STRAIGHT].dest;
+
+    int32_t switches[2];
+    if(next_path_node_straight->type == NODE_MERGE) {
+        send_term_debug_log_msg("[GOTO (Switch)] %s also needs to be set to %c", next_path_node_straight->name, (direction == DIR_AHEAD) ? 'S' : 'C');
+        switches[1] = next_path_node_straight->num;
+    } else {
+        switches[1]  = 0;
+    }
+
+    switches[0] = current_path_node->num;
+
+    int32_t switch_map = SET_SWITCHES(switches[0], switches[1]);
 
     //Add a buffer to stop past the merge to be ready to take the branch
     //Note: We might want to make this based on the length of the merge node
@@ -1296,13 +1330,14 @@ void _set_reverse_and_switch(train_position_info_t* tpi, sensor_triggers_t* trig
     //If we can't find a sensor, we get -2
     if(trigger_sensor < 0) {
         //This shouldn't happen
-        send_term_debug_log_msg("%d", trigger_sensor);
-        ASSERT(0);
+        //send_term_debug_log_msg("%d", trigger_sensor);
+        //ASSERT(0);
     }
 
     //If the distance to the reverse is closer than 2 stopping distances, we probably
     //won't get up to speed. Do a short move.
     if((distance - tpi->stopping_distance(tpi->speed, false) < 0) ||
+        trigger_sensor < 0 ||
         trigger_sensor == path[0]->index) {
         send_term_debug_log_msg("[GOTO (Reverse)] Reverse path at %s requires a short move", current_path_node->name);
 
@@ -1312,13 +1347,13 @@ void _set_reverse_and_switch(train_position_info_t* tpi, sensor_triggers_t* trig
 
         send_term_debug_log_msg("[GOTO (Reverse)] Moving at speed: %d for %d ticks for distance: %d", 12, ticks, distance);
 
-        _do_short_move(tpi, tpi->train, 12, ticks, true, current_path_node->num, direction);
+        _do_short_move(tpi, tpi->train, 12, ticks, true, switch_map, direction);
 
     } else {
         send_term_debug_log_msg("[GOTO (Reverse)] Triggering reverse at: %c%d", sensor_id_to_letter(trigger_sensor), sensor_id_to_number(trigger_sensor));
 
         //Set the trigger to start the switch+reverse process when we hit the sensor
-        sensor_triggers_set(triggers, trigger_sensor, TRIGGER_SET_SWITCH_AND_REVERSE, (uint8_t*)(&direction), &(current_path_node->num));             
+        sensor_triggers_set(triggers, trigger_sensor, TRIGGER_SET_SWITCH_AND_REVERSE, (uint8_t*)(&direction), &switch_map);             
     }
 
 
@@ -1465,6 +1500,27 @@ void train_speed_courrier(void) {
     Reply(train_server_tid, (char*)NULL, 0);
 
     tcs_train_set_speed(train_info[0], train_info[1]);
+
+    Exit();
+}
+
+void _train_server_set_switch(int16_t switch_num, int16_t direction) {
+    tid_t tid = CreateName(31, train_switch_courrier, "TRAIN_SWITCH_COURRIER");
+
+    int16_t train_info[2];
+    train_info[0] = switch_num;
+    train_info[1] = direction;
+
+    Send(tid, (char*)train_info, sizeof(int16_t) * 2, (char*)NULL, 0);
+}
+
+void train_switch_courrier(void) {
+    tid_t train_server_tid;
+    int16_t train_info[2];
+    Receive(&train_server_tid, (char*)train_info, sizeof(int16_t) * 2);
+    Reply(train_server_tid, (char*)NULL, 0);
+
+    tcs_switch_set_direction(train_info[0], (train_info[1] == DIR_AHEAD) ? 'S' : 'C');
 
     Exit();
 }

@@ -169,6 +169,7 @@ int main(void) {
     tid_t next_tid = global_data.task_handler_data.next_tid;
 
     setfifo(COM2, OFF);
+    bwprintf(COM2,"\033[90;0H");
     bwprintf(COM2, "\e[2B\r\033[2KUser Task Total Time: %u\r\n", user_task_run_time / 2);
     int i;
     for(i = 0; i < next_tid; ++i) {
@@ -177,7 +178,7 @@ int main(void) {
         if(task->state != TASK_RUNNING_STATE_FREE) {
             uint32_t task_running_time = task->running_time;
             uint32_t percentage = (task_running_time * 10000) / user_task_run_time;
-            bwprintf(COM2, "\033[2KTID: %d\tNAME: %s\t\033[42G%%: %u.%u%%\tBLOCKED ON: %d\r\n", task->generational_tid, task->task_name, percentage / 100, percentage % 100, task->blocked_on);
+            bwprintf(COM2, "\r\e[2KTID: %d\tNAME: %s\t\033[42G%%: %u.%u%%\tBLOCKED ON: %d\r\n", task->generational_tid, task->task_name, percentage / 100, percentage % 100, task->blocked_on);
         }
     }
 

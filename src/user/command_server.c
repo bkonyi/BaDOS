@@ -289,7 +289,7 @@ int _set_speed(uint32_t train_num, uint32_t speed) {
 	return result;
 }
 int _set_switch(uint32_t switch_num,char state) {
-    send_term_switch_msg( switch_num,state);
+    send_term_heavy_msg(true, "sw %d %c", switch_num, state);
     int result = tcs_switch_set_direction(switch_num, state);
     if(result!=0) {
         send_term_heavy_msg(true,"Error setting switch through train controller");

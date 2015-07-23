@@ -363,7 +363,14 @@ void send_term_update_err_msg(uint32_t slot, int32_t dist) {
 void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     int msg_len = strlen(msg);
     int i;
-    term_save_cursor();
+    term_hide_cursor();
+    //term_save_cursor();
+
+    /*
+            printf(COM2,"\e[s\e[%d;%dH%d: %s\e[u",TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1, count ,debug_log->entries[dbl_iterator]);
+        dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
+        if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
+        count++;*/
 
     if(debug_log->size < DEBUG_LOG_MAX_DEPTH) debug_log->size++;
 
@@ -380,13 +387,15 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     int dbl_iterator = debug_log->iterator;
     int count=0;
     do{
-        term_move_cursor(TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1);
-        printf(COM2,"%d: %s",count ,debug_log->entries[dbl_iterator]);
+        term_save_cursor();
+        printf(COM2,"\033[s \e[%d;%dH%d: %s \033[u", TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1, TERM_DEBUG_LOG_COL, count ,debug_log->entries[dbl_iterator]);
+        term_restore_cursor();
         dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
         if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
         count++;
     }while(count < debug_log->size);
-    term_restore_cursor();
+    //term_restore_cursor();
+    term_show_cursor();
     debug_log->iterator = (debug_log->iterator + 1) % DEBUG_LOG_MAX_DEPTH;
 
 }
@@ -636,8 +645,6 @@ void send_term_reverse_msg(uint32_t train_num) {
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
 void handle_switch_command(int32_t num,char state){
-    _status_message(true, "sw %d %c",num,state);
-
     term_hide_cursor();
     term_save_cursor();
     num -= 1;
@@ -662,7 +669,7 @@ void send_term_switch_msg(int32_t train_num,char state) {
     terminal_data.command = TERMINAL_SWITCH_COMMAND;
     terminal_data.num1 = train_num;
     terminal_data.byte1 = state;
-    Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
+    ASSERT(Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0) == 0);
 }
 void send_term_initialize_track_switches(void) {
     terminal_data_t terminal_data;
