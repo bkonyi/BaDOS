@@ -63,7 +63,10 @@ typedef struct train_position_info_t {
     reserved_node_queue_t reserved_node_queue;
     track_node *last_sensor_hit;
     bool reservation_halted;
-    bool jesus_take_the_wheel; // let the train server manage it's movement
+
+    // boolean value that will signify one the find command has finished so that sensor data doesn't come through and make a reseravtion before we can stake a claim.
+    bool jesus_take_the_wheel; 
+
     uint32_t last_position_time;
     bool stopping;
     bool stopping_position_set;

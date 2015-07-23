@@ -105,7 +105,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->stopping_distance = NULL;
     tpi->last_sensor_hit = NULL;
     tpi->reservation_halted = false;
-    tpi->jesus_take_the_wheel = true;
+    tpi->jesus_take_the_wheel = false;
     tpi->last_position_time=0;
     tpi->sensor_offset_in_node =0;
     tpi->stopping = true;
