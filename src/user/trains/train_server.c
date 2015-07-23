@@ -697,13 +697,12 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
                 train_position_info->switch_error_next_sensor = NULL;
             }
             //Reserve this piece of track
-            track_reserve_node(train_position_info->last_sensor, train_position_info->train_num);
+           ASSERT( track_reserve_node(train_position_info->last_sensor, train_position_info->train_num));
             ASSERT(train_position_info->last_sensor->reserved_by == train_position_info->train_num);
             load_calibration(train,train_position_info);
             return true;
         }
     }
-
     return false;
 }
 

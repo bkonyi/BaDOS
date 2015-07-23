@@ -3,10 +3,13 @@
 #include <track_node.h>
 #include <queue.h>
 CREATE_QUEUE_TYPE(reserved_node_queue_t, track_node);
+
+bool track_compare_reserved_node(track_node* a, track_node* b);
+
 #define RESERVED_PUSH_BACK(Q,VALUE) QUEUE_PUSH_BACK_GENERIC(Q,VALUE,next_reserved)
 #define RESERVED_POP_FRONT(Q,VALUE) QUEUE_POP_FRONT_GENERIC(Q,VALUE,next_reserved)
 #define RESERVED_VALUE_EXISTS_IN(Q,VALUE,RETVAL) QUEUE_VALUE_EXISTS_IN(Q,VALUE,RETVAL,next_reserved)
-#define RESERVED_REMOVE_VALUE(Q,INPUT) QUEUE_REMOVE_VALUE(Q,INPUT,next_reserved)
+#define RESERVED_REMOVE_VALUE(Q,INPUT) QUEUE_REMOVE_VALUE(Q, INPUT, next_reserved, track_compare_reserved_node)
 typedef enum track_res_msg_type_t {
 	TR_INIT 		= 1,
 	TR_RESERVE,

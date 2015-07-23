@@ -14,6 +14,7 @@ void _handle_reservation_init(void);
 void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
 
 track_node* _next_reservation_node(track_node* node, int train_num);
+track_node* _track_reservation_flip(track_node* node);
 
 void track_reservation_server(void) {
 	track_res_msg_t message;
@@ -31,7 +32,9 @@ void track_reservation_server(void) {
 			case TR_RESERVE:
 				if(_handle_node_reserve(message.node, message.train_num)){
 					response.type = TR_RESERVE_APPROVE;
+
 				} else {
+					send_term_debug_log_msg("Tr %d failed res %s", message.train_num,message.node->name);
 					response.type = TR_RESERVE_REJECT;
 				}
 				response_size = sizeof(track_res_msg_t);
@@ -96,7 +99,7 @@ void track_release_node(track_node* node,int train_num) {
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
 	node->reserved_by = num;
-	get_next_track_node(node)->reverse->reserved_by = num;
+	_track_reservation_flip(node)->reserved_by = num;
 }
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response){
@@ -118,35 +121,84 @@ void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_
 }
 bool _handle_node_reserve(track_node* node, int train_num){
 	ASSERT(node!=NULL);
-	if(node->reserved_by == -1 ){
-		ASSERT(get_next_track_node( node)->reverse->reserved_by == -1);
-		_set_track_node_reservation(node,train_num);
-		send_term_debug_log_msg("train: %d RESERVED: %s",train_num,node->name);
-		return true;
-	}else if(node->reserved_by == train_num){
-		return true;
+	track_node* flip =_track_reservation_flip(node);
+	if(flip->type == NODE_BRANCH){
+		node = flip;
 	}
-	send_term_debug_log_msg("Reserve FAILED was reserved_by %d tried res of %d",node->reserved_by,train_num);
-	return false;
+
+	if(node->type == NODE_BRANCH){
+		if(node->reserved_by == train_num || node->reserved_by == -1){
+			//we need to reserve the whole branch
+			track_node *left, *right;
+			left = node->edge[0].dest->reverse;
+			right = node->edge[1].dest->reverse;
+
+			ASSERT(left->reserved_by == -1 || left->reserved_by == train_num) ;
+			ASSERT(right->reserved_by == -1 || right->reserved_by == train_num);
+
+			_set_track_node_reservation(left,train_num);
+			_set_track_node_reservation(right,train_num);
+			//send_term_debug_log_msg("train: %d A RESERVED: %s",train_num,node->name);
+			return  true;
+		}else{
+			//send_term_debug_log_msg("Reserve FAILED was reserved_by %d tried res of %d",node->reserved_by,train_num);
+			return false;
+		}
+		
+	}else {
+		if(node->reserved_by == -1  || node->reserved_by == train_num){
+			if(flip->reserved_by != -1 && flip->reserved_by != train_num){
+				send_term_debug_log_msg("_handle_node_reserve fail %s resby: %d",_track_reservation_flip(node)->name,_track_reservation_flip(node)->reserved_by);
+				Delay(200);
+				ASSERT(0);
+			}
+			_set_track_node_reservation(node,train_num);
+			//send_term_debug_log_msg("train: %d B RESERVED: %s",train_num,node->name);
+			return true;
+		}else{
+			//send_term_debug_log_msg("Reserve FAILED was reserved_by %d tried res of %d",node->reserved_by,train_num);
+			return false;
+		}
+		
+	}
+	
 }
 void _handle_node_release(track_node* node, int train_num){
 	ASSERT(node!=NULL);
-	if(!(node->reserved_by == train_num || node->reserved_by == -1)) {
-		send_term_debug_log_msg("Train %d tried to release %s res by: %d",train_num,node->name,node->reserved_by);
-		ASSERT(0);
+	track_node* flip =_track_reservation_flip(node);
+	if(flip->type == NODE_BRANCH){
+		node = flip;
 	}
-	//ASSERT(node->reverse->reserved_by != -1);
-	_set_track_node_reservation(node,-1);
-	send_term_debug_log_msg("train: %d released: %s",train_num,node->name);
+	if(node->type == NODE_BRANCH) {
+		ASSERT(node->reserved_by == -1 || node->reserved_by == train_num);
+		track_node *left, *right;
+		left = node->edge[0].dest->reverse;
+		right = node->edge[1].dest->reverse;
+
+		_set_track_node_reservation(left,-1);
+		_set_track_node_reservation(right,-1);
+		//send_term_debug_log_msg("train: %d A released: %s",train_num,node->name);
+	}else{
+		if(!(node->reserved_by == train_num || node->reserved_by == -1)) {
+			send_term_debug_log_msg("Train %d tried to release %s res by: %d",train_num,node->name,node->reserved_by);
+			ASSERT(0);
+		}
+		//ASSERT(node->reverse->reserved_by != -1);
+		_set_track_node_reservation(node,-1);
+		//send_term_debug_log_msg("train: %d B released: %s",train_num,node->name);
+	}
+	
 }
 track_node* _next_reservation_node(track_node* node, int train_num) {
-	ASSERT(node->reserved_by == train_num);
 	if(node == NULL) return NULL;
 
-	if(node->edge[DIR_AHEAD].dest->reserved_by == train_num) {
-		return node->edge[DIR_AHEAD].dest;
-	}else if(node->edge[DIR_CURVED].dest->reserved_by == train_num){
-		return node->edge[DIR_CURVED].dest;
+	track_node *left, *right;
+	left = node->edge[0].dest;
+	right = node->edge[1].dest;
+	if(left->reserved_by == train_num) {
+		return left;
+	}else if(right->reserved_by == train_num){
+		return right;
 	}else{ 
 		//No adjacent nodes return NULL
 		return NULL;
@@ -170,7 +222,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 		//loop that follows then then it takes into account that the have that
 		//much distance that won't contribute to the stopping distance
 	stopping_distance+= offset_in_node;
-	stopping_distance += 500; // TODO: When the trains actually get calibrated remove this
+	stopping_distance += 25; // TODO: When the trains actually get calibrated remove this
 	for(iterator_node = our_node; iterator_node != NULL && stopping_distance >= 0;iterator_node= get_next_track_node (iterator_node)){
 		//send_term_debug_log_msg("track try to reserve %s",iterator_node->name);
 /*		if(iterator_node->reserved_by != train_num && iterator_node->reserved_by != -1){
@@ -184,6 +236,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
             bool exists_in;
             RESERVED_VALUE_EXISTS_IN(*res_queue,iterator_node,exists_in);
             if(!exists_in){
+
             	nodes_added = true;
                 RESERVED_PUSH_BACK(*res_queue,iterator_node);
             }
@@ -201,11 +254,15 @@ void _release_track_from_point(reserved_node_queue_t* res_queue, int train_num, 
 	int dist =  -1 * (offset_in_node - 200);
 	track_node* iterator_node;
 	
-	for(iterator_node = our_node->reverse; iterator_node != NULL && iterator_node->reserved_by == train_num; iterator_node= get_next_track_node (iterator_node)){
+	iterator_node = our_node->reverse;
+	if(iterator_node->type == NODE_BRANCH || iterator_node->type == NODE_MERGE) {
+		iterator_node = _next_reservation_node(iterator_node, train_num);
+		dist+=get_track_node_length(iterator_node);
+	}
+	for(; iterator_node != NULL && iterator_node->reserved_by == train_num; iterator_node= _next_reservation_node (iterator_node, train_num)){
 		
 		if(dist >0  ){
 			//Keep iterating until we've hit enough track to compensate for the length of the train
-			//send_term_debug_log_msg("tp %s off %d",our_node->name,offset_in_node);
 			track_release_node(iterator_node,train_num);
 			RESERVED_REMOVE_VALUE(*res_queue,iterator_node);
 			nodes_removed = true;
@@ -233,8 +290,32 @@ void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num){
 	while (iterator_node != NULL) {
 		sprintf(buff_it,"%s ",iterator_node->name);
 		buff_it += strlen(buff_it);
-		iterator_node ++;
+		iterator_node = iterator_node->next_reserved;
 	}
+
 	send_term_debug_log_msg("%s",buff);
 }
 
+bool track_compare_reserved_node(track_node* node, track_node* b){
+	track_node* flip =_track_reservation_flip(node);
+	if(flip->type == NODE_BRANCH){
+		node = flip;
+	}
+	if(node->type == NODE_BRANCH){
+		track_node *left, *right;
+		left = node->edge[0].dest->reverse;
+		right = node->edge[1].dest->reverse;
+		if(left == b || right == b || node == b){
+			return true;
+		}
+	}else{
+		if( _track_reservation_flip(node) == b || node  == b ) {
+			return true;
+		}
+	}
+	return false;
+	
+}
+track_node* _track_reservation_flip(track_node* node) {
+	return (node->edge[node->state].dest->reverse);
+}
