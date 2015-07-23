@@ -2,8 +2,12 @@
 #include <terminal/terminal.h>
 #include <terminal/terminal_debug_log.h>
 
+static void load_train_58_calibration_info(train_position_info_t* train_position_info);
+static uint16_t train_58_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_train_62_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over);
+static void load_train_64_calibration_info(train_position_info_t* train_position_info);
+static uint16_t train_64_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_train_65_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_train_66_calibration_info(train_position_info_t* train_position_info);
@@ -14,8 +18,13 @@ void load_calibration(int16_t train, train_position_info_t* train_position_info)
     send_term_debug_log_msg("Loading calibration info for: %d", train);
 
     switch(train) {
+        case 58:
+            load_train_58_calibration_info(train_position_info);
         case 62:
             load_train_62_calibration_info(train_position_info);
+            break;
+        case 64:
+            load_train_64_calibration_info(train_position_info);
             break;
         case 65:
             load_train_65_calibration_info(train_position_info);
@@ -34,6 +43,26 @@ void _set_defaults(train_position_info_t* train_position_info, uint16_t* velocit
     for(i = 0; i < MAX_STORED_SPEEDS; i ++) {
         train_position_info->default_av_velocity[i]=velocities[i];
     }
+}
+
+void load_train_58_calibration_info(train_position_info_t* train_position_info) {
+    uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 249, 306, 371, 444, 518, 600 };
+    train_position_info->stopping_distance = train_58_stopping_distance;
+    _set_defaults(train_position_info,velocities);
+    int i, j, k;
+    for(i = 0; i < 80; ++i) {
+        for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
+            for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
+                train_position_info->average_velocities[i][j][k].average_velocity = velocities[k];
+                train_position_info->average_velocities[i][j][k].average_velocity_count = 10; 
+                train_position_info->average_velocities[i][j][k].from = NULL;
+            }
+        }
+    }
+}
+
+uint16_t train_58_stopping_distance(uint16_t speed, bool is_under_over) {
+    return train_62_stopping_distance(speed, is_under_over); //TODO get actual stopping distances
 }
 
 void load_train_62_calibration_info(train_position_info_t* train_position_info) {
@@ -69,9 +98,30 @@ uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over) {
     return ((uint16_t)(distance / 10000));
 }
 
+void load_train_64_calibration_info(train_position_info_t* train_position_info) {
+    uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 473, 499, 551, 613, 620, 640 };
+    train_position_info->stopping_distance = train_62_stopping_distance;
+    _set_defaults(train_position_info,velocities);
+    int i, j, k;
+    for(i = 0; i < 80; ++i) {
+        for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
+            for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
+                train_position_info->average_velocities[i][j][k].average_velocity = velocities[k];
+                //Lowered this count since this train isn't very consistent
+                train_position_info->average_velocities[i][j][k].average_velocity_count = 3; 
+                train_position_info->average_velocities[i][j][k].from = NULL;
+            }
+        }
+    }
+}
+
+uint16_t train_64_stopping_distance(uint16_t speed, bool is_under_over) {
+    return train_62_stopping_distance(speed, is_under_over); //TODO get actual stopping distances
+}
+
 void load_train_65_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 239, 292, 352, 419, 484, 556 };
-    train_position_info->stopping_distance = train_65_stopping_distance;
+    train_position_info->stopping_distance = train_64_stopping_distance;
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
