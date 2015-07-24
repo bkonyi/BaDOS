@@ -4,11 +4,13 @@
 
 static void load_train_58_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_58_stopping_distance(uint16_t speed, bool is_under_over);
+static uint32_t train_58_short_move_time(uint16_t speed, int16_t distance);
 static void load_train_62_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_62_stopping_distance(uint16_t speed, bool is_under_over);
 static uint32_t train_62_short_move_time(uint16_t speed, int16_t distance);
 static void load_train_64_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_64_stopping_distance(uint16_t speed, bool is_under_over);
+static uint32_t train_64_short_move_time(uint16_t speed, int16_t distance);
 static void load_train_65_calibration_info(train_position_info_t* train_position_info);
 static uint16_t train_65_stopping_distance(uint16_t speed, bool is_under_over);
 static void load_train_66_calibration_info(train_position_info_t* train_position_info);
@@ -51,7 +53,7 @@ void _set_defaults(train_position_info_t* train_position_info, uint16_t* velocit
 void load_train_58_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 249, 306, 371, 444, 518, 600 };
     train_position_info->stopping_distance = train_58_stopping_distance;
-    train_position_info->short_move_time = train_62_short_move_time;
+    train_position_info->short_move_time = train_58_short_move_time;
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -66,7 +68,49 @@ void load_train_58_calibration_info(train_position_info_t* train_position_info) 
 }
 
 uint16_t train_58_stopping_distance(uint16_t speed, bool is_under_over) {
-    return train_62_stopping_distance(speed, is_under_over); //TODO get actual stopping distances
+    int64_t big_speed = ((int64_t)speed);
+    int64_t distance;
+    (void)is_under_over;
+
+    //This calculates f(x) = (21.964)x^2 - 315.65x + 1394.5
+    //That's the best polynomial fit for our stopping distances for this train
+    distance = ((big_speed * big_speed) * 21964) - (315650 * big_speed) + 1394500;
+
+    if(distance < 0) {
+        return 0;
+    }
+
+    return ((uint16_t)(distance / 1000));
+}
+
+uint32_t train_58_short_move_time(uint16_t speed, int16_t distance) {
+    if(distance <= 0) {
+        return 0;
+    }
+
+    uint64_t long_distance = distance;
+    uint32_t result = 0;
+
+    speed = 12; //Maybe we'll do something with this later.
+
+    switch(speed) {
+        case 12:
+            if(long_distance >= 51) { 
+                //This calculates f(x) = (1/344) * (sqrt(6880000 * x - 345469551) + 15977)
+                //which is the equation for determining time to move a certain distance
+                result = (sqrt(6880000ULL * long_distance - 345469551ULL) + 15977ULL) / 344;
+            } else {
+                //We don't want to calculate the square root of a negative number...
+                //Just assume the distance is 0
+                result = 250;
+            }
+            break;
+        default:
+            ASSERT(0);
+            break;
+    }
+
+    return result;
 }
 
 void load_train_62_calibration_info(train_position_info_t* train_position_info) {
@@ -137,7 +181,7 @@ uint32_t train_62_short_move_time(uint16_t speed, int16_t distance) {
 void load_train_64_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 473, 499, 551, 613, 620, 640 };
     train_position_info->stopping_distance = train_64_stopping_distance;
-    train_position_info->short_move_time = train_62_short_move_time;
+    train_position_info->short_move_time = train_64_short_move_time;
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -153,9 +197,50 @@ void load_train_64_calibration_info(train_position_info_t* train_position_info) 
 }
 
 uint16_t train_64_stopping_distance(uint16_t speed, bool is_under_over) {
-    return train_62_stopping_distance(speed, is_under_over); //TODO get actual stopping distances
+    int64_t big_speed = ((int64_t)speed);
+    int64_t distance;
+    (void)is_under_over;
+
+    //This calculates f(x) = (-8.4524)x^2 + 269.55x - 1108.4
+    //That's the best polynomial fit for our stopping distances for this train
+    distance = ((big_speed * big_speed) * -84524) + (2695500 * big_speed) - 11084000;
+
+    if(distance < 0) {
+        return 0;
+    }
+
+    return ((uint16_t)(distance / 10000));
 }
 
+uint32_t train_64_short_move_time(uint16_t speed, int16_t distance) {
+    if(distance <= 0) {
+        return 0;
+    }
+
+    uint64_t long_distance = distance;
+    uint32_t result = 0;
+
+    speed = 12; //Maybe we'll do something with this later.
+
+    switch(speed) {
+        case 12:
+            if(long_distance >= 90) { 
+                //This calculates f(x) = (5/318) * (5 * sqrt(10176 * x - 914903) + 7609)
+                //which is the equation for determining time to move a certain distance
+                result = (5 * (5 * sqrt(10176ULL * long_distance - 914903ULL) + 7609ULL)) / 318;
+            } else {
+                //We don't want to calculate the square root of a negative number...
+                //Just assume the distance is 0
+                result = 250;
+            }
+            break;
+        default:
+            ASSERT(0);
+            break;
+    }
+
+    return result;
+}
 
 void load_train_65_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 239, 292, 352, 419, 484, 556 };
