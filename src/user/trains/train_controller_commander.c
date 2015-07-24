@@ -52,7 +52,8 @@ typedef enum {
     SET_TRAIN_STOP_OFFSET,
     GOTO_LOCATION,
     SET_TRAIN_LOCATION,
-    TRAIN_ALL_SET_SPEED
+    TRAIN_ALL_SET_SPEED,
+    GOTO_RANDOM_LOCATION
 } train_controller_command_t;
 
 typedef struct {
@@ -102,6 +103,7 @@ static void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int3
 static void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_all_speeds(train_data_t* trains,int8_t speed);
+static void handle_goto_random_destinations(train_data_t* trains, int32_t train_num);
 
 void train_controller_commander_server(void) {
     int sending_tid;
@@ -201,6 +203,9 @@ void train_controller_commander_server(void) {
                 handle_set_train_location(trains, data.var1, data.var2);
             case TRAIN_ALL_SET_SPEED:
                 handle_set_all_speeds(trains,data.var2);//var2 has speed
+                break;
+            case GOTO_RANDOM_LOCATION:
+                handle_goto_random_destinations(trains, data.var1);
                 break;
             default:
                 printf(COM2, "Invalid train controller command!\r\n");
@@ -419,6 +424,20 @@ int set_train_location(int16_t train, int8_t sensor_num) {
     return 0;
 }
 
+int tcs_goto_random_destinations(int16_t train) {
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    }
+
+    train_controller_data_t data;
+    data.command = GOTO_RANDOM_LOCATION;
+    data.var1 = train;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+    return 0;
+}
+
+
 int tcs_train_request_calibration_info(int8_t train) {
     if(train > MAX_TRAIN_NUM) {
         return -1;
@@ -605,12 +624,19 @@ void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor
 void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num) {
     if(trains[train_num].server_tid != -1) {
         train_server_goto_destination(trains[train_num].server_tid, sensor_num);
-        set_terminal_train_slot_destination(train_num, trains[train_num].slot, sensor_num);
+        //set_terminal_train_slot_destination(train_num, trains[train_num].slot, sensor_num);
     }
 }
 
 void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num) {
     if(trains[train_num].server_tid != -1) {
         train_server_set_location(trains[train_num].server_tid, sensor_num);
+    }
+}
+
+void handle_goto_random_destinations(train_data_t* trains, int32_t train_num) {
+    if(trains[train_num].server_tid != -1) {
+        train_server_goto_random_destinations(trains[train_num].server_tid);
+        //set_terminal_train_slot_destination(train_num, trains[train_num].slot, sensor_num);
     }
 }
