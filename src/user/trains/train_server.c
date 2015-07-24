@@ -150,6 +150,8 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->ready_to_recalculate_path = false;
     tpi->at_branch_after_reverse = false;
 
+    path_instructions_clear(&tpi->instructions);
+
     RING_BUFFER_INIT(tpi->conductor_tids, MAX_CONDUCTORS);
 }
 
@@ -1356,6 +1358,8 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
         send_term_debug_log_msg("Path[%d] = %s", i, train_position_info->current_path[i]->name);
     }
 
+    //Clear the instruction list
+    path_instructions_clear(&train_position_info->instructions);
 
     //TODO change this from being hardcoded to taking an actual speed
     train_position_info->speed = 9;
@@ -1376,6 +1380,9 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
                 direction = DIR_CURVED;
             }
 
+            //Add switch instruction
+            path_instructions_add_switch(&train_position_info->instructions, current_path_node->num, direction);
+
             //Find the distance from the beginning of the path to the branch
             int16_t distance = distance_between_track_nodes_using_path(path, current_path_node);
             send_term_debug_log_msg("[GOTO (Switch)] Distance from start of path to %s: %d", current_path_node->name, distance);
@@ -1394,6 +1401,11 @@ void handle_goto_destination(train_position_info_t* train_position_info, sensor_
             } else {
                 direction = DIR_CURVED;
             }
+
+            //Add back stop command
+            path_instructions_add_back_stop(&train_position_info->instructions, current_path_node, 0);
+            path_instructions_add_switch(&train_position_info->instructions, current_path_node->num, direction);
+            path_instructions_add_reverse(&train_position_info->instructions);
 
             //Find the distance from the beginning of the path to the merge
             int16_t distance = distance_between_track_nodes_using_path(path, current_path_node);
@@ -1516,6 +1528,10 @@ void _set_reverse_and_switch(train_position_info_t* tpi, sensor_triggers_t* trig
 }
 
 void _set_stop_around_location_using_path(train_position_info_t* tpi, sensor_triggers_t* triggers, track_node* destination) {
+    //Add the stop instruction
+    path_instructions_add_stop(&tpi->instructions, destination, 0);
+
+
     track_node** path = tpi->current_path;
     int16_t distance = distance_between_track_nodes_using_path(path, destination);
 

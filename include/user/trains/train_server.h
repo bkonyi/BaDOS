@@ -7,6 +7,7 @@
 #include <trains/train_server_types.h>
 #include <ring_buffer.h>
 #include <trains/track_reservation_server.h>
+#include <trains/path_instructions.h>
 
 #define MAX_AV_SENSORS_FROM 4
 #define MAX_STORED_SPEEDS 7 //Can't make this any larger or else things just die...
@@ -15,7 +16,6 @@
 #define MAX_CONDUCTORS 32 //Arbitrary
 
 CREATE_NON_POINTER_BUFFER_TYPE(conductor_buffer_t, int, MAX_CONDUCTORS);
-
 
 typedef struct train_position_info_t {
     //Train information
@@ -84,6 +84,7 @@ typedef struct train_position_info_t {
     //Information about our current path
     track_node* current_path[TRACK_MAX];
     int path_length;
+    path_instructions_t instructions;
     int8_t destination;
     bool waiting_on_reverse;
     bool ready_to_recalculate_path;

@@ -13,6 +13,13 @@ void* memcpy(void* dest, void* src, size_t len) {
 
         return dest;
 }
+
+void *memset(void *s, int c, unsigned int n) {
+  unsigned char *p = s;
+  while(n --> 0) { *p++ = (unsigned char)c; }
+  return s;
+}
+
 char* strcpy(char* dest, char* src) {
     memcpy(dest, src, strlen(src)+1);
     return dest;

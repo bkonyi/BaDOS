@@ -7,6 +7,8 @@
 #include <common.h>
 //TRACK_RESERVATION_SERVER_ID
 
+//#define TRACK_RESERVATIONS_ENABLED
+
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response);
 bool _handle_node_reserve(track_node* node, int train_num);
 void _handle_node_release(track_node* node, int train_num);
@@ -70,23 +72,24 @@ void _handle_reservation_init(void) {
 	for(i = 0; i < TRACK_MAX; i++) {
 		node_base[i].reserved_by = -1;
 		if(node_base[i].index != i){
-			send_term_debug_log_msg("Trying to set index %d on index %d",i,node_base[i].index);
+			//send_term_debug_log_msg("Trying to set index %d on index %d",i,node_base[i].index);
 			Delay(500);
 			ASSERT(0);
 		}
 	}
 
 	Reply(requester,NULL,0);
-	send_term_debug_log_msg("Reservation Server Initialized");
+	//send_term_debug_log_msg("Reservation Server Initialized");
 }
 
 //Expects the base node for the track_nodes so all of them can be initialized
 void track_reservation_init(track_node* base_node){
-	send_term_debug_log_msg("Callint track_re_init 0x%x",(uint32_t)base_node);
+	//send_term_debug_log_msg("Callint track_re_init 0x%x",(uint32_t)base_node);
 	_send_track_res_msg(TR_INIT,base_node,0,NULL);
 }
 
 bool track_reserve_node(track_node* node,int train_num) {
+#ifdef TRACK_RESERVATIONS_ENABLED
 	track_res_msg_t response;
 	_send_track_res_msg(TR_RESERVE,node,train_num,&response);
 	if(response.type ==TR_RESERVE_APPROVE){
@@ -97,12 +100,15 @@ bool track_reserve_node(track_node* node,int train_num) {
 		ASSERT(0);
 		return false;	
 	}
-
+#else
+	return true;
+#endif
 }
 
 void track_release_node(track_node* node,int train_num) {
+#ifdef TRACK_RESERVATIONS_ENABLED
 	_send_track_res_msg(TR_RELEASE,node,train_num,NULL);
-	
+#endif	
 }
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
@@ -359,7 +365,7 @@ void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num){
 		iterator_node = iterator_node->next_reserved;
 	}
 
-	send_term_debug_log_msg("%s",buff);
+	//send_term_debug_log_msg("%s",buff);
 }
 
 bool track_compare_reserved_node(track_node* node, track_node* b){
