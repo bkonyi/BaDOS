@@ -37,6 +37,11 @@ struct track_node {
   track_node* next_reserved;
 };
 
+typedef struct track_node_data_t{
+  track_node* node;
+  int         offset;
+}track_node_data_t;
+
 track_node* get_next_track_node(track_node* start_node);
 track_node* get_next_track_node_in_path(track_node** start_node);
 void set_track_node_state(volatile track_node* node, uint32_t state);
