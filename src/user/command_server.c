@@ -134,7 +134,7 @@ void process_input(char* input) {
 		} else if (strcmp(argv[0],"track")==0) {
 			char track = char_to_upper(argv[1][0]);
 				str_to_upper(third);
-			if(strcmp(third,"BIGLOOP")==0) {
+			if(strcmp(third,"BIGLOOP")==0||strcmp(third,"BL")==0) {
                 _init_track(track);
                 _set_switch(6,'S');
                 _set_switch(7, 'S');
@@ -205,7 +205,10 @@ void process_input(char* input) {
             int8_t sensor_id = sensor_to_id(third);
             set_train_location(target_train_number, sensor_id);
             send_term_find_msg();
-        } else {
+        } else if(strcmp(first, "tr_accel") == 0) {
+        	target_train_number = strtoi(second);
+        	tcs_set_train_accel(target_train_number, strtoi(third) );
+        }else {
 			send_term_heavy_msg(true,"Invalid Command");
 		}
 	} else if(argc ==2) {

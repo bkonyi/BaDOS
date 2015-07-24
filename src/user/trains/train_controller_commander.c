@@ -52,6 +52,7 @@ typedef enum {
     SET_TRAIN_STOP_OFFSET,
     GOTO_LOCATION,
     SET_TRAIN_LOCATION,
+    SET_TRAIN_ACCEL,
     TRAIN_ALL_SET_SPEED
 } train_controller_command_t;
 
@@ -102,7 +103,7 @@ static void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int3
 static void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_all_speeds(train_data_t* trains,int8_t speed);
-
+static void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel);
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -141,6 +142,9 @@ void train_controller_commander_server(void) {
         switch(data.command) {
             case TRAIN_SET_SPEED:
                 handle_train_set_speed(trains, (int8_t)data.var1, data.var2);
+                break;
+            case SET_TRAIN_ACCEL:
+                _handle_train_set_acceleration(trains, (int8_t)data.var1, data.var3);
                 break;
             case TRAIN_REVERSE_BEGIN:
                 //If the train isn't moving, we can just send the reverse command now
@@ -612,4 +616,23 @@ void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t s
     if(trains[train_num].server_tid != -1) {
         train_server_set_location(trains[train_num].server_tid, sensor_num);
     }
+}
+
+int tcs_set_train_accel(int32_t train_num,int32_t accel) {
+    if(train_num > MAX_TRAIN_NUM) {
+        return -1;
+    } else if( accel < 0) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = SET_TRAIN_ACCEL;
+    data.var1 = train_num;
+    data.var3 = accel;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+    return 0;
+}
+void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel){
+    train_server_set_accel(trains[(int16_t)train_num].server_tid,accel);
 }

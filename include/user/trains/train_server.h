@@ -72,12 +72,15 @@ typedef struct train_position_info_t {
     track_node *last_sensor_hit;
     bool reservation_halted;
     int32_t acceleration_thousandths_mm_ticks;
+    int32_t decceleration_thousandths_mm_ticks;
     int32_t velocity_thousandths_mm_ticks;
     int32_t dist_from_last_sensor;
     track_node_data_t   train_front_location;
     track_node_data_t   train_back_location;
     track_node_data_t   train_sensor_location;
     bool    is_accelerating;
+    bool    temp_printed_once;
+    int32_t current_stopping_distance;
     // boolean value that will signify one the find command has finished so that sensor data doesn't come through and make a reseravtion before we can stake a claim.
     bool jesus_take_the_wheel; 
 
@@ -117,4 +120,5 @@ void train_server_set_reversing(tid_t tid);
 void train_server_stopped_at_destination(tid_t tid);
 void train_server_set_location(tid_t tid, int8_t sensor_num);
 
+int train_server_set_accel(tid_t tid,int32_t accel) ;
 #endif // _TRAIN_SERVER_H_

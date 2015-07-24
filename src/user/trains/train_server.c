@@ -45,7 +45,7 @@ static void _set_stop_around_location_using_path(train_position_info_t* tpi, sen
 static void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* train_position_info);
 static void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_position_info_t* train_position_info);
 static void _handle_train_track_position_update(train_position_info_t* tpi);
-static void _handle_train_reservations(train_position_info_t* tpi);
+//static void _handle_train_reservations(train_position_info_t* tpi);
 static void _train_server_send_speed(int16_t train, int16_t speed);
 
 
@@ -61,7 +61,8 @@ static void train_speed_courrier(void);
 
 static void _train_server_set_switch(int16_t switch_num, int16_t direction);
 static void train_switch_courrier(void);
-
+static void _handle_set_accel(train_position_info_t* tpi, int32_t accel);
+static void _handle_set_deccel(train_position_info_t* tpi, int32_t deccel);
 
 #define SET_SWITCHES(main, secondary) ((((int32_t)(main)) << 16) | (secondary))
 #define GET_MAIN_SWITCH(switches) ((int16_t)((switches) >> 16))
@@ -88,7 +89,9 @@ typedef enum train_server_cmd_t {
     TRAIN_SERVER_SET_REVERSING          = 12,
     TRAIN_SERVER_STOPPED_AT_DESTINATION = 13,
     TRAIN_SERVER_SET_LOCATION           = 14,
-    TRAIN_SERVER_RECALCULATE_PATH       = 20
+    TRAIN_SERVER_RECALCULATE_PATH       = 20,
+    TRAIN_SERVER_SET_ACCEL              = 21,
+    TRAIN_SERVER_SET_DECCEL             = 22
 } train_server_cmd_t;
 
 typedef struct train_server_msg_t {
@@ -151,6 +154,9 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->velocity_thousandths_mm_ticks = 0;
     tpi->dist_from_last_sensor=0;
     tpi->is_accelerating = false;
+    tpi->temp_printed_once = false;
+    tpi->current_stopping_distance = 0;
+    tpi->decceleration_thousandths_mm_ticks =0 ;
     RING_BUFFER_INIT(tpi->conductor_tids, MAX_CONDUCTORS);
 }
 
@@ -222,7 +228,7 @@ void train_server(void) {
                         
                         //TODO: Improve this when we have acceleration profiles
                         if(distance_estimation>=0){
-                            send_term_update_dist_msg(train_slot, distance_estimation);  
+                            //send_term_update_dist_msg(train_slot, distance_estimation);  
                         }
                         
                         last_distance_update_time = new_time;
@@ -264,7 +270,7 @@ void train_server(void) {
                 break;
             case TRAIN_SERVER_SET_SPEED:
                 new_speed = train_server_message->num1;
-
+                send_term_debug_log_msg("Setting SPEED %d", new_speed);
                 if(new_speed < train_position_info.speed) {
                     train_position_info.is_under_over = false;
                 } else if(new_speed > train_position_info.speed) {
@@ -304,6 +310,12 @@ void train_server(void) {
             case TRAIN_SERVER_STOPPED_AT_DESTINATION:
                 handle_stopped_at_destination(train_number, train_slot, &train_position_info);
                 break;
+            case TRAIN_SERVER_SET_ACCEL:
+                _handle_set_accel(&train_position_info,train_server_message->num1);
+                break; 
+            case TRAIN_SERVER_SET_DECCEL:
+                _handle_set_deccel(&train_position_info,train_server_message->num1);
+                break; 
             case TRAIN_SERVER_SET_REVERSING:
                 train_position_info.waiting_on_reverse = false;
                 handle_train_reversing(train_number, train_slot, &train_position_info);
@@ -712,7 +724,7 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
                 
                 //Ensure that another train isn't on the sensor we are looking for
                 if(!((*next_sensor)->reserved_by == -1 || (*next_sensor)->reserved_by == train_position_info->train_num)) {
-                    send_term_debug_log_msg("HoldOnHandsy tr %d sens %s",train_position_info->train_num,(*next_sensor)->name);
+                    //send_term_debug_log_msg("HoldOnHandsy tr %d sens %s",train_position_info->train_num,(*next_sensor)->name);
                     break;
                 }
 
@@ -796,13 +808,16 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
     }
 
     _handle_train_track_position_update(train_position_info);
-    _handle_train_reservations(train_position_info);
+    //_handle_train_reservations(train_position_info);
 }
 int32_t dist_using_vat(int32_t v_i, int32_t a,int32_t time){
         return v_i*time + (a * time*(time/2));
 }
 int32_t velocity_using_vat(int32_t v_i, int32_t a,int32_t time){
     return v_i + a*time;
+}
+int32_t dist_using_vva(int32_t v_i, int32_t v_f,int32_t a){
+    return (v_i*v_i-v_f*v_f)/(2*a);
 }
 track_node_data_t _get_node_location(track_node* last_sensor,int offset){
     track_node_data_t node_data;
@@ -845,12 +860,14 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     int32_t dist_change_mm_thousandths; 
    // send_term_debug_log_msg("acc %d vel %d time %d", tpi->acceleration_thousandths_mm_ticks,tpi->velocity_thousandths_mm_ticks,time);
     //int offset_from_node = 0;
+
     if(tpi->stopping ){
         //send_term_debug_log_msg("Shtrop");
 
         if(tpi->is_accelerating){
             dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->acceleration_thousandths_mm_ticks,time);
             tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->acceleration_thousandths_mm_ticks,time);
+           // send_term_debug_log_msg("DCCELL dcmt %d vtmt %d",dist_change_mm_thousandths/1000,tpi->velocity_thousandths_mm_ticks/1000 );
         }else{
             dist_change_mm_thousandths = 0;
             tpi->velocity_thousandths_mm_ticks = 0;
@@ -859,18 +876,21 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         if(tpi->velocity_thousandths_mm_ticks < 0) {
             tpi->is_accelerating = false;
             tpi->velocity_thousandths_mm_ticks = 0;
+            //ASSERT(0);
         }
+        
         
     }else {
         if(tpi->is_accelerating){
             dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,tpi->acceleration_thousandths_mm_ticks,time);
             tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,tpi->acceleration_thousandths_mm_ticks,time);
-            //send_term_debug_log_msg("STILL accelerating");
+            //send_term_debug_log_msg("ACCELL d %d v %d",dist_change_mm_thousandths,tpi->velocity_thousandths_mm_ticks );
         }else{
-           // send_term_debug_log_msg("NOT accelerating");
-            dist_change_mm_thousandths = av_velocity *time * 1000;
+            
+            dist_change_mm_thousandths =( av_velocity *time )*10;
+            //send_term_debug_log_msg("Dist traveled in 10 ms %d",dist_change_mm_thousandths);
         }
-
+        //send_term_debug_log_msg("av vel %d",av_velocity);
         if((tpi->velocity_thousandths_mm_ticks) > (av_velocity*10)){
             tpi->is_accelerating = false;
             tpi->velocity_thousandths_mm_ticks = av_velocity*10;
@@ -884,11 +904,14 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     //if(dist_change_mm_thousandths/1000 == 0){
     //    tpi->dist_from_last_sensor += 1;
     //}else {
+        //send_term_debug_log_msg("odist %d", tpi->dist_from_last_sensor);
         tpi->dist_from_last_sensor += dist_change_mm_thousandths/1000;
    // }
-    //send_term_debug_log_msg ("new dist %d vel %d avvel %d", dist_change_mm_thousandths/1000,(tpi->velocity_thousandths_mm_ticks),av_velocity*10);
+//send_term_debug_log_msg ("off %d vel %d avvel %d 0/1000 %d",  tpi->dist_from_last_sensor,(tpi->velocity_thousandths_mm_ticks)/1000,av_velocity*10, 0/1000);
 
     if(tpi->dist_from_last_sensor > dist_to_next_sensor){
+       // send_term_debug_log_msg("FUCCK our dist %d dist_bet_sens %d dc %d",tpi->dist_from_last_sensor, dist_to_next_sensor,dist_change_mm_thousandths/1000)
+;        //ASSERT(0);
         tpi->dist_from_last_sensor = dist_to_next_sensor;
     }
 
@@ -907,7 +930,14 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     tpi->train_front_location = _get_node_location(tpi->last_sensor,front_offset_from_node);
     tpi->train_sensor_location = _get_node_location(tpi->last_sensor,sensor_offset_from_node);
     tpi->train_back_location = _get_node_location(tpi->last_sensor,back_offset_from_node);
-    send_term_debug_log_msg("tip location %s %d, last sen %s off %d", tpi->train_front_location.node->name,tpi->train_front_location.offset,tpi->last_sensor->name,sensor_offset_from_node);
+  
+
+    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*tpi->acceleration_thousandths_mm_ticks);
+   // if(!temp_printed_once){
+        //send_term_debug_log_msg("tip location %s %d, last sen %s off %d", tpi->train_front_location.node->name,tpi->train_front_location.offset,tpi->last_sensor->name,sensor_offset_from_node);
+   // }
+    send_term_update_dist_msg(tpi->train_slot, tpi->dist_from_last_sensor);
+    
     //send_term_debug_log_msg("trackpos sens: %s tip: %s off %d",node_at_sensor->name,tpi->leading_end_node->name,tpi->leading_end_offset_in_node);
     
 }
@@ -927,7 +957,7 @@ void _handle_train_reservations(train_position_info_t* tpi) {
         cur_stop_dist =  tpi->stopping_distance(speed, false);
         tpi->last_stopping_distance_in_res = cur_stop_dist;
     }
-
+   // cur_stop_dist = tpi->current_stopping_distance;
     
     //send_term_debug_log_msg("Stop dist for %d: %d OFF:%",tpi->train_num,cur_stop_dist);
     result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, tpi->train_front_location.node, tpi->train_front_location.offset,cur_stop_dist );
@@ -1039,7 +1069,7 @@ void handle_update_train_position_info(int16_t train, int16_t slot, train_positi
 
     //Set our most recent sensor to the sensor we just hit.
     train_position_info->last_sensor = train_position_info->next_sensor;
-    send_term_debug_log_msg("2Last sens set: %s",train_position_info->last_sensor->name );
+    //send_term_debug_log_msg("2Last sens set: %s",train_position_info->last_sensor->name );
     train_position_info->next_sensor = get_next_sensor(train_position_info->last_sensor);
 
     //Update the terminal display
@@ -1754,3 +1784,29 @@ void train_switch_courrier(void) {
 
     Exit();
 }
+
+int train_server_set_accel(tid_t tid,int32_t accel) {
+    if(accel < 0) return -1;
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_ACCEL;
+    msg.num1 = accel;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
+    return 0;
+}
+void _handle_set_accel(train_position_info_t* tpi, int32_t accel) {
+    tpi->acceleration_thousandths_mm_ticks = accel;
+    send_term_debug_log_msg("Set tr %d accel to %d", tpi->train_num,accel);
+}
+int train_server_set_deccel(tid_t tid,int32_t accel) {
+    if(accel < 0) return -1;
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_SET_DECCEL;
+    msg.num1 = accel;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
+    return 0;
+}
+void _handle_set_deccel(train_position_info_t* tpi, int32_t deccel) {
+    tpi->decceleration_thousandths_mm_ticks = deccel;
+    send_term_debug_log_msg("Set tr %d deccel to %d", tpi->train_num,deccel);
+}
+

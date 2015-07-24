@@ -348,6 +348,7 @@ void track_clear_reservations(reserved_node_queue_t* res_queue, int train_num, t
 
 
 void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num){
+	return;
 	track_node* iterator_node = res_queue->head;
 	char buff[DEBUG_LOG_MAX_LEN];
 	char* buff_it = buff;
