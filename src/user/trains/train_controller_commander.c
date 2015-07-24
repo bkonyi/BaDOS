@@ -605,6 +605,7 @@ void handle_stop_around_sensor(train_data_t* trains, int8_t train, int8_t sensor
 void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num) {
     if(trains[train_num].server_tid != -1) {
         train_server_goto_destination(trains[train_num].server_tid, sensor_num);
+        set_terminal_train_slot_destination(train_num, trains[train_num].slot, sensor_num);
     }
 }
 

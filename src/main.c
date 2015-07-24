@@ -168,6 +168,9 @@ int main(void) {
     
     tid_t next_tid = global_data.task_handler_data.next_tid;
 
+    //Kill the track
+    bwputc(COM1, 97);
+
     setfifo(COM2, OFF);
     bwprintf(COM2,"\033[90;0H");
     bwprintf(COM2, "\e[2B\r\033[2KUser Task Total Time: %u\r\n", user_task_run_time / 2);
