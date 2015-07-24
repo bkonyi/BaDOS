@@ -392,8 +392,7 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     }
     debug_log->border_switch = !(debug_log->border_switch);
     do{
-        term_move_cursor(TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1);
-        printf(COM2,"\033[s \e[%d;%d%c%d: %s%c \033[u",TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1, TERM_DEBUG_LOG_COL, border_char,count ,debug_log->entries[dbl_iterator],border_char);
+        printf(COM2,"\033[s \e[%d;%dH%c%d: %s%c \033[u",TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1, TERM_DEBUG_LOG_COL, border_char,count ,debug_log->entries[dbl_iterator],border_char);
         dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
         if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
         count++;

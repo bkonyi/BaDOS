@@ -30,7 +30,7 @@ typedef uint8_t priority_t;
 //\e[2J \e[1;1H
 
 #ifdef ASSERTIONS
-	#define ASSERT(cond)  if(!(cond)) { send_term_debug_log_msg("ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Delay(100); Terminate(); } while(0)
+	#define ASSERT(cond)  if(!(cond)) { send_term_debug_log_msg("ASSERT FAILED : %s:%d\r\n", __FILE__, __LINE__); Delay(500); Terminate(); } while(0)
 	#define KASSERT(cond) if(!(cond)) { bwprintf(COM2, "KASSERT FAILED: %s:%d\r\n", __FILE__, __LINE__); bwgetc(COM2); } while(0)
 #else
 	#define ASSERT(cond)  ((void)(cond));

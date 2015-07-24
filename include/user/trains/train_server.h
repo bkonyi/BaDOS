@@ -66,13 +66,18 @@ typedef struct train_position_info_t {
 
     //Position inside the node
     int leading_end_offset_in_node;
-    int sensor_offset_in_node;
     track_node *leading_end_node;
     uint32_t last_tick_time_seen;
     reserved_node_queue_t reserved_node_queue;
     track_node *last_sensor_hit;
     bool reservation_halted;
-
+    int32_t acceleration_thousandths_mm_ticks;
+    int32_t velocity_thousandths_mm_ticks;
+    int32_t dist_from_last_sensor;
+    track_node_data_t   train_front_location;
+    track_node_data_t   train_back_location;
+    track_node_data_t   train_sensor_location;
+    bool    is_accelerating;
     // boolean value that will signify one the find command has finished so that sensor data doesn't come through and make a reseravtion before we can stake a claim.
     bool jesus_take_the_wheel; 
 

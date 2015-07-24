@@ -308,3 +308,7 @@ track_node**get_path_iterator(track_node** path,track_node* node) {
 	}
 	return NULL;
 }
+
+track_node* track_node_flip(track_node* node) {
+  return (node->edge[node->state].dest->reverse);
+}

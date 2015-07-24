@@ -62,4 +62,5 @@ track_node**get_path_iterator(track_node** path,track_node* node) ;
  * @brief Pass it any sensor track node and it  will find the other node based on their position relative to each other
  */
 track_node* get_sensor_node_from_num(track_node* start, int num) ;
+track_node* track_node_flip(track_node* node);
 #endif //_TRACK_NODE_H_

@@ -5,6 +5,7 @@
 #include <track_data.h>
 #include <terminal/terminal_debug_log.h>
 #include <common.h>
+#include <track_node.h>
 //TRACK_RESERVATION_SERVER_ID
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response);
@@ -15,7 +16,6 @@ void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
 bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance);
 
 track_node* _next_reservation_node(track_node* node, int train_num);
-track_node* _track_reservation_flip(track_node* node);
 
 void track_reservation_server(void) {
 	track_res_msg_t message;
@@ -107,7 +107,7 @@ void track_release_node(track_node* node,int train_num) {
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
 	node->reserved_by = num;
-	_track_reservation_flip(node)->reserved_by = num;
+	track_node_flip(node)->reserved_by = num;
 }
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response){
@@ -129,7 +129,7 @@ void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_
 }
 bool _handle_node_reserve(track_node* node, int train_num){
 	ASSERT(node!=NULL);
-	track_node* flip =_track_reservation_flip(node);
+	track_node* flip =track_node_flip(node);
 	if(flip->type == NODE_BRANCH){
 		node = flip;
 	}
@@ -155,7 +155,7 @@ bool _handle_node_reserve(track_node* node, int train_num){
 	}else {
 		if(node->reserved_by == -1  || node->reserved_by == train_num){
 			if(flip->reserved_by != -1 && flip->reserved_by != train_num){
-				send_term_debug_log_msg("_handle_node_reserve fail %s resby: %d",_track_reservation_flip(node)->name,_track_reservation_flip(node)->reserved_by);
+				send_term_debug_log_msg("_handle_node_reserve fail %s resby: %d",track_node_flip(node)->name,track_node_flip(node)->reserved_by);
 				Delay(200);
 				ASSERT(0);
 			}
@@ -172,7 +172,7 @@ bool _handle_node_reserve(track_node* node, int train_num){
 }
 void _handle_node_release(track_node* node, int train_num){
 	ASSERT(node!=NULL);
-	track_node* flip =_track_reservation_flip(node);
+	track_node* flip =track_node_flip(node);
 	if(flip->type == NODE_BRANCH){
 		node = flip;
 	}
@@ -273,7 +273,7 @@ void _release_track_from_point_behind(reserved_node_queue_t* res_queue, int trai
 	}*/
 		int count =0 ;
 		bool found_1_sens_behind = false;
-	for(iterator_node = _track_reservation_flip(our_node); iterator_node != NULL && iterator_node->reserved_by == train_num; iterator_node= _next_reservation_node (iterator_node, train_num)){
+	for(iterator_node = track_node_flip(our_node); iterator_node != NULL && iterator_node->reserved_by == train_num; iterator_node= _next_reservation_node (iterator_node, train_num)){
 		
 		
 		if(found_1_sens_behind || dist>0){
@@ -363,7 +363,7 @@ void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num){
 }
 
 bool track_compare_reserved_node(track_node* node, track_node* b){
-	track_node* flip =_track_reservation_flip(node);
+	track_node* flip =track_node_flip(node);
 	if(flip->type == NODE_BRANCH){
 		node = flip;
 	}
@@ -375,7 +375,7 @@ bool track_compare_reserved_node(track_node* node, track_node* b){
 			return true;
 		}
 	}else{
-		if( _track_reservation_flip(node) == b || node  == b ) {
+		if( track_node_flip(node) == b || node  == b ) {
 			return true;
 		}
 	}
@@ -383,6 +383,3 @@ bool track_compare_reserved_node(track_node* node, track_node* b){
 	
 }
 
-track_node* _track_reservation_flip(track_node* node) {
-	return (node->edge[node->state].dest->reverse);
-}
