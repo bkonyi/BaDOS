@@ -32,8 +32,8 @@ path_instruction_t path_instruction_pop(path_instructions_t* path_instructions) 
 void path_instructions_add_stop(path_instructions_t* path_instructions, track_node* destination, int16_t offset) {
     path_instruction_t instruction;
     instruction.command = STOP;
-    instruction.node = destination;
-    instruction.offset = offset;
+    instruction.instruction_node.node = destination;
+    instruction.instruction_node.offset = offset;
 
     path_instructions_insert(path_instructions, instruction);
 }
@@ -41,8 +41,8 @@ void path_instructions_add_stop(path_instructions_t* path_instructions, track_no
 void path_instructions_add_back_stop(path_instructions_t* path_instructions, track_node* destination, int16_t offset) {
     path_instruction_t instruction;
     instruction.command = BACK_STOP;
-    instruction.node = destination;
-    instruction.offset = offset;
+    instruction.instruction_node.node = destination;
+    instruction.instruction_node.offset = offset;
 
     path_instructions_insert(path_instructions, instruction);
 }

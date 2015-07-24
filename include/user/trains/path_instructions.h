@@ -17,9 +17,8 @@ typedef struct {
     path_instructions_command_t command;
 
     //Stops
-    track_node* node;
-    int16_t offset;
-
+    track_node_data_t instruction_node;
+    
     //Switches
     int16_t switch_num;
     int16_t direction;
