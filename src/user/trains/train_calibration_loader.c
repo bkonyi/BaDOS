@@ -72,8 +72,9 @@ void load_train_62_calibration_info(train_position_info_t* train_position_info) 
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 365, 448, 509, 547, 552, 558 };
     train_position_info->stopping_distance = train_62_stopping_distance;
     train_position_info->short_move_time = train_62_short_move_time;
-    train_position_info->acceleration_thousandths_mm_ticks = 16;
+    
     _set_defaults(train_position_info,velocities);
+    train_position_info->acceleration_thousandths_mm_ticks = 20;
     int i, j, k;
     for(i = 0; i < 80; ++i) {
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
