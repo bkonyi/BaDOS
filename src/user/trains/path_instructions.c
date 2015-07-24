@@ -2,7 +2,7 @@
 #include <common.h>
 
 void path_instructions_clear(path_instructions_t* path_instructions) {
-    memset(&path_instructions, 0, sizeof(path_instructions_t));
+    memset(path_instructions, 0, sizeof(path_instructions_t));
 }
 
 void path_instructions_insert(path_instructions_t* path_instructions, path_instruction_t instruction) {

@@ -22,6 +22,7 @@ void load_calibration(int16_t train, train_position_info_t* train_position_info)
     switch(train) {
         case 58:
             load_train_58_calibration_info(train_position_info);
+            break;
         case 62:
             load_train_62_calibration_info(train_position_info);
             break;
@@ -50,6 +51,7 @@ void _set_defaults(train_position_info_t* train_position_info, uint16_t* velocit
 void load_train_58_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 249, 306, 371, 444, 518, 600 };
     train_position_info->stopping_distance = train_58_stopping_distance;
+    train_position_info->short_move_time = train_62_short_move_time;
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
@@ -135,6 +137,7 @@ uint32_t train_62_short_move_time(uint16_t speed, int16_t distance) {
 void load_train_64_calibration_info(train_position_info_t* train_position_info) {
     uint16_t velocities[MAX_STORED_SPEEDS] = { 100, 473, 499, 551, 613, 620, 640 };
     train_position_info->stopping_distance = train_64_stopping_distance;
+    train_position_info->short_move_time = train_62_short_move_time;
     _set_defaults(train_position_info,velocities);
     int i, j, k;
     for(i = 0; i < 80; ++i) {
