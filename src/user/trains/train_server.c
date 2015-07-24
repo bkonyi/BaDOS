@@ -44,11 +44,11 @@ static void _set_stop_around_location_using_path(train_position_info_t* tpi, sen
 
 static void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* train_position_info);
 static void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_position_info_t* train_position_info);
+static void handle_goto_random_destinations(train_position_info_t* tpi, sensor_triggers_t* triggers);
+
 static void _handle_train_track_position_update(train_position_info_t* tpi);
 static void _handle_train_reservations(train_position_info_t* tpi);
 static void _train_server_send_speed(int16_t train, int16_t speed);
-
-
 
 static void handle_set_location(train_position_info_t* train_position_info, int16_t train, int8_t slot, int8_t sensor);
 
@@ -88,7 +88,8 @@ typedef enum train_server_cmd_t {
     TRAIN_SERVER_SET_REVERSING          = 12,
     TRAIN_SERVER_STOPPED_AT_DESTINATION = 13,
     TRAIN_SERVER_SET_LOCATION           = 14,
-    TRAIN_SERVER_RECALCULATE_PATH       = 20
+    TRAIN_SERVER_RECALCULATE_PATH       = 15,
+    TRAIN_SERVER_GOTO_RANDOM_DESTINATIONS = 16
 } train_server_cmd_t;
 
 typedef struct train_server_msg_t {
@@ -149,7 +150,8 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->waiting_on_reverse = false;
     tpi->ready_to_recalculate_path = false;
     tpi->at_branch_after_reverse = false;
-
+    tpi->is_going_to_random_destinations = false;
+    
     path_instructions_clear(&tpi->instructions);
 
     RING_BUFFER_INIT(tpi->conductor_tids, MAX_CONDUCTORS);
@@ -299,6 +301,8 @@ void train_server(void) {
                 handle_set_stop_offset(&train_position_info, train_server_message->num1);
                 break;
             case TRAIN_SERVER_GOTO_DESTINATION:
+                set_terminal_train_slot_destination(train_position_info.train_num, train_position_info.train_slot, train_server_message->num1);
+
                 handle_goto_destination(&train_position_info, &sensor_triggers, train_number, train_server_message->num1);
                 break;
             case TRAIN_SERVER_STOPPED_AT_DESTINATION:
@@ -333,6 +337,9 @@ void train_server(void) {
                     send_term_debug_log_msg("TRAIN_SERVER_RECALCULATE_PATH, recalculating reverse path: %s!", train_position_info.last_sensor->name);
                     handle_goto_destination(&train_position_info, &sensor_triggers, train_number, train_position_info.destination);
                 }
+                break;
+            case TRAIN_SERVER_GOTO_RANDOM_DESTINATIONS:
+                handle_goto_random_destinations(&train_position_info, &sensor_triggers);
                 break;
             default:
                 //Invalid command
@@ -422,6 +429,12 @@ void train_server_set_location(tid_t tid, int8_t sensor_num) {
     train_server_msg_t msg;
     msg.num1 = sensor_num;
     msg.command = TRAIN_SERVER_SET_LOCATION;
+    Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
+}
+
+void train_server_goto_random_destinations(tid_t tid) {
+    train_server_msg_t msg;
+    msg.command = TRAIN_SERVER_GOTO_RANDOM_DESTINATIONS;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), (char*)NULL, 0);
 }
 
@@ -1603,6 +1616,19 @@ void handle_stopped_at_destination(int16_t train_number, int8_t slot, train_posi
         handle_update_train_position_info(train_number, slot, train_position_info, Time(), average_velocity);
     }
 }
+
+void handle_goto_random_destinations(train_position_info_t* tpi, sensor_triggers_t* triggers) {
+    int random_sensor = (rand() % 80) + 1;
+
+    tpi->is_going_to_random_destinations = true;
+
+    send_term_debug_log_msg("Going to random destination: %c%d", sensor_id_to_letter(random_sensor), sensor_id_to_number(random_sensor));
+
+    set_terminal_train_slot_destination(tpi->train_num, tpi->train_slot, random_sensor);
+
+    handle_goto_destination(tpi, triggers, tpi->train_num, random_sensor);
+}
+
 
 void handle_set_location(train_position_info_t* train_position_info, int16_t train, int8_t slot, int8_t sensor) {
     track_node* current_sensor = tps_set_train_sensor(train, sensor);

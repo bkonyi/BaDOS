@@ -86,6 +86,7 @@ typedef struct train_position_info_t {
     int path_length;
     path_instructions_t instructions;
     int8_t destination;
+    bool is_going_to_random_destinations;
     bool waiting_on_reverse;
     bool ready_to_recalculate_path;
     bool at_branch_after_reverse;
@@ -112,5 +113,6 @@ void train_server_goto_destination(tid_t tid, int8_t sensor_num);
 void train_server_set_reversing(tid_t tid);
 void train_server_stopped_at_destination(tid_t tid);
 void train_server_set_location(tid_t tid, int8_t sensor_num);
+void train_server_goto_random_destinations(tid_t tid);
 
 #endif // _TRAIN_SERVER_H_

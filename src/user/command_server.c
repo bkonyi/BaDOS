@@ -261,7 +261,10 @@ void process_input(char* input) {
         } else if(strcmp(first, "trs") == 0) {
         	tcs_speed_all_train(strtoi(second));
         	send_term_cmd_success_msg("trs");
-        }else {
+        } else if(strcmp(first, "rd") == 0) {
+            tcs_goto_random_destinations(strtoi(second));
+            send_term_cmd_success_msg("rd");
+        } else {
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	} else if( argc == 1) {
