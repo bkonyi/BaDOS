@@ -12,12 +12,23 @@ void rand_server_task(void) {
     uint32_t w = 823238;
 
     int requester;
+    bool first_rand = true;
 
     RegisterAs(RAND_SERVER);
     
     FOREVER {
 
         Receive(&requester, NULL, 0);
+
+        if(first_rand) {
+            first_rand = false;
+            uint32_t ticks = Time();
+
+            x *= ticks;
+            y *= ticks;
+            z *= ticks;
+            w *= ticks;
+        }
 
         //Xorshift pseudorandom number generator
         //Found on Wikipedia here: http://en.wikipedia.org/wiki/Xorshift

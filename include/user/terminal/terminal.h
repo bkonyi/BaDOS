@@ -70,6 +70,8 @@ void update_terminal_train_slot_current_location(int8_t train, int8_t slot, int1
  */
 void update_terminal_train_slot_next_location(int8_t train, int8_t slot, int16_t sensor_location);
 
+void set_terminal_train_slot_destination(int8_t train, int8_t slot, int16_t sensor_location);
+
 /**
  * @brief Clears a train information slot on screen.
  * @details Clears a train information slot on screen.

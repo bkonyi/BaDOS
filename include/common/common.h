@@ -39,6 +39,8 @@ typedef uint8_t priority_t;
 
 
 void* memcpy(void* dest, void* src, size_t len);
+void* memset(void *s, int c, unsigned int n);
+
 int max(int val1, int val2);
 int min(int val1, int val2);
 

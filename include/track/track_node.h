@@ -40,7 +40,7 @@ struct track_node {
 typedef struct track_node_data_t{
   track_node* node;
   int         offset;
-}track_node_data_t;
+} track_node_data_t;
 
 track_node* get_next_track_node(track_node* start_node);
 track_node* get_next_track_node_in_path(track_node** start_node);
