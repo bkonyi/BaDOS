@@ -867,7 +867,7 @@ track_node_data_t _get_node_location(track_node* last_sensor,int offset){
     }
     return node_data;
 }
-
+#define GRANULARITY 10000
 void _handle_train_track_position_update(train_position_info_t* tpi){
     if(!tpi->jesus_take_the_wheel) return;
     track_node* node_at_sensor = tpi->last_sensor_hit; // The node where the sensor is located
@@ -910,13 +910,13 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
             //send_term_debug_log_msg("ACCELL d %d v %d",dist_change_mm_thousandths,tpi->velocity_thousandths_mm_ticks );
         }else{
             
-            dist_change_mm_thousandths =( av_velocity *time )*10;
+            dist_change_mm_thousandths =( av_velocity *time )*(GRANULARITY/100);
             //send_term_debug_log_msg("Dist traveled in 10 ms %d",dist_change_mm_thousandths);
         }
         //send_term_debug_log_msg("av vel %d",av_velocity);
-        if((tpi->velocity_thousandths_mm_ticks) > (av_velocity*10)){
+        if((tpi->velocity_thousandths_mm_ticks) > (av_velocity*(GRANULARITY/100))){
             tpi->is_accelerating = false;
-            tpi->velocity_thousandths_mm_ticks = av_velocity*10;
+            tpi->velocity_thousandths_mm_ticks = av_velocity*(GRANULARITY/100);
         }
     }
     
@@ -928,7 +928,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     //    tpi->dist_from_last_sensor += 1;
     //}else {
         //send_term_debug_log_msg("odist %d", tpi->dist_from_last_sensor);
-        tpi->dist_from_last_sensor += dist_change_mm_thousandths/1000;
+        tpi->dist_from_last_sensor += dist_change_mm_thousandths/GRANULARITY;
    // }
 //send_term_debug_log_msg ("off %d vel %d avvel %d 0/1000 %d",  tpi->dist_from_last_sensor,(tpi->velocity_thousandths_mm_ticks)/1000,av_velocity*10, 0/1000);
 
@@ -955,7 +955,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     tpi->train_back_location = _get_node_location(tpi->last_sensor,back_offset_from_node);
   
 
-    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*tpi->decceleration_thousandths_mm_ticks)/1000;
+    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*tpi->decceleration_thousandths_mm_ticks)/GRANULARITY;
 
     send_term_debug_log_msg("Stopping Dist %d ",tpi->current_stopping_distance);
    // if(!temp_printed_once){
