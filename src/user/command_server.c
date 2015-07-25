@@ -208,6 +208,10 @@ void process_input(char* input) {
         } else if(strcmp(first, "tr_accel") == 0) {
         	target_train_number = strtoi(second);
         	tcs_set_train_accel(target_train_number, strtoi(third) );
+        	send_term_cmd_success_msg("tr_accel");
+        } else if(strcmp(first, "tr_deccel") == 0){
+        	tcs_set_train_deccel(target_train_number, strtoi(third) );
+        	send_term_cmd_success_msg("tr_deccel");
         }else {
 			send_term_heavy_msg(true,"Invalid Command");
 		}

@@ -121,4 +121,5 @@ void train_server_stopped_at_destination(tid_t tid);
 void train_server_set_location(tid_t tid, int8_t sensor_num);
 
 int train_server_set_accel(tid_t tid,int32_t accel) ;
+int train_server_set_deccel(tid_t tid,int32_t accel);
 #endif // _TRAIN_SERVER_H_

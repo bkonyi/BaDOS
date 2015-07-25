@@ -83,4 +83,5 @@ int tcs_goto_destination(int16_t train, int8_t sensor_num);
 int set_train_location(int16_t train, int8_t sensor_num);
 int tcs_speed_all_train(int8_t speed);
 int tcs_set_train_accel(int32_t train_num,int32_t accel);
+int tcs_set_train_deccel(int32_t train_num,int32_t deccel);
 #endif //__TRAIN_CONTROLLER_COMMANDER_H__

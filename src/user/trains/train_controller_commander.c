@@ -53,6 +53,7 @@ typedef enum {
     GOTO_LOCATION,
     SET_TRAIN_LOCATION,
     SET_TRAIN_ACCEL,
+    SET_TRAIN_DECCEL,
     TRAIN_ALL_SET_SPEED
 } train_controller_command_t;
 
@@ -104,6 +105,7 @@ static void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t
 static void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_all_speeds(train_data_t* trains,int8_t speed);
 static void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel);
+static void _handle_train_set_decceleration(train_data_t* trains, int8_t train_num,int32_t deccel);
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -145,6 +147,9 @@ void train_controller_commander_server(void) {
                 break;
             case SET_TRAIN_ACCEL:
                 _handle_train_set_acceleration(trains, (int8_t)data.var1, data.var3);
+                break;
+            case SET_TRAIN_DECCEL:
+                _handle_train_set_decceleration(trains, (int8_t)data.var1, data.var3);
                 break;
             case TRAIN_REVERSE_BEGIN:
                 //If the train isn't moving, we can just send the reverse command now
@@ -635,4 +640,23 @@ int tcs_set_train_accel(int32_t train_num,int32_t accel) {
 }
 void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel){
     train_server_set_accel(trains[(int16_t)train_num].server_tid,accel);
+}
+
+int tcs_set_train_deccel(int32_t train_num,int32_t deccel) {
+    if(train_num > MAX_TRAIN_NUM) {
+        return -1;
+    } else if( deccel < 0) {
+        return -2;
+    }
+
+    train_controller_data_t data;
+    data.command = SET_TRAIN_DECCEL;
+    data.var1 = train_num;
+    data.var3 = deccel;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+    return 0;
+}
+void _handle_train_set_decceleration(train_data_t* trains, int8_t train_num,int32_t deccel){
+    train_server_set_deccel(trains[(int16_t)train_num].server_tid,deccel);
 }

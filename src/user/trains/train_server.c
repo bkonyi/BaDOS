@@ -865,8 +865,8 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         //send_term_debug_log_msg("Shtrop");
 
         if(tpi->is_accelerating){
-            dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->acceleration_thousandths_mm_ticks,time);
-            tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->acceleration_thousandths_mm_ticks,time);
+            dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->decceleration_thousandths_mm_ticks,time);
+            tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->decceleration_thousandths_mm_ticks,time);
            // send_term_debug_log_msg("DCCELL dcmt %d vtmt %d",dist_change_mm_thousandths/1000,tpi->velocity_thousandths_mm_ticks/1000 );
         }else{
             dist_change_mm_thousandths = 0;
