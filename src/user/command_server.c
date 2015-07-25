@@ -78,7 +78,11 @@ void process_input(char* input) {
             Delay(time_milliseconds / 10);
             _set_speed(target_train_number,0);
             send_term_heavy_msg(true,"Done short moving train %d",target_train_number);
-        }
+        }else if(strcmp(first, "tr_accel") == 0) {
+        	target_train_number = strtoi(second);
+        	tcs_set_train_accel(target_train_number, strtoi(third),strtoi(fourth));
+        	send_term_cmd_success_msg("tr_accel");
+        } 
 	}else if(argc ==3){
 		first = argv[0];
 		second = argv[1];
@@ -205,10 +209,6 @@ void process_input(char* input) {
             int8_t sensor_id = sensor_to_id(third);
             set_train_location(target_train_number, sensor_id);
             send_term_find_msg();
-        } else if(strcmp(first, "tr_accel") == 0) {
-        	target_train_number = strtoi(second);
-        	tcs_set_train_accel(target_train_number, strtoi(third) );
-        	send_term_cmd_success_msg("tr_accel");
         } else if(strcmp(first, "tr_deccel") == 0){
         	tcs_set_train_deccel(target_train_number, strtoi(third) );
         	send_term_cmd_success_msg("tr_deccel");

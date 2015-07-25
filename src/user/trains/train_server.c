@@ -66,7 +66,7 @@ static void train_speed_courrier(void);
 
 static void _train_server_set_switch(int16_t switch_num, int16_t direction);
 static void train_switch_courrier(void);
-static void _handle_set_accel(train_position_info_t* tpi, int32_t accel);
+static void _handle_set_accel(train_position_info_t* tpi, int32_t accel1, int32_t accel2);
 static void _handle_set_deccel(train_position_info_t* tpi, int32_t deccel);
 
 #define END_INSTRUCTIONS() goto end_instructions
@@ -164,7 +164,6 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->is_accelerating = false;
     tpi->temp_printed_once = false;
     tpi->current_stopping_distance = 0;
-    tpi->decceleration_thousandths_mm_ticks =0 ;
     tpi->is_going_to_random_destinations = false;
     
     path_instructions_clear(&tpi->instructions);
@@ -325,7 +324,7 @@ void train_server(void) {
                 handle_stopped_at_destination(train_number, train_slot, &train_position_info);
                 break;
             case TRAIN_SERVER_SET_ACCEL:
-                _handle_set_accel(&train_position_info,train_server_message->num1);
+                _handle_set_accel(&train_position_info,train_server_message->num1,train_server_message->num2);
                 break; 
             case TRAIN_SERVER_SET_DECCEL:
                 _handle_set_deccel(&train_position_info,train_server_message->num1);
@@ -881,6 +880,8 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     uint32_t time = time_now - tpi->last_position_time;
     tpi->last_position_time = time_now;
     int32_t dist_change_mm_thousandths; 
+    int32_t current_acceleration = tpi->acceleration_current_thousandths_mm_ticks;
+
    // send_term_debug_log_msg("acc %d vel %d time %d", tpi->acceleration_thousandths_mm_ticks,tpi->velocity_thousandths_mm_ticks,time);
     //int offset_from_node = 0;
 
@@ -888,8 +889,8 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         //send_term_debug_log_msg("Shtrop");
 
         if(tpi->is_accelerating){
-            dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->decceleration_thousandths_mm_ticks,time);
-            tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*tpi->decceleration_thousandths_mm_ticks,time);
+            dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*current_acceleration,time);
+            tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,(-1)*current_acceleration,time);
            // send_term_debug_log_msg("DCCELL dcmt %d vtmt %d",dist_change_mm_thousandths/1000,tpi->velocity_thousandths_mm_ticks/1000 );
         }else{
             dist_change_mm_thousandths = 0;
@@ -899,14 +900,15 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         if(tpi->velocity_thousandths_mm_ticks < 0) {
             tpi->is_accelerating = false;
             tpi->velocity_thousandths_mm_ticks = 0;
+            tpi->acceleration_current_thousandths_mm_ticks = tpi->acceleration_while_accel_thousandths_mm_ticks;
             //ASSERT(0);
         }
         
         
     }else {
         if(tpi->is_accelerating){
-            dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,tpi->acceleration_thousandths_mm_ticks,time);
-            tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,tpi->acceleration_thousandths_mm_ticks,time);
+            dist_change_mm_thousandths = dist_using_vat(tpi->velocity_thousandths_mm_ticks,current_acceleration,time);
+            tpi->velocity_thousandths_mm_ticks = velocity_using_vat(tpi->velocity_thousandths_mm_ticks,current_acceleration,time);
             //send_term_debug_log_msg("ACCELL d %d v %d",dist_change_mm_thousandths,tpi->velocity_thousandths_mm_ticks );
         }else{
             
@@ -915,6 +917,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         }
         //send_term_debug_log_msg("av vel %d",av_velocity);
         if((tpi->velocity_thousandths_mm_ticks) > (av_velocity*(GRANULARITY/100))){
+            tpi->acceleration_current_thousandths_mm_ticks = tpi->acceleration_at_max_thousandths_mm_ticks;
             tpi->is_accelerating = false;
             tpi->velocity_thousandths_mm_ticks = av_velocity*(GRANULARITY/100);
         }
@@ -955,7 +958,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     tpi->train_back_location = _get_node_location(tpi->last_sensor,back_offset_from_node);
   
 
-    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*tpi->decceleration_thousandths_mm_ticks)/GRANULARITY;
+    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*current_acceleration)/GRANULARITY;
 
     send_term_debug_log_msg("Stopping Dist %d ",tpi->current_stopping_distance);
    // if(!temp_printed_once){
@@ -1951,17 +1954,24 @@ void train_switch_courrier(void) {
     Exit();
 }
 
-int train_server_set_accel(tid_t tid,int32_t accel) {
-    if(accel < 0) return -1;
+int train_server_set_accel(tid_t tid,int32_t accel1, int32_t accel2) {
+    if(accel1 < 0 || accel2 < 0) return -1;
     train_server_msg_t msg;
     msg.command = TRAIN_SERVER_SET_ACCEL;
-    msg.num1 = accel;
+    msg.num1 = accel1;
+    msg.num2 = accel2;
     Send(tid, (char*)&msg, sizeof(train_server_msg_t), NULL, 0);
     return 0;
 }
-void _handle_set_accel(train_position_info_t* tpi, int32_t accel) {
-    tpi->acceleration_thousandths_mm_ticks = accel;
-    send_term_debug_log_msg("Set tr %d accel to %d", tpi->train_num,accel);
+void _handle_set_accel(train_position_info_t* tpi, int32_t accel1, int32_t accel2) {
+    if(accel1 == 0 && accel2 == 0) {
+        send_term_debug_log_msg("Set tr %d accel while acc: %d, while at max: %d", tpi->train_num,tpi->acceleration_while_accel_thousandths_mm_ticks,tpi->acceleration_at_max_thousandths_mm_ticks);
+        return;
+    }
+
+    tpi->acceleration_while_accel_thousandths_mm_ticks = accel1;
+    tpi->acceleration_at_max_thousandths_mm_ticks = accel2;
+    send_term_debug_log_msg("Set tr %d accel while acc: %d, while at max: %d", tpi->train_num,accel1,accel2);
 }
 int train_server_set_deccel(tid_t tid,int32_t accel) {
     if(accel < 0) return -1;
@@ -1972,7 +1982,7 @@ int train_server_set_deccel(tid_t tid,int32_t accel) {
     return 0;
 }
 void _handle_set_deccel(train_position_info_t* tpi, int32_t deccel) {
-    tpi->decceleration_thousandths_mm_ticks = deccel;
-    send_term_debug_log_msg("Set tr %d deccel to %d", tpi->train_num,deccel);
+//    tpi->decceleration_thousandths_mm_ticks = deccel;
+    send_term_debug_log_msg(" _handle_set_deccel NOT IMPLEMENTED ");
 }
 

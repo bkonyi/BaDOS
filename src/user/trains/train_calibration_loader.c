@@ -44,8 +44,9 @@ void load_calibration(int16_t train, train_position_info_t* train_position_info)
 }
 
 void _set_defaults(train_position_info_t* train_position_info, uint16_t* velocities) {
-    train_position_info->acceleration_thousandths_mm_ticks = 100;
-    train_position_info->decceleration_thousandths_mm_ticks =210;
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 140;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 210 ;
+    train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i;
     for(i = 0; i < MAX_STORED_SPEEDS; i ++) {
         train_position_info->default_av_velocity[i]=velocities[i];
@@ -57,6 +58,10 @@ void load_train_58_calibration_info(train_position_info_t* train_position_info) 
     train_position_info->stopping_distance = train_58_stopping_distance;
     train_position_info->short_move_time = train_58_short_move_time;
     _set_defaults(train_position_info,velocities);
+
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 135;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 140 ;
+    train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i, j, k;
     for(i = 0; i < 80; ++i) {
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
@@ -121,8 +126,9 @@ void load_train_62_calibration_info(train_position_info_t* train_position_info) 
     train_position_info->short_move_time = train_62_short_move_time;
     
     _set_defaults(train_position_info,velocities);
-    train_position_info->acceleration_thousandths_mm_ticks = 100;
-    train_position_info->decceleration_thousandths_mm_ticks = 210;
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 80;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 210 ;
+    train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i, j, k;
     for(i = 0; i < 80; ++i) {
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {

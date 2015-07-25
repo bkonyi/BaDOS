@@ -63,6 +63,7 @@ typedef struct {
     int16_t var1;
     int8_t  var2;
     uint32_t var3;
+    uint32_t var4;
 } train_controller_data_t;
 
 typedef struct {
@@ -105,7 +106,7 @@ static void handle_train_stop_offset(train_data_t* trains,int32_t train_num,int3
 static void handle_goto_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t sensor_num);
 static void handle_set_all_speeds(train_data_t* trains,int8_t speed);
-static void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel);
+static void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel1,int32_t accel2);
 static void _handle_train_set_decceleration(train_data_t* trains, int8_t train_num,int32_t deccel);
 static void handle_goto_random_destinations(train_data_t* trains, int32_t train_num);
 void train_controller_commander_server(void) {
@@ -148,7 +149,7 @@ void train_controller_commander_server(void) {
                 handle_train_set_speed(trains, (int8_t)data.var1, data.var2);
                 break;
             case SET_TRAIN_ACCEL:
-                _handle_train_set_acceleration(trains, (int8_t)data.var1, data.var3);
+                _handle_train_set_acceleration(trains, (int8_t)data.var1, data.var3,data.var4);
                 break;
             case SET_TRAIN_DECCEL:
                 _handle_train_set_decceleration(trains, (int8_t)data.var1, data.var3);
@@ -643,23 +644,24 @@ void handle_set_train_location(train_data_t* trains, int32_t train_num, int8_t s
     }
 }
 
-int tcs_set_train_accel(int32_t train_num,int32_t accel) {
+int tcs_set_train_accel(int32_t train_num,int32_t accel1,int32_t accel2) {
     if(train_num > MAX_TRAIN_NUM) {
         return -1;
-    } else if( accel < 0) {
+    } else if( accel1 < 0 || accel2 < 0) {
         return -2;
     }
 
     train_controller_data_t data;
     data.command = SET_TRAIN_ACCEL;
     data.var1 = train_num;
-    data.var3 = accel;
+    data.var3 = accel1;
+    data.var4 = accel2;
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
     return 0;
 }
-void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel){
-    train_server_set_accel(trains[(int16_t)train_num].server_tid,accel);
+void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel1,int32_t accel2){
+    train_server_set_accel(trains[(int16_t)train_num].server_tid,accel1,accel2);
 }
 
 int tcs_set_train_deccel(int32_t train_num,int32_t deccel) {
