@@ -63,3 +63,10 @@ void path_instructions_add_reverse(path_instructions_t* path_instructions) {
     path_instructions_insert(path_instructions, instruction);
 }
 
+void path_instructions_add_done(path_instructions_t* path_instructions) {
+    path_instruction_t instruction;
+    instruction.command = DONE;
+
+    path_instructions_insert(path_instructions, instruction);
+}
+

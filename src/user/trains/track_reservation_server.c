@@ -8,7 +8,7 @@
 #include <track_node.h>
 //TRACK_RESERVATION_SERVER_ID
 
-//#define TRACK_RESERVATIONS_ENABLED
+#define TRACK_RESERVATIONS_ENABLED
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node, int train_num, track_res_msg_t* response);
 bool _handle_node_reserve(track_node* node, int train_num);
