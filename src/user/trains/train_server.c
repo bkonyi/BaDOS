@@ -47,7 +47,7 @@ static void handle_stopped_at_destination(int16_t train_number, int8_t slot, tra
 static void handle_goto_random_destinations(train_position_info_t* tpi, sensor_triggers_t* triggers);
 
 static void _handle_train_track_position_update(train_position_info_t* tpi);
-//static void _handle_train_reservations(train_position_info_t* tpi);
+static void _handle_train_reservations(train_position_info_t* tpi);
 static void _train_server_send_speed(int16_t train, int16_t speed);
 
 static void handle_set_location(train_position_info_t* train_position_info, int16_t train, int8_t slot, int8_t sensor);
@@ -824,16 +824,16 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
     }
 
     _handle_train_track_position_update(train_position_info);
-    //_handle_train_reservations(train_position_info);
+    _handle_train_reservations(train_position_info);
 }
 int32_t dist_using_vat(int32_t v_i, int32_t a,int32_t time){
-        return v_i*time + (a * time*(time/2));
+        return v_i*time + (a * time*(time))/2;
 }
 int32_t velocity_using_vat(int32_t v_i, int32_t a,int32_t time){
     return v_i + a*time;
 }
 int32_t dist_using_vva(int32_t v_i, int32_t v_f,int32_t a){
-    return (v_i*v_i-v_f*v_f)/(2*a);
+    return (v_f*v_f-v_i*v_i)/(2*a);
 }
 track_node_data_t _get_node_location(track_node* last_sensor,int offset){
     track_node_data_t node_data;
@@ -948,7 +948,9 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     tpi->train_back_location = _get_node_location(tpi->last_sensor,back_offset_from_node);
   
 
-    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*tpi->acceleration_thousandths_mm_ticks);
+    tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*tpi->decceleration_thousandths_mm_ticks)/1000;
+
+    send_term_debug_log_msg("Stopping Dist %d ",tpi->current_stopping_distance);
    // if(!temp_printed_once){
         //send_term_debug_log_msg("tip location %s %d, last sen %s off %d", tpi->train_front_location.node->name,tpi->train_front_location.offset,tpi->last_sensor->name,sensor_offset_from_node);
    // }
@@ -1032,7 +1034,10 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
            ASSERT( track_reserve_node(train_position_info->last_sensor, train_position_info->train_num));
            track_node* reverse_node = train_position_info->last_sensor->reverse;
            ASSERT( track_reserve_node(reverse_node->edge[reverse_node->state].dest->reverse, train_position_info->train_num));
-            ASSERT(train_position_info->last_sensor->reserved_by == train_position_info->train_num);
+            if(!(train_position_info->last_sensor->reserved_by == train_position_info->train_num)) {
+                send_term_debug_log_msg( "ERROR %s Was already owned by %d",train_position_info->last_sensor->name,train_position_info->last_sensor->reserved_by);
+                ASSERT(0); 
+            }
             load_calibration(train,train_position_info);
 
 
