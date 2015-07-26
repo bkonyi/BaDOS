@@ -1123,7 +1123,7 @@ bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* 
 void _handle_train_reservations(train_position_info_t* tpi) {
 
     //TODO REMOVE ME!!@!!!!!!
-    return;
+    //return;
 
     if(!tpi->jesus_take_the_wheel) return;
     bool result;
