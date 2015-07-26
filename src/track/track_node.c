@@ -75,7 +75,7 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 
 uint32_t distance_between_track_nodes_using_path(track_node** start, track_node * end){
 
-	if(start == NULL  ) {
+	if(start == NULL) {
 		Delay(200);ASSERT(0);
 		return 0;
 	}else if(end == NULL){
