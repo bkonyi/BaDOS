@@ -33,6 +33,10 @@ void set_track_node_state(volatile track_node* node, uint32_t state) {
 	}
 }
 uint32_t get_track_node_length(track_node* node) {
+    if(node->type == NODE_EXIT) {
+        return 0;
+    }
+
 	if(node == NULL){
 		return 0;
 	}else {
