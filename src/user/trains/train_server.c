@@ -854,20 +854,34 @@ int32_t dist_using_vva(int64_t v_i, int64_t v_f,int64_t a){
 track_node_data_t _get_node_location(track_node* last_sensor,int offset){
     track_node_data_t node_data;
 
-  
+    bool a = false;
     bool reverse = false;
+   
+
     if(offset < 0) {
+        
+        track_node* flip = track_node_flip(last_sensor);
         offset*=-1;
-        node_data.node = track_node_flip(last_sensor);
+        node_data.node = flip->edge[flip->state].dest;
         reverse = true;
+        a = true;
     }else{
         node_data.node = last_sensor;
     }
     node_data.offset = offset;
 
+    int diff = Time();
+
+    ASSERT(node_data.offset >=0);
+    ASSERT(get_track_node_length(node_data.node) >= 0);
+
     while(node_data.offset > get_track_node_length(node_data.node)){
         node_data.offset -= get_track_node_length(node_data.node);
         node_data.node = get_next_track_node(node_data.node);
+    }
+
+    if(Time() - diff > 20) {
+        ASSERT(0);
     }
 
     if(reverse){
@@ -880,7 +894,10 @@ track_node_data_t _get_node_location(track_node* last_sensor,int offset){
 void _handle_train_track_position_update(train_position_info_t* tpi){
     if(!tpi->jesus_take_the_wheel) return;
     track_node* node_at_sensor = tpi->last_sensor_hit; // The node where the sensor is located
-    int dist_to_next_sensor = distance_between_track_nodes(node_at_sensor,get_next_sensor_or_exit(node_at_sensor),false);
+
+    track_node* node = get_next_sensor_or_exit(node_at_sensor);
+    int dist_to_next_sensor = distance_between_track_nodes(node_at_sensor,node,false);
+
     if(node_at_sensor == NULL) return;
     uint32_t    av_velocity = tpi->average_velocities[node_at_sensor->num][0][tpi->speed].average_velocity;
     if(tpi->last_position_time == 0){
@@ -923,7 +940,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         }else{
             
             dist_change_mm_thousandths =( av_velocity *time )*(GRANULARITY/100);
-            //send_term_debug_log_msg("Dist traveled in 10 ms %d",dist_change_mm_thousandths);
+            //send_term_debug_log_msg("Dist traveled in 10 ms %d Velo: %d Time: %d",dist_change_mm_thousandths, av_velocity, time);
         }
         //send_term_debug_log_msg("av vel %d",av_velocity);
         if((tpi->velocity_thousandths_mm_ticks) > (av_velocity*(GRANULARITY/100))){
@@ -978,9 +995,7 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         send_term_debug_log_msg("ERROR: Stopping distance < 0. Velo: %d Accel: %d StopDist: %d", tpi->velocity_thousandths_mm_ticks, (-1) * current_acceleration, tpi->stopping_distance(tpi->speed,false));
         ASSERT(0);
     }
-   // if(!temp_printed_once){
-        //send_term_debug_log_msg("tip location %s %d, last sen %s off %d", tpi->train_front_location.node->name,tpi->train_front_location.offset,tpi->last_sensor->name,sensor_offset_from_node);
-   // }
+
     send_term_update_dist_msg(tpi->train_slot, tpi->dist_from_last_sensor);
     send_term_update_velocity_msg(tpi->train_slot,tpi->velocity_thousandths_mm_ticks*(GRANULARITY/100));
     //send_term_debug_log_msg("trackpos sens: %s tip: %s off %d",node_at_sensor->name,tpi->leading_end_node->name,tpi->leading_end_offset_in_node);
@@ -1053,8 +1068,19 @@ end_instructions:
 bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
     track_node_data_t instruction_node = instruction->instruction_node;
     track_node_data_t front_of_train = tpi->train_front_location;
+    track_node** iterator = get_path_iterator(tpi->current_path, front_of_train.node);
 
-    uint32_t distance_between_nodes = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, front_of_train.node), instruction_node.node);
+    if(iterator == NULL) {
+        send_term_debug_log_msg("[INST_STOP] ERROR: %s is not in path!", front_of_train.node->name);
+        ASSERT(0);
+    }
+
+    int32_t time = Time();
+
+    uint32_t distance_between_nodes = distance_between_track_nodes_using_path(iterator, instruction_node.node);
+
+    //send_term_debug_log_msg("[INST_STOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
+
 
     distance_between_nodes -= front_of_train.offset;
 
@@ -1072,13 +1098,25 @@ bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* ins
 bool _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
     track_node_data_t instruction_node = instruction->instruction_node;
     track_node_data_t back_of_train = tpi->train_back_location;
+    track_node_data_t front_of_train = tpi->train_front_location;
+    track_node** iterator = get_path_iterator(tpi->current_path, back_of_train.node);
+    uint32_t distance_between_nodes;
 
-    uint32_t distance_between_nodes = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, back_of_train.node), instruction_node.node);
+    if(iterator == NULL) {
+        iterator = get_path_iterator(tpi->current_path, front_of_train.node);
+        ASSERT(iterator != NULL);
 
-    distance_between_nodes -= back_of_train.offset;
+        distance_between_nodes = distance_between_track_nodes_using_path(iterator, instruction_node.node);
+        distance_between_nodes += (get_track_node_length(back_of_train.node) - back_of_train.offset);
+    } else {
+        distance_between_nodes = distance_between_track_nodes_using_path(iterator, instruction_node.node);
+        distance_between_nodes -= back_of_train.offset;
+    }
+
+    //send_term_debug_log_msg("[INST_BSTOP] Iter: %s %s-%s %d Dist: %d Off: %d Stopping Distance: %d", (*iterator)->name, back_of_train.node->name, instruction_node.node->name, distance_between_nodes, distance_between_nodes + back_of_train.offset, back_of_train.offset, tpi->current_stopping_distance);
 
     if(distance_between_nodes <= tpi->current_stopping_distance) {
-        send_term_debug_log_msg("[INST_STOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
+        send_term_debug_log_msg("[INST_BSTOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
         _train_server_send_speed(tpi->train_num, 0);
         return true;
     }
@@ -1087,18 +1125,18 @@ bool _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t
 }
 
 bool _check_switch_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
-    track_node_data_t instruction_node = instruction->instruction_node;
-    track_node_data_t front_of_train = tpi->train_front_location;
+    //track_node_data_t instruction_node = instruction->instruction_node;
+    //track_node_data_t front_of_train = tpi->train_front_location;
 
-    uint32_t distance_between_nodes = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, front_of_train.node), instruction_node.node);
+    //uint32_t distance_between_nodes = distance_between_track_nodes_using_path(get_path_iterator(tpi->current_path, front_of_train.node), instruction_node.node);
 
-    distance_between_nodes -= front_of_train.offset;
+    //distance_between_nodes -= front_of_train.offset;
     //distance_between_nodes -= BRANCH_SWITCH_OFFSET;
 
     //send_term_debug_log_msg("[INST_SW] Distance w/ offset: %d Switch Distance: %d", distance_between_nodes, tpi->current_stopping_distance);
 
     //if(distance_between_nodes <= BRANCH_SWITCH_OFFSET) {
-        send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Expected error: %d", tpi->train_num, BRANCH_SWITCH_OFFSET - distance_between_nodes);
+        send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Expected error: %d", tpi->train_num);//, BRANCH_SWITCH_OFFSET - distance_between_nodes);
         _train_server_set_switch(instruction->switch_num, instruction->direction);
         return true;
     //}
@@ -1642,7 +1680,7 @@ int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track
 
 void handle_goto_destination(train_position_info_t* train_position_info, int16_t train, int8_t sensor_num) {
 
-    track_node* current_location = train_position_info->last_sensor;
+    track_node* current_location = train_position_info->train_sensor_location.node;
     track_node* destination = get_sensor_node_from_num(current_location, sensor_num);
 
     train_position_info->destination = sensor_num;
