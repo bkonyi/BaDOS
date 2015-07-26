@@ -33,7 +33,7 @@ void set_track_node_state(volatile track_node* node, uint32_t state) {
 	}
 }
 uint32_t get_track_node_length(track_node* node) {
-	if(node == NULL){
+	if(node == NULL || node->type == NODE_EXIT){
 		return 0;
 	}else {
 		return node->edge[node->state].dist;
@@ -314,10 +314,12 @@ track_node* track_node_flip(track_node* node) {
 }
 
 void track_touch_edge(track_edge* edge, bool val){
+	if(edge==NULL) return;
 	edge->touched = val;
 	edge->reverse->touched = val;
 }
 void track_touch_node(track_node* node, bool val){
+	if(node==NULL) return;
 	if(node->type == NODE_BRANCH){
 		track_touch_edge(node->edge+DIR_STRAIGHT,val);
 		track_touch_edge(node->edge+DIR_CURVED,val);
@@ -369,4 +371,23 @@ track_node_data_t track_get_node_location(track_node* last_sensor,int offset){
 void track_flip_node_data(track_node_data_t* node_data) {
 	node_data->node = track_node_flip(node_data->node);
 	node_data->offset = get_track_node_length(node_data->node)-node_data->offset;
+}
+
+/**
+ * @brief Is node2 adjacent to node1?
+ */
+bool _is_track_node_adacent(track_node* node1, track_node* node2) {
+	bool result = false;
+	if(node1 == node2) return false;
+	track_node* iterator_node;
+	if(node1->type == NODE_BRANCH){
+		iterator_node = node1->edge[DIR_CURVED].dest;
+		result |= (iterator_node == node2 || track_node_flip(iterator_node) == node2);
+	}
+	iterator_node = node1->edge[DIR_AHEAD].dest;
+	result |= (iterator_node == node2 || track_node_flip(iterator_node) == node2);
+
+	iterator_node = node1->reverse;
+	result |= (iterator_node == node2 || track_node_flip(iterator_node) == node2);
+	return result;
 }

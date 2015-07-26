@@ -15,7 +15,7 @@ bool _handle_node_reserve(reserved_node_queue_t* res_queue,track_node* node, int
 void _handle_node_release(reserved_node_queue_t* res_queue,track_node* node, int train_num);
 void _handle_reservation_init(void);
 void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
-bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance);
+bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance, bool initial_reservation);
 
 track_node* _next_reservation_node(track_node* node, int train_num);
 static bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node* our_node, int train_num);
@@ -50,7 +50,7 @@ void track_reservation_server(void) {
 				break;
 			case TR_MAKE_RESERVATIONS:
 				ASSERT(message.res_queue != NULL);
-				*bool_response = _handle_track_handle_reservations(message.res_queue,message.train_num,message.front_data,message.back_data,message.stopping_distance);
+				*bool_response = _handle_track_handle_reservations(message.res_queue,message.train_num,message.front_data,message.back_data,message.stopping_distance,message.initial_reservation);
 					response_size =sizeof(bool);
 
 				break;
@@ -232,7 +232,7 @@ track_node* _next_reservation_node(track_node* node, int train_num) {
 	}
 }
 
-bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num, track_node* our_node,int32_t offset_in_node,int stopping_distance) {
+bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num, track_node* our_node,int32_t offset_in_node,int stopping_distance, bool initial_reservation) {
 
 	bool nodes_added = false;
 	ASSERT(our_node !=NULL);
@@ -241,7 +241,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 	track_node* iterator_node;
 	//send_term_debug_log_msg("Reserve %d from %s with off %d",stopping_distance, our_node->name,offset_in_node);
 	//TODO: TRAIN_PANIC
-	if(!(our_node->reserved_by == train_num )){
+	if( !initial_reservation && !(our_node->reserved_by == train_num )){
 		send_term_debug_log_msg("%s(%d) Was reserved by: %d",our_node->name,train_num,our_node->reserved_by);
 		Delay(2000);
 		ASSERT(0);
@@ -300,12 +300,12 @@ void _release_track_from_point_behind(reserved_node_queue_t* res_queue, int trai
 
 }
 
-bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance){
-	bool bool_result =_reserve_tracks_from_point(res_queue,train_num,front_data->node,front_data->offset, stopping_distance);
+bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance, bool initial_reservation){
+	bool bool_result =_reserve_tracks_from_point(res_queue,train_num,front_data->node,front_data->offset, stopping_distance,initial_reservation);
 	_release_track_from_point_behind(res_queue, train_num, back_data->node,back_data->offset, stopping_distance);
 	return bool_result;
 }
-bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance) {
+bool _track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance, bool initial_reservation) {
 	ASSERT(res_queue != NULL);
 	ASSERT(front_data != NULL && back_data != NULL);
 	ASSERT(front_data->node != NULL && back_data->node != NULL);
@@ -317,6 +317,7 @@ bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, 
 	message.front_data = front_data;
 	message.back_data = back_data;
 	message.stopping_distance = stopping_distance;
+	message.initial_reservation = initial_reservation;
 
 	bool bool_result;
 	Send(TRACK_RESERVATION_SERVER_ID,(char*)&message, sizeof(track_res_msg_t),(char*)&bool_result,sizeof(bool));
@@ -324,6 +325,17 @@ bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, 
 
 	
 }
+bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance) {
+
+	return _track_handle_reservations( res_queue, train_num, front_data, back_data,  stopping_distance,false);
+
+	
+}
+bool track_intial_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance) {
+
+	return _track_handle_reservations( res_queue, train_num, front_data, back_data,  stopping_distance,true);
+}
+
 
 
 
@@ -364,7 +376,8 @@ bool track_compare_reserved_node(track_node* node, track_node* b){
 	
 }
 bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node* our_node, int train_num) {
-	if(our_node->reserved_by != train_num) return false;
+	if(our_node == NULL ) return true;
+	if(our_node->reserved_by != train_num || our_node->type == NODE_EXIT) return false;
 	bool changed = false;
 	//Burn the bridge behind us so we can't recurse back on ourselves
 	ASSERT(our_node->edge[DIR_AHEAD].touched == true || our_node->edge[DIR_AHEAD].touched == false);
@@ -410,3 +423,22 @@ bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node
 	return changed;
 }
 
+void _check_reservation_constraints(reserved_node_queue_t* res_queue,int train_num){
+	track_node* adj_iterator;
+	track_node* res_iterator;
+	
+	for(res_iterator = res_queue->head;res_iterator!=NULL;res_iterator = res_iterator->next_reserved){
+		for(adj_iterator = res_queue->head;adj_iterator!=NULL;adj_iterator = adj_iterator->next_reserved){
+			if(_is_track_node_adacent(res_iterator,adj_iterator ) ){
+				break;
+			}
+			
+		}
+		send_term_debug_log_msg("Found a lone node");
+		ASSERT(0);
+	}
+	send_term_debug_log_msg("Reservations are sparse");
+	_print_reserved_tracks(res_queue,train_num);
+	ASSERT(0);
+
+}
