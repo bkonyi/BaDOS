@@ -82,6 +82,7 @@ int tcs_send_train_stop_offset_msg(int16_t train, int32_t mm_diff);
 int tcs_goto_destination(int16_t train, int8_t sensor_num);
 int set_train_location(int16_t train, int8_t sensor_num);
 int tcs_goto_random_destinations(int16_t train);
+void tcs_all_goto_random_destinations(void);
 int tcs_speed_all_train(int8_t speed);
 int tcs_set_train_accel(int32_t train_num,int32_t accel1,int32_t accel2);
 int tcs_set_train_deccel(int32_t train_num,int32_t deccel);

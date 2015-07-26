@@ -268,7 +268,7 @@ void process_input(char* input) {
         } else if(strcmp(first, "trs") == 0) {
         	tcs_speed_all_train(strtoi(second));
         	send_term_cmd_success_msg("trs");
-        } else if(strcmp(first, "rd") == 0) {
+        } else if(strcmp(first, "rd (Random Destination)") == 0) {
             tcs_goto_random_destinations(strtoi(second));
             send_term_cmd_success_msg("rd");
         } else {
@@ -284,9 +284,11 @@ void process_input(char* input) {
 			start_controller();
 			send_term_start_msg();
 		} else if(strcmp(argv[0], "tracks" )== 0) {
-			
 			send_term_heavy_msg(true,"Available track options: smallloop, bigloop, megaloop, 8A, 8B, bigloopflare");
-		}  else{
+		} else if(strcmp(argv[0], "rda") == 0) {
+            tcs_all_goto_random_destinations();
+            send_term_cmd_success_msg("rda (Random Destination All)");
+        } else {
 			send_term_heavy_msg(true,"Invalid command");
 		}
 	}else{
