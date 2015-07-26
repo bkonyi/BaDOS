@@ -1679,11 +1679,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
 
     find_path(current_location, destination, train_position_info->current_path, &(train_position_info->path_length));
 
-    //Delay(50);
-
     send_term_debug_log_msg("Path Length: %d Start: %s", train_position_info->path_length, current_location->name);
-
-    //Delay(500);
 
     int i;
     for(i = 0; i < train_position_info->path_length; ++i) {
@@ -1731,15 +1727,21 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
             path_instructions_add_back_stop(&train_position_info->instructions, current_path_node, 0);
             path_instructions_add_switch(&train_position_info->instructions, current_path_node->num, direction);
             path_instructions_add_reverse(&train_position_info->instructions, current_path_node);
+
+
+            //TODO remove hard code
+            _train_server_send_speed(train_position_info->train_num, 10);
             return;
         }
     }
     path_instructions_add_stop(&train_position_info->instructions, destination, 0);
     path_instructions_add_done(&train_position_info->instructions);
 
+    //TODO remove hard code
+    _train_server_send_speed(train_position_info->train_num, 10);
+
     (void)_set_stop_around_location_using_path;
 
-    (void)_train_server_send_speed;
     (void)_prepare_short_move_reverse;
     (void)_set_switch_change;
     (void)_set_reverse_and_switch;
