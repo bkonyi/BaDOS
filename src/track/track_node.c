@@ -312,3 +312,61 @@ track_node**get_path_iterator(track_node** path,track_node* node) {
 track_node* track_node_flip(track_node* node) {
   return (node->edge[node->state].dest->reverse);
 }
+
+void track_touch_edge(track_edge* edge, bool val){
+	edge->touched = val;
+	edge->reverse->touched = val;
+}
+void track_touch_node(track_node* node, bool val){
+	if(node->type == NODE_BRANCH){
+		track_touch_edge(node->edge+DIR_STRAIGHT,val);
+		track_touch_edge(node->edge+DIR_CURVED,val);
+	}else{
+		track_touch_edge(node->edge+DIR_AHEAD,val);
+	}
+}
+
+
+track_node_data_t track_get_node_location(track_node* last_sensor,int offset){
+    track_node_data_t node_data;
+
+  	bool a = false;
+    bool reverse = false;
+   
+
+    if(offset < 0) {
+        
+        track_node* flip = track_node_flip(last_sensor);
+        offset*=-1;
+        node_data.node = flip->edge[flip->state].dest;
+        reverse = true;
+        a = true;
+    }else{
+        node_data.node = last_sensor;
+    }
+    node_data.offset = offset;
+
+    int diff = Time();
+
+    ASSERT(node_data.offset >=0);
+    ASSERT(get_track_node_length(node_data.node) >= 0);
+
+    while(node_data.offset > get_track_node_length(node_data.node)){
+        node_data.offset -= get_track_node_length(node_data.node);
+        node_data.node = get_next_track_node(node_data.node);
+    }
+
+    if(Time() - diff > 20) {
+        ASSERT(0);
+    }
+
+    if(reverse){
+        node_data.node = track_node_flip(node_data.node);
+        node_data.offset = get_track_node_length(node_data.node)-node_data.offset;
+    }
+    return node_data;
+}
+void track_flip_node_data(track_node_data_t* node_data) {
+	node_data->node = track_node_flip(node_data->node);
+	node_data->offset = get_track_node_length(node_data->node)-node_data->offset;
+}

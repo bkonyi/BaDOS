@@ -221,6 +221,11 @@ void fill_track_branch_data(track_node* track_nodes, track_node* track_branch_no
 			branch_index = switch_num_to_index(branch_index);
 			ASSERT(branch_index < NUM_SWITCHES_TO_STORE);
 			track_branch_nodes[branch_index] = track_nodes+i;
+
+			track_nodes[i].edge[DIR_STRAIGHT].touched = false;
+			track_nodes[i].edge[DIR_CURVED].touched = false;
+		}else{
+			track_nodes[i].edge[DIR_AHEAD].touched = false;
 		}
 	}
 	

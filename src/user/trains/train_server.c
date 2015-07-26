@@ -851,45 +851,8 @@ int32_t velocity_using_vat(int64_t v_i, int64_t a,int64_t time){
 int32_t dist_using_vva(int64_t v_i, int64_t v_f,int64_t a){
     return (v_f*v_f-v_i*v_i)/(2*a);
 }
-track_node_data_t _get_node_location(track_node* last_sensor,int offset){
-    track_node_data_t node_data;
 
-    bool a = false;
-    bool reverse = false;
-   
 
-    if(offset < 0) {
-        
-        track_node* flip = track_node_flip(last_sensor);
-        offset*=-1;
-        node_data.node = flip->edge[flip->state].dest;
-        reverse = true;
-        a = true;
-    }else{
-        node_data.node = last_sensor;
-    }
-    node_data.offset = offset;
-
-    int diff = Time();
-
-    ASSERT(node_data.offset >=0);
-    ASSERT(get_track_node_length(node_data.node) >= 0);
-
-    while(node_data.offset > get_track_node_length(node_data.node)){
-        node_data.offset -= get_track_node_length(node_data.node);
-        node_data.node = get_next_track_node(node_data.node);
-    }
-
-    if(Time() - diff > 20) {
-        ASSERT(0);
-    }
-
-    if(reverse){
-        node_data.node = track_node_flip(node_data.node);
-        node_data.offset = get_track_node_length(node_data.node)-node_data.offset;
-    }
-    return node_data;
-}
 #define GRANULARITY 10000
 void _handle_train_track_position_update(train_position_info_t* tpi){
     if(!tpi->jesus_take_the_wheel) return;
@@ -980,9 +943,9 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
         front_offset_from_node+=20;
         back_offset_from_node-=200;
     }
-    tpi->train_front_location = _get_node_location(tpi->last_sensor,front_offset_from_node);
-    tpi->train_sensor_location = _get_node_location(tpi->last_sensor,sensor_offset_from_node);
-    tpi->train_back_location = _get_node_location(tpi->last_sensor,back_offset_from_node);
+    tpi->train_front_location = track_get_node_location(tpi->last_sensor,front_offset_from_node);
+    tpi->train_sensor_location = track_get_node_location(tpi->last_sensor,sensor_offset_from_node);
+    tpi->train_back_location = track_get_node_location(tpi->last_sensor,back_offset_from_node);
   
 
     tpi->current_stopping_distance = dist_using_vva(tpi->velocity_thousandths_mm_ticks,0,(-1)*current_acceleration)/GRANULARITY;
@@ -1075,7 +1038,7 @@ bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* ins
         ASSERT(0);
     }
 
-    int32_t time = Time();
+    //int32_t time = Time();
 
     uint32_t distance_between_nodes = distance_between_track_nodes_using_path(iterator, instruction_node.node);
 
@@ -1160,9 +1123,6 @@ bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* 
 
 void _handle_train_reservations(train_position_info_t* tpi) {
 
-    //TODO REMOVE ME!!@!!!!!!
-    //return;
-
     if(!tpi->jesus_take_the_wheel) return;
     bool result;
     int speed,cur_stop_dist;
@@ -1178,10 +1138,10 @@ void _handle_train_reservations(train_position_info_t* tpi) {
         cur_stop_dist =  tpi->stopping_distance(speed, false);
         tpi->last_stopping_distance_in_res = cur_stop_dist;
     }
-   // cur_stop_dist = tpi->current_stopping_distance;
+    cur_stop_dist = tpi->current_stopping_distance;
     
     //send_term_debug_log_msg("Stop dist for %d: %d OFF:%",tpi->train_num,cur_stop_dist);
-    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, tpi->train_front_location.node, tpi->train_front_location.offset,cur_stop_dist );
+    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_front_location), &(tpi->train_back_location),cur_stop_dist );
     if(result == true ){
         if(tpi->speed == 0 && tpi->reservation_halted ){
             tpi->reservation_halted = false;
@@ -1234,9 +1194,9 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
 
             send_term_debug_log_msg("train %d pre reserving %s", train_position_info->train_num,train_position_info->last_sensor->name );
             //Reserve this piece of track
-           ASSERT( track_reserve_node(train_position_info->last_sensor, train_position_info->train_num));
+           ASSERT( track_reserve_node(&(train_position_info->reserved_node_queue),train_position_info->last_sensor, train_position_info->train_num));
            track_node* reverse_node = train_position_info->last_sensor->reverse;
-           ASSERT( track_reserve_node(reverse_node->edge[reverse_node->state].dest->reverse, train_position_info->train_num));
+           ASSERT( track_reserve_node(&(train_position_info->reserved_node_queue),reverse_node->edge[reverse_node->state].dest->reverse, train_position_info->train_num));
             if(!(train_position_info->last_sensor->reserved_by == train_position_info->train_num)) {
                 send_term_debug_log_msg( "ERROR %s Was already owned by %d",train_position_info->last_sensor->name,train_position_info->last_sensor->reserved_by);
                 ASSERT(0); 

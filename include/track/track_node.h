@@ -22,6 +22,7 @@ typedef struct track_edge track_edge;
 struct track_edge {
   track_edge *reverse;
   track_node *src, *dest;
+  bool touched; // used for recursing over the paths
   int dist;             /* in millimetres */
 };
 
@@ -63,4 +64,12 @@ track_node**get_path_iterator(track_node** path,track_node* node) ;
  */
 track_node* get_sensor_node_from_num(track_node* start, int num) ;
 track_node* track_node_flip(track_node* node);
+
+/**
+ * @brief Touch an edge in both directions
+ */
+void track_touch_edge(track_edge* edge, bool val);
+void track_touch_node(track_node* node, bool val);
+track_node_data_t track_get_node_location(track_node* last_sensor,int offset);
+void track_flip_node_data(track_node_data_t* node_data);
 #endif //_TRACK_NODE_H_
