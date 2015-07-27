@@ -243,7 +243,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 	//TODO: TRAIN_PANIC
 	if( !initial_reservation && !(our_node->reserved_by == train_num )){
 		send_term_debug_log_msg("%s(%d) Was reserved by: %d",our_node->name,train_num,our_node->reserved_by);
-		Delay(2000);
+		Delay(20);
 		ASSERT(0);
 	}
 
