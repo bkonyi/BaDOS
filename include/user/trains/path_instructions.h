@@ -38,7 +38,7 @@ path_instruction_t path_instruction_pop(path_instructions_t* path_instructions);
 
 void path_instructions_add_stop(path_instructions_t* path_instructions, track_node* destination, int16_t offset);
 void path_instructions_add_back_stop(path_instructions_t* path_instructions, track_node* destination, int16_t offset);
-void path_instructions_add_switch(path_instructions_t* path_instructions, int16_t switch_num, int16_t direction);
+void path_instructions_add_switch(path_instructions_t* path_instructions, track_node* switch_node, int16_t direction);
 void path_instructions_add_reverse(path_instructions_t* path_instructions, track_node* reverse_node);
 void path_instructions_add_done(path_instructions_t* path_instructions);
 
