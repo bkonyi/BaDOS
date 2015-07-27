@@ -39,6 +39,9 @@ void load_calibration(int16_t train, train_position_info_t* train_position_info)
         case 66:
             load_train_66_calibration_info(train_position_info);
             break;
+        case 68:
+            load_train_68_calibration_info(train_position_info);
+            break;
         default:
             load_default_calibration(train_position_info);
             break;
@@ -368,8 +371,8 @@ void load_train_68_calibration_info(train_position_info_t* train_position_info) 
     train_position_info->short_move_time = train_68_short_move_time;
 
     _set_defaults(train_position_info,velocities);
-    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 69;
-    train_position_info->acceleration_at_max_thousandths_mm_ticks = 197 ;
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 225;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 245 ;
     train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i, j, k;
     for(i = 0; i < 80; ++i) {
