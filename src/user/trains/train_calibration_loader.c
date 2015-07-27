@@ -302,12 +302,10 @@ void load_train_66_calibration_info(train_position_info_t* train_position_info) 
     uint16_t velocities[MAX_STORED_SPEEDS] = { 412, 454, 485, 534, 587, 606, 632 };
     train_position_info->stopping_distance = train_66_stopping_distance;
     train_position_info->short_move_time = train_66_short_move_time;
-    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 69;
-    train_position_info->acceleration_at_max_thousandths_mm_ticks = 189 ;
 
     _set_defaults(train_position_info,velocities);
-    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 69;
-    train_position_info->acceleration_at_max_thousandths_mm_ticks = 197 ;
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 80;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 190 ;
     train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i, j, k;
     for(i = 0; i < 80; ++i) {
