@@ -1156,7 +1156,7 @@ bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* 
 
 void _handle_train_reservations(train_position_info_t* tpi) {
    // send_term_debug_log_msg("_handle_train_reservations");
-    return;// TODO DOOONOONNTNTNT TCOMMMIITTT THISSS
+    //return;// TODO DOOONOONNTNTNT TCOMMMIITTT THISSS
     if(!tpi->jesus_take_the_wheel) return;
     bool result;
     int speed,cur_stop_dist;
@@ -1182,7 +1182,7 @@ void _handle_train_reservations(train_position_info_t* tpi) {
     result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_front_location), &(tpi->train_back_location),cur_stop_dist );
     uint32_t time = Time();
     if(result == true ){
-        if(tpi->speed == 0 && tpi->reservation_halted  && time - tpi->ticks_for_last_reservation_accel > 50){
+        if(tpi->speed == 0 && tpi->reservation_halted  && (time - tpi->ticks_for_last_reservation_accel) > 50){
             tpi->reservation_halted = false;
             //send_term_debug_log_msg("%d Speeding to 10",tpi->train_num);
             _train_server_send_speed(tpi->train_num, 10);
