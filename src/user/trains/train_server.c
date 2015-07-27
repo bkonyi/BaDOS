@@ -1021,6 +1021,12 @@ check_result_t _check_train_instructions(train_position_info_t* tpi) {
 
                 send_term_debug_log_msg("[CHECK_INST] Done instruction stream!");
                 path_instruction_pop(&tpi->instructions);
+
+                if(tpi->is_going_to_random_destinations) {
+                    send_term_debug_log_msg("[CHECK_INST] Generating random next location!");
+                    handle_goto_random_destinations(tpi, NULL);
+                }
+
                 END_INSTRUCTIONS();
                 break;
             case INVALID:
@@ -2009,7 +2015,11 @@ void handle_goto_random_destinations(train_position_info_t* tpi, sensor_triggers
             random_sensor == 24 ||
             random_sensor == 27 ||
             random_sensor == 35 ||
-            random_sensor == 34);
+            random_sensor == 34 ||
+            random_sensor == 9 ||
+            random_sensor == 8 ||
+            random_sensor == 7 ||
+            random_sensor == 6);
     tpi->is_going_to_random_destinations = true;
 
     send_term_debug_log_msg("Going to random destination: %c%d", sensor_id_to_letter(random_sensor), sensor_id_to_number(random_sensor));
