@@ -19,6 +19,7 @@ static uint32_t train_66_short_move_time(uint16_t speed, int16_t distance);
 static void load_default_calibration(train_position_info_t* train_position_info);
 static uint16_t train_68_stopping_distance(uint16_t speed, bool is_under_over);
 static uint32_t train_68_short_move_time(uint16_t speed, int16_t distance);
+static void load_train_68_calibration_info(train_position_info_t* train_position_info) ;
 
 void load_calibration(int16_t train, train_position_info_t* train_position_info) {
     send_term_debug_log_msg("Loading calibration info for: %d", train);
