@@ -5,6 +5,7 @@
 #include <queue.h>
 #include <trains/train_server.h>
 #include <terminal/terminal.h>
+#include <terminal/terminal_debug_log.h>
 #include <trains/track_reservation_server.h>
 #define TPS_SENSOR_MESSAGE_SIZE SENSOR_MESSAGE_SIZE
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
@@ -287,6 +288,11 @@ void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
 
 uint32_t switch_num_to_index(uint32_t switch_num) {
 	
+	if(!is_valid_switch_number(switch_num)) {
+		send_term_debug_log_msg("Invalid switch num: %d", switch_num);
+		Delay(200);
+	}
+
 	ASSERT(is_valid_switch_number(switch_num));
 	if(switch_num >= 153) {
 		//assume we aren't using indices 28,29,30,31

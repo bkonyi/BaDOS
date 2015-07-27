@@ -1063,17 +1063,10 @@ bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* ins
         ASSERT(0);
     }
 
-    //int32_t time = Time();
-
     uint32_t distance_between_nodes = distance_between_track_nodes_using_path(iterator, instruction_node.node);
 
-    if(tpi->is_reversed) {
-        distance_between_nodes += 210;
-    }
-
-
     distance_between_nodes -= front_of_train.offset;
-    distance_between_nodes +=  10; //5CM offset
+    distance_between_nodes +=  100; //5CM offset
 
     if(distance_between_nodes <= tpi->current_stopping_distance) {
         send_term_debug_log_msg("[INST_STOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
@@ -1165,7 +1158,7 @@ bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* 
 
 void _handle_train_reservations(train_position_info_t* tpi) {
    // send_term_debug_log_msg("_handle_train_reservations");
-
+    //return;// TODO DOOONOONNTNTNT TCOMMMIITTT THISSS
     if(!tpi->jesus_take_the_wheel) return;
     bool result;
     int speed,cur_stop_dist;
@@ -1191,7 +1184,7 @@ void _handle_train_reservations(train_position_info_t* tpi) {
     result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_front_location), &(tpi->train_back_location),cur_stop_dist );
     uint32_t time = Time();
     if(result == true ){
-        if(tpi->speed == 0 && tpi->reservation_halted  && time - tpi->ticks_for_last_reservation_accel > 50){
+        if(tpi->speed == 0 && tpi->reservation_halted  && (time - tpi->ticks_for_last_reservation_accel) > 50){
             tpi->reservation_halted = false;
             //send_term_debug_log_msg("%d Speeding to 10",tpi->train_num);
             _train_server_send_speed(tpi->train_num, 10);
@@ -1748,7 +1741,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
                 direction = DIR_CURVED;
             }
 
-            path_instructions_add_switch(&train_position_info->instructions, current_path_node, direction);
+            path_instructions_add_switch(&train_position_info->instructions, current_path_node->reverse, direction);
         }
 
         //Check for reverse path
@@ -1764,7 +1757,19 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
 
             //Add back stop command
             path_instructions_add_stop(&train_position_info->instructions, current_path_node, 200);
-            path_instructions_add_switch(&train_position_info->instructions, current_path_node, direction);
+
+            if(current_path_node->type == NODE_MERGE) {
+                path_instructions_add_switch(&train_position_info->instructions, current_path_node, direction);
+            } else if(current_path_node->edge[DIR_AHEAD].dest->type == NODE_MERGE) {
+                if(current_path_node->edge[DIR_AHEAD].dest->reverse->edge + DIR_AHEAD == current_path_node->edge[DIR_AHEAD].reverse) {
+                    direction = DIR_AHEAD;
+                } else {
+                    direction = DIR_CURVED;
+                }
+
+                path_instructions_add_switch(&train_position_info->instructions, next_in_path_node, direction);
+            }
+
             path_instructions_add_reverse(&train_position_info->instructions, current_path_node);
 
 

@@ -251,7 +251,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 		//loop that follows then then it takes into account that the have that
 		//much distance that won't contribute to the stopping distance
 	stopping_distance+= offset_in_node;
-	stopping_distance += 100; // TODO: When the trains actually get calibrated remove this
+	stopping_distance += 200; // TODO: When the trains actually get calibrated remove this
 	for(iterator_node = our_node; iterator_node != NULL && stopping_distance >= 0;iterator_node= get_next_track_node (iterator_node)){
 		//send_term_debug_log_msg("track try to reserve %s",iterator_node->name);
 /*		if(iterator_node->reserved_by != train_num && iterator_node->reserved_by != -1){
@@ -399,12 +399,11 @@ bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node
 		track_touch_edge(our_node->edge+DIR_CURVED,false);
 	}else if(our_node->type == NODE_MERGE) {
 		if(!our_node->edge[DIR_AHEAD].touched){
-			track_node* flip = track_node_flip(our_node);
-			track_node* prev_flip = flip->edge[DIR_AHEAD].dest;
-			ASSERT(prev_flip->type == NODE_BRANCH);
+
+			ASSERT(our_node->reverse->type == NODE_BRANCH);
 			//Trac
 			track_touch_edge(our_node->edge+DIR_AHEAD,true);
-			_handle_recursive_release_nodes(res_queue,prev_flip,train_num);
+			_handle_recursive_release_nodes(res_queue,our_node->reverse,train_num);
 			_handle_recursive_release_nodes(res_queue,our_node->edge[DIR_AHEAD].dest,train_num);
 			track_touch_edge(our_node->edge+DIR_AHEAD,false);
 			changed = true;

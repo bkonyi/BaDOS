@@ -367,7 +367,7 @@ uint32_t train_66_short_move_time(uint16_t speed, int16_t distance) {
 }
 void load_train_68_calibration_info(train_position_info_t* train_position_info) {
     send_term_debug_log_msg("Loading train 68 calibration info");
-    uint16_t velocities[MAX_STORED_SPEEDS] = { 412, 454, 485, 534, 587, 606, 632 };
+    uint16_t velocities[MAX_STORED_SPEEDS] = { 416, 504, 581, 647, 701, 743, 773 };
     train_position_info->stopping_distance = train_68_stopping_distance;
     train_position_info->short_move_time = train_68_short_move_time;
 

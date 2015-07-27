@@ -51,7 +51,7 @@ void path_instructions_add_back_stop(path_instructions_t* path_instructions, tra
 }
 
 void path_instructions_add_switch(path_instructions_t* path_instructions, track_node* switch_node, int16_t direction) {
-    send_term_debug_log_msg("[PATH_INST] Setting switch: %d direction: %c", switch_node->num, (direction == DIR_STRAIGHT) ? 'S' : 'C'); 
+    send_term_debug_log_msg("[PATH_INST] Setting switch %s: %d direction: %c", switch_node->name, switch_node->num, (direction == DIR_STRAIGHT) ? 'S' : 'C'); 
     path_instruction_t instruction;
     instruction.command = SWITCH;
     instruction.instruction_node.node = switch_node;
