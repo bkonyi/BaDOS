@@ -72,4 +72,5 @@ void track_touch_edge(track_edge* edge, bool val);
 void track_touch_node(track_node* node, bool val);
 track_node_data_t track_get_node_location(track_node* last_sensor,int offset);
 void track_flip_node_data(track_node_data_t* node_data);
+bool _is_track_node_adacent(track_node* node1, track_node* node2);
 #endif //_TRACK_NODE_H_
