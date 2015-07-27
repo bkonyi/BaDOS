@@ -17,6 +17,8 @@ static void load_train_66_calibration_info(train_position_info_t* train_position
 static uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over);
 static uint32_t train_66_short_move_time(uint16_t speed, int16_t distance);
 static void load_default_calibration(train_position_info_t* train_position_info);
+static uint16_t train_68_stopping_distance(uint16_t speed, bool is_under_over);
+static uint32_t train_68_short_move_time(uint16_t speed, int16_t distance);
 
 void load_calibration(int16_t train, train_position_info_t* train_position_info) {
     send_term_debug_log_msg("Loading calibration info for: %d", train);
@@ -332,6 +334,62 @@ uint16_t train_66_stopping_distance(uint16_t speed, bool is_under_over) {
 }
 
 uint32_t train_66_short_move_time(uint16_t speed, int16_t distance) {
+    if(distance <= 0) {
+        return 0;
+    }
+
+    uint64_t long_distance = distance;
+    uint32_t result = 0;
+
+    speed = 12; //Maybe we'll do something with this later.
+
+    switch(speed) {
+        case 12:
+            if(distance >= 77) {
+                //This calculates f(x) = (5/274) * (sqrt(219200 * x - 16747751) + 6013)
+                //which is the equation for determining time to move a certain distance
+                result = 5 * (sqrt(219200ULL * long_distance - 16747751ULL) + 6013ULL) / 274;
+            } else {
+                //Don't want to do a square root of a negative number..
+                result = 250;
+            }
+            break;
+        default:
+            ASSERT(0);
+            break;
+    }
+
+    return result;
+}
+void load_train_68_calibration_info(train_position_info_t* train_position_info) {
+    send_term_debug_log_msg("Loading train 68 calibration info");
+    uint16_t velocities[MAX_STORED_SPEEDS] = { 412, 454, 485, 534, 587, 606, 632 };
+    train_position_info->stopping_distance = train_68_stopping_distance;
+    train_position_info->short_move_time = train_68_short_move_time;
+
+    _set_defaults(train_position_info,velocities);
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 69;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 197 ;
+    train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
+    int i, j, k;
+    for(i = 0; i < 80; ++i) {
+        for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
+            for(k = 0; k < MAX_STORED_SPEEDS; ++k) {
+                train_position_info->average_velocities[i][j][k].average_velocity = velocities[k];
+                train_position_info->average_velocities[i][j][k].average_velocity_count = 10;
+                train_position_info->average_velocities[i][j][k].from = NULL;
+            }
+        }
+    }
+}
+
+uint16_t train_68_stopping_distance(uint16_t speed, bool is_under_over) {
+    //Assume we are travelling at speed 10.
+    //Then 868 is our stopping distance
+    return 868;
+}
+
+uint32_t train_68_short_move_time(uint16_t speed, int16_t distance) {
     if(distance <= 0) {
         return 0;
     }
