@@ -1059,6 +1059,7 @@ check_result_t _check_stop_instruction(train_position_info_t* tpi, path_instruct
     track_node** iterator = get_path_iterator(tpi->current_path, front_of_train.node);
 
     if(iterator == NULL) {
+        return CHECK_FAIL;
         send_term_debug_log_msg("[INST_STOP] ERROR: %s is not in path!", front_of_train.node->name);
         return CHECK_FAIL;
         ASSERT(0);
@@ -1095,6 +1096,7 @@ check_result_t _check_back_stop_instruction(train_position_info_t* tpi, path_ins
     uint32_t distance_between_nodes;
 
     if(iterator == NULL) {
+        return CHECK_FAIL;
         iterator = get_path_iterator(tpi->current_path, front_of_train.node);
         send_term_debug_log_msg("[INST_BSTOP] Using front %s instead of: %s!", front_of_train.node->name, back_of_train.node->name);
 
@@ -1739,6 +1741,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
             }
 
             //Add switch instruction
+            ASSERT(current_path_node->type == NODE_BRANCH || current_path_node->type == NODE_MERGE);
             path_instructions_add_switch(&train_position_info->instructions, current_path_node, direction);
         } 
 
@@ -1751,7 +1754,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
             } else {
                 direction = DIR_CURVED;
             }
-
+            ASSERT(current_path_node->reverse->type == NODE_BRANCH || current_path_node->reverse->type == NODE_MERGE);
             path_instructions_add_switch(&train_position_info->instructions, current_path_node->reverse, direction);
         }
 
@@ -1767,7 +1770,7 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
             }
 
             //Add back stop command
-            path_instructions_add_stop(&train_position_info->instructions, current_path_node, 200);
+            path_instructions_add_back_stop(&train_position_info->instructions, current_path_node, 200);
 
             if(current_path_node->type == NODE_MERGE) {
                 path_instructions_add_switch(&train_position_info->instructions, current_path_node, direction);
