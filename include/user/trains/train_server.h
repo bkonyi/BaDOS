@@ -101,7 +101,7 @@ typedef struct train_position_info_t {
     bool waiting_on_reverse;
     bool ready_to_recalculate_path;
     bool at_branch_after_reverse;
-
+    bool received_reverse;
 } train_position_info_t;
 
 void train_position_info_init(train_position_info_t* tpi);

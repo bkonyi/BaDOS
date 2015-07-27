@@ -56,7 +56,8 @@ typedef enum {
     SET_TRAIN_DECCEL,
     TRAIN_ALL_SET_SPEED,
     GOTO_RANDOM_LOCATION,
-    ALL_GOTO_RANDOM_LOCATION
+    ALL_GOTO_RANDOM_LOCATION,
+    TRAIN_REVERSE_IMMEDIATE
 } train_controller_command_t;
 
 typedef struct {
@@ -111,7 +112,6 @@ static void _handle_train_set_acceleration(train_data_t* trains, int8_t train_nu
 static void _handle_train_set_decceleration(train_data_t* trains, int8_t train_num,int32_t deccel);
 static void handle_goto_random_destinations(train_data_t* trains, int32_t train_num);
 static void handle_all_goto_random_destinations(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
-
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -159,13 +159,16 @@ void train_controller_commander_server(void) {
                 break;
             case TRAIN_REVERSE_BEGIN:
                 //If the train isn't moving, we can just send the reverse command now
+                
                 if(trains[data.var1].speed == 0) {
                     handle_train_set_speed(trains, (int8_t)data.var1, REVERSE_COMMAND);
                 } else {
                     handle_train_reverse_begin(trains, (int8_t)data.var1);
                     send_reverse_delay(train_reverse_server_tid, (int8_t)data.var1);
                 }
-
+                break;
+            case TRAIN_REVERSE_IMMEDIATE:
+                handle_train_set_speed(trains, (int8_t)data.var1, REVERSE_COMMAND);
                 break;
             case TRAIN_REVERSE_REACCEL:
                 handle_train_reverse_end(trains, (int8_t)data.var1, trains[data.var1].speed);
@@ -276,6 +279,19 @@ int train_reverse(int8_t train) {
 
     train_controller_data_t data;
     data.command = TRAIN_REVERSE_BEGIN;
+    data.var1 = (int16_t)train;
+
+    Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
+
+    return 0;
+}
+int train_reverse_immediately(int8_t train){
+    if(train > MAX_TRAIN_NUM) {
+        return -1;
+    }
+
+    train_controller_data_t data;
+    data.command = TRAIN_REVERSE_IMMEDIATE;
     data.var1 = (int16_t)train;
 
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
@@ -536,7 +552,7 @@ void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
     if(trains[(uint16_t)train].slot != INVALID_SLOT && speed != REVERSE_COMMAND) {
         update_terminal_train_slot_speed(train, trains[(uint16_t)train].slot, speed);
     }
-
+    
     if(speed == REVERSE_COMMAND) {
         trains[(uint16_t)train].is_reversing = false;
         train_server_set_reversing(trains[(uint16_t)train].server_tid);
@@ -552,7 +568,13 @@ void handle_train_reverse_begin(train_data_t* trains, int8_t train) {
 
 void handle_train_reverse_end(train_data_t* trains, int8_t train, int8_t speed) {
     handle_train_set_speed(trains, train, REVERSE_COMMAND);
-    handle_train_set_speed(trains, train, speed);
+    if(speed != REVERSE_COMMAND){
+        handle_train_set_speed(trains, train, speed);
+    }else{
+        send_term_debug_log_msg("YUP");
+    }
+    
+
 }
 
 void handle_switch_set_direction(int16_t switch_num, char direction) {

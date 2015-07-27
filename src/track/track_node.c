@@ -3,6 +3,7 @@
 #include <bwio.h>
 #include <terminal/terminal.h>
 #include <terminal/terminal_debug_log.h>
+#include <trains/train_path_finder.h>
 
 track_node* get_next_track_node(track_node* node) {
 
@@ -51,16 +52,46 @@ static track_node* distance_between_track_nodes_next(track_node* node, bool* fli
 }
 
 uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool broken_switch){
+
+
+	if(start == NULL || end == NULL || start == end) {
+		return 0;
+	}
+	track_node* path[TRACK_MAX];
+	int path_length;
+	find_path(start,end,path,&path_length);
+
+	return distance_between_track_nodes_using_path(get_path_iterator(path,start),end);
+
+}/*
+uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool broken_switch){
 	if(start == NULL || end == NULL || start == end) {
 		return 0;
 	}
 	track_node* iterator_node; 
 	uint32_t dist =get_track_node_length(start);
 	uint32_t edge = 0;
+	int touched_size = (TRACK_MAX/8)+1;
+	char nodes_touched[touched_size];
+	int group,index;
+	int i;
+	for(i = 0; i < touched_size; i ++) {
+		nodes_touched[i] = 0;
+	}
+
 
 	for(iterator_node = get_next_track_node(start) ;iterator_node != end   ;
 		iterator_node = distance_between_track_nodes_next(iterator_node,&broken_switch)) {
-		
+		group = iterator_node->index&8;
+		index = iterator_node->index%8;
+
+		if((nodes_touched[group] & 1<<index) != 0){
+			send_term_debug_log_msg("Cycle searching from %s => %s",start->name,end->name);
+			ASSERT(0)
+			return 0;
+		} 
+		nodes_touched[group] |= 1<<index;
+
 		if(iterator_node == start || iterator_node == NULL){
 			//We have a cycle and didn't find a sensor
 			return 0;
@@ -71,7 +102,7 @@ uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool 
 	}
 	ASSERT(dist != 0);
 	return dist;
-}
+}*/
 
 uint32_t distance_between_track_nodes_using_path(track_node** start, track_node * end){
 
