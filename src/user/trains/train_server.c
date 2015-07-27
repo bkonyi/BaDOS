@@ -47,11 +47,11 @@ static void handle_stopped_at_destination(int16_t train_number, int8_t slot, tra
 static void handle_goto_random_destinations(train_position_info_t* tpi, sensor_triggers_t* triggers);
 
 static void _handle_train_track_position_update(train_position_info_t* tpi);
-static void _check_train_instructions(train_position_info_t* tpi);
-static bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
-static bool _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
-static bool _check_switch_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
-static bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
+static check_result_t _check_train_instructions(train_position_info_t* tpi);
+static check_result_t _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
+static check_result_t _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
+static check_result_t _check_switch_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
+static check_result_t _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* instruction);
 static void _handle_train_reservations(train_position_info_t* tpi);
 static void _train_server_send_speed(int16_t train, int16_t speed);
 
@@ -171,7 +171,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->is_going_to_random_destinations = false;
     tpi->ticks_for_last_reservation_accel = 0;
     tpi->received_reverse = false;
-
+    tpi->performing_goto = false;
     tpi->train_sensor_location.node = NULL;
     tpi->train_front_location.node = NULL;
     tpi->train_back_location.node = NULL;
@@ -938,7 +938,10 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     send_term_update_velocity_msg(tpi->train_slot,tpi->velocity_thousandths_mm_ticks*(GRANULARITY/100));
     //send_term_debug_log_msg("trackpos sens: %s tip: %s off %d",node_at_sensor->name,tpi->leading_end_node->name,tpi->leading_end_offset_in_node);
 
-    _check_train_instructions(tpi);
+    if(tpi->performing_goto && (_check_train_instructions(tpi) == CHECK_FAIL)){
+        send_term_debug_log_msg("Path ran into problem: recalculating");
+        handle_goto_destination(tpi,tpi->train_num,tpi->destination);
+    }
 }
 void _set_train_node_locations(train_position_info_t* tpi, track_node* node, int32_t offset) {
     int front_offset_from_node = offset;
@@ -988,48 +991,34 @@ void _update_track_node_data(train_position_info_t* tpi, int32_t current_acceler
     }
 }
 
-void _check_train_instructions(train_position_info_t* tpi) {
+check_result_t _check_train_instructions(train_position_info_t* tpi) {
     path_instruction_t instruction = path_instruction_peek(&tpi->instructions);
 
     if(instruction.command == INVALID) {
-        return;
+        return CHECK_NEUTRAL;
     }
-
+    check_result_t check_result = CHECK_FAIL; 
     while(instruction.command != INVALID) {
         //send_term_debug_log_msg("[CHECK_INST] Checking instruction: %d", instruction.command);
 
         switch(instruction.command) {
             case STOP:
-                if(_check_stop_instruction(tpi, &instruction)) {
-                    path_instruction_pop(&tpi->instructions);
-                    break;
-                }
-                END_INSTRUCTIONS();
+                check_result = _check_stop_instruction(tpi, &instruction);
+                
                 break;
             case BACK_STOP:
-                if(_check_back_stop_instruction(tpi, &instruction)) {
-                    path_instruction_pop(&tpi->instructions);
-                    break;
-                }
-                END_INSTRUCTIONS();
+                check_result = _check_back_stop_instruction(tpi, &instruction);
                 break;
             case SWITCH:
-                if(_check_switch_instruction(tpi, &instruction)) {
-                    path_instruction_pop(&tpi->instructions);
-                    break;
-                }
-                END_INSTRUCTIONS();
+                check_result = _check_switch_instruction(tpi, &instruction);
                 break;
             case REVERSE:
-                if(_check_reverse_instruction(tpi, &instruction)) {
-                    path_instruction_pop(&tpi->instructions);
-                    //handle_goto_destination(tpi, tpi->train_num, tpi->destination);
-                    break;
-                }
-                END_INSTRUCTIONS();
+                check_result = _check_reverse_instruction(tpi, &instruction);
                 break;
             case DONE:
                 //TODO check if we want to find another destination
+                tpi->performing_goto = false;
+
                 send_term_debug_log_msg("[CHECK_INST] Done instruction stream!");
                 path_instruction_pop(&tpi->instructions);
                 END_INSTRUCTIONS();
@@ -1042,17 +1031,25 @@ void _check_train_instructions(train_position_info_t* tpi) {
                 break;
         }
 
+        if(check_result == CHECK_SUCCESS) {
+            path_instruction_pop(&tpi->instructions);
+        }else if(check_result == CHECK_NEUTRAL){
+            END_INSTRUCTIONS(); 
+        }else if(check_result == CHECK_FAIL){
+            return CHECK_FAIL;
+        }
         instruction = path_instruction_peek(&tpi->instructions);
         send_term_debug_log_msg("[CHECK_INST] Getting next instruction: %d.", instruction.command);
     }
-
+    //succesfully iterated on all
+    return CHECK_SUCCESS;
 end_instructions:
-    return;
+    return CHECK_NEUTRAL;
 }
 
-bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
+check_result_t _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
     if(tpi->current_stopping_distance == 0) {
-        return false;
+        return CHECK_NEUTRAL;
     }
 
     track_node_data_t instruction_node = instruction->instruction_node;
@@ -1063,6 +1060,7 @@ bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* ins
 
     if(iterator == NULL) {
         send_term_debug_log_msg("[INST_STOP] ERROR: %s is not in path!", front_of_train.node->name);
+        return CHECK_FAIL;
         ASSERT(0);
     }
 
@@ -1079,15 +1077,15 @@ bool _check_stop_instruction(train_position_info_t* tpi, path_instruction_t* ins
 
         _train_server_send_speed(tpi->train_num, 0);
 
-        return true;
+        return CHECK_SUCCESS;
     }
 
-    return false;
+    return CHECK_NEUTRAL;
 }
 
-bool _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
+check_result_t _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
     if(tpi->current_stopping_distance == 0) {
-        return false;
+        return CHECK_NEUTRAL;
     }
 
     track_node_data_t instruction_node = instruction->instruction_node;
@@ -1127,31 +1125,31 @@ bool _check_back_stop_instruction(train_position_info_t* tpi, path_instruction_t
 
         //Delay(50);
         send_term_debug_log_msg("Front: %s %d Back: %s %d", back_of_train.node->name, back_of_train.offset, front_of_train.node->name, front_of_train.offset);  
-        return true;
+        return CHECK_SUCCESS;
     }
 
-    return false;
+    return CHECK_NEUTRAL;
 }
 
-bool _check_switch_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
+check_result_t _check_switch_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
     //track_node* switch_node = instruction->instruction_node.node;
     
     //if(switch_node->reserved_by == tpi->train_num) {
         send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Switch: %d", tpi->train_num, instruction->switch_num);
         _train_server_set_switch(instruction->switch_num, instruction->direction);
-        return true;
+        return CHECK_SUCCESS;
     //}
 
-    return false;
+    return CHECK_NEUTRAL;
 
     //return true;
 }
 
-bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
+check_result_t _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* instruction) {
 
     if(tpi->received_reverse) {
         tpi->received_reverse = false;
-        return true;
+        return CHECK_SUCCESS;
         
     }else if(tpi->velocity_thousandths_mm_ticks == 0) {
         tpi->waiting_on_reverse = true;
@@ -1160,7 +1158,7 @@ bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* 
         _train_server_reverse(tpi->train_num);
     }
 
-    return false;
+    return  CHECK_NEUTRAL;
 }
 
 void _handle_train_reservations(train_position_info_t* tpi) {
@@ -1696,9 +1694,14 @@ int _train_position_get_prev_first_av_velocity(train_position_info_t* tpi, track
 }
 
 void handle_goto_destination(train_position_info_t* train_position_info, int16_t train, int8_t sensor_num) {
-
+    train_position_info->performing_goto = true;
     track_node* current_location = train_position_info->train_sensor_location.node;
 
+    if(train_position_info->speed != 0){
+        _train_server_send_speed(train_position_info->train_num,0);
+    }else if(train_position_info->velocity_thousandths_mm_ticks !=0) {
+        return;
+    }
     ASSERT(current_location != NULL);
 
     track_node* destination = get_sensor_node_from_num(current_location, sensor_num);
@@ -1710,10 +1713,10 @@ void handle_goto_destination(train_position_info_t* train_position_info, int16_t
     send_term_debug_log_msg("Path Length: %d Start: %s", train_position_info->path_length, current_location->name);
 
     int i;
-    /*for(i = 0; i < train_position_info->path_length; ++i) {
+    for(i = 0; i < train_position_info->path_length; ++i) {
         send_term_debug_log_msg("Path[%d] = %s", i, train_position_info->current_path[i]->name);
-    }*/
-
+    }
+        
     //Clear the instruction list
     path_instructions_clear(&train_position_info->instructions);
 
@@ -1948,8 +1951,9 @@ void handle_train_reversing(int16_t train, int8_t slot, train_position_info_t* t
     //send_term_debug_log_msg("BEFORE %s (%d) %s",train_position_info->last_sensor->name,train_position_info->dist_from_last_sensor,train_position_info->next_sensor);
 
     int new_offset = distance_between_track_nodes(train_position_info->last_sensor,train_position_info->next_sensor,false)-train_position_info->dist_from_last_sensor;
+    track_node* temp_node = train_position_info->last_sensor;
     train_position_info->last_sensor = train_position_info->next_sensor->reverse;
-    train_position_info->next_sensor = get_next_sensor_or_exit(train_position_info->last_sensor);
+    train_position_info->next_sensor = temp_node;
 
     train_position_info->dist_from_last_sensor = new_offset;
     //send_term_debug_log_msg("AFTER %s (%d) %s",train_position_info->last_sensor->name,train_position_info->dist_from_last_sensor,train_position_info->next_sensor);

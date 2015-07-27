@@ -13,6 +13,11 @@ typedef enum {
     REVERSE   = 4,
     DONE      = 5
 } path_instructions_command_t;
+typedef enum check_result_t {
+    CHECK_SUCCESS = 2,
+    CHECK_FAIL  = 3,
+    CHECK_NEUTRAL =4
+}check_result_t;
 
 typedef struct {
     path_instructions_command_t command;
