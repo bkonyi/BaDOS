@@ -251,7 +251,7 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 		//loop that follows then then it takes into account that the have that
 		//much distance that won't contribute to the stopping distance
 	stopping_distance+= offset_in_node;
-	stopping_distance += 500; // TODO: When the trains actually get calibrated remove this
+	stopping_distance += 100; // TODO: When the trains actually get calibrated remove this
 	for(iterator_node = our_node; iterator_node != NULL && stopping_distance >= 0;iterator_node= get_next_track_node (iterator_node)){
 		//send_term_debug_log_msg("track try to reserve %s",iterator_node->name);
 /*		if(iterator_node->reserved_by != train_num && iterator_node->reserved_by != -1){
@@ -290,17 +290,18 @@ void _release_track_from_point_behind(reserved_node_queue_t* res_queue, int trai
 	 track_node* first_node_to_remove = get_next_track_node(tip_location.node);
 
 	 track_touch_node(tip_location.node,true);
-
+	 //send_term_debug_log_msg("Starting recursion tr %d", train_num);
 	 if(_handle_recursive_release_nodes(res_queue, first_node_to_remove,train_num)){
 	 	//send_term_debug_log_msg("TRRELL removing from (%s || %s )",first_node_to_remove->name,track_node_flip(first_node_to_remove)->name);
  		_print_reserved_tracks(res_queue,train_num);
 	 }
-
+	// send_term_debug_log_msg("Done Starting recursion tr %d", train_num);
 	 track_touch_node(tip_location.node,false);
 
 }
 
 bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance, bool initial_reservation){
+	//send_term_debug_log_msg(_handle_track_handle_reservations)
 	bool bool_result =_reserve_tracks_from_point(res_queue,train_num,front_data->node,front_data->offset, stopping_distance,initial_reservation);
 	_release_track_from_point_behind(res_queue, train_num, back_data->node,back_data->offset, stopping_distance);
 	return bool_result;
@@ -376,11 +377,12 @@ bool track_compare_reserved_node(track_node* node, track_node* b){
 	
 }
 bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node* our_node, int train_num) {
-	if(our_node == NULL ) return true;
+	if(our_node == NULL || our_node->reserved_by == -1) return true;
 	if(our_node->reserved_by != train_num || our_node->type == NODE_EXIT) return false;
 	bool changed = false;
 	//Burn the bridge behind us so we can't recurse back on ourselves
 	ASSERT(our_node->edge[DIR_AHEAD].touched == true || our_node->edge[DIR_AHEAD].touched == false);
+	//send_term_debug_log_msg("recursing on %s for tr %d", our_node->name, train_num);
 
 	if(our_node->type == NODE_BRANCH){
 		if(!our_node->edge[DIR_AHEAD].touched){

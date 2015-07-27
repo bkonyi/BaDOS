@@ -167,6 +167,7 @@ void train_position_info_init(train_position_info_t* tpi) {
     tpi->temp_printed_once = false;
     tpi->current_stopping_distance = 0;
     tpi->is_going_to_random_destinations = false;
+    tpi->ticks_for_last_reservation_accel = 0;
 
     tpi->train_sensor_location.node = NULL;
     tpi->train_front_location.node = NULL;
@@ -1161,9 +1162,7 @@ bool _check_reverse_instruction(train_position_info_t* tpi, path_instruction_t* 
 }
 
 void _handle_train_reservations(train_position_info_t* tpi) {
-
-    //TODO remove
-    return;
+   // send_term_debug_log_msg("_handle_train_reservations");
 
     if(!tpi->jesus_take_the_wheel) return;
     bool result;
@@ -1181,14 +1180,20 @@ void _handle_train_reservations(train_position_info_t* tpi) {
         tpi->last_stopping_distance_in_res = cur_stop_dist;
     }
     cur_stop_dist = tpi->current_stopping_distance;
-    
-    //send_term_debug_log_msg("Stop dist for %d: %d OFF:%",tpi->train_num,cur_stop_dist);
+   
+
+   // if(tpi->stopping && tpi->is_accelerating){
+     //   cur_stop_dist+=200;
+    //}
+    //send_term_debug_log_msg("Stop dist for  %d: %d OFF:%",tpi->train_num,cur_stop_dist);
     result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_front_location), &(tpi->train_back_location),cur_stop_dist );
+    uint32_t time = Time();
     if(result == true ){
-        if(tpi->speed == 0 && tpi->reservation_halted ){
+        if(tpi->speed == 0 && tpi->reservation_halted  && time - tpi->ticks_for_last_reservation_accel > 50){
             tpi->reservation_halted = false;
             //send_term_debug_log_msg("%d Speeding to 10",tpi->train_num);
             _train_server_send_speed(tpi->train_num, 10);
+            tpi->ticks_for_last_reservation_accel = time;
         }
     }else {
         if(tpi->speed != 0){
@@ -1240,7 +1245,7 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
             
             //Reserve this piece of track
 
-           ASSERT( track_intial_reservations(&(train_position_info->reserved_node_queue),train_position_info->train_num,&(train_position_info->train_front_location),&(train_position_info->train_back_location),200));
+           ASSERT( track_intial_reservations(&(train_position_info->reserved_node_queue),train_position_info->train_num,&(train_position_info->train_front_location),&(train_position_info->train_back_location),100));
            
 
             if(!(train_position_info->last_sensor->reserved_by == train_position_info->train_num)) {
