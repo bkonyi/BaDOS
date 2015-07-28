@@ -199,6 +199,9 @@ void load_train_64_calibration_info(train_position_info_t* train_position_info) 
     train_position_info->stopping_distance = train_64_stopping_distance;
     train_position_info->short_move_time = train_64_short_move_time;
     _set_defaults(train_position_info,velocities);
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 75;
+    train_position_info->acceleration_at_max_thousandths_mm_ticks = 210 ;
+    train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i, j, k;
     for(i = 0; i < 80; ++i) {
         for(j = 0; j < MAX_AV_SENSORS_FROM; ++j) {
@@ -370,7 +373,7 @@ void load_train_68_calibration_info(train_position_info_t* train_position_info) 
     train_position_info->short_move_time = train_68_short_move_time;
 
     _set_defaults(train_position_info,velocities);
-    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 225;
+    train_position_info->acceleration_while_accel_thousandths_mm_ticks = 215;
     train_position_info->acceleration_at_max_thousandths_mm_ticks = 245 ;
     train_position_info->acceleration_current_thousandths_mm_ticks = train_position_info->acceleration_while_accel_thousandths_mm_ticks;
     int i, j, k;

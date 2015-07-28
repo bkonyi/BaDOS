@@ -58,6 +58,7 @@ void track_reservation_server(void) {
 				break;
 			case TR_CHECK_RESERVATIONS_WITH_SWITCH:
 				*bool_response = _check_reserve_path_from_point_with_switch(message.res_queue,message.train_num,message.front_data->node,message.front_data->offset,message.stopping_distance,message.switch_num);	
+				break;
 			default:
 				ASSERT(0);
 		}

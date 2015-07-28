@@ -947,20 +947,16 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
 
 
     /**
-     * if we are performing a goto, we will let the instruction checks handle 
-     * all of the reservations, otherwise just assuming that whoever is switching
-     * knows what the fuck they are doing.
+     * _check_train_instructions now uses the reservation server to check if switching a switch will cause a collision
      */
 
-    if(tpi->performing_goto ){
-        if((_check_train_instructions(tpi) == CHECK_FAIL))
-        {
+    if(tpi->performing_goto && (_check_train_instructions(tpi) == CHECK_FAIL)){
             send_term_debug_log_msg("Path ran into problem: recalculating");
             handle_goto_destination(tpi,tpi->train_num,tpi->destination);
-        }
-    }else {
-        _handle_train_reservations(tpi);
     }
+
+    _handle_train_reservations(tpi);
+    
 }
 void _set_train_node_locations(train_position_info_t* tpi, track_node* node, int32_t offset) {
     int front_offset_from_node = offset;
@@ -1047,11 +1043,11 @@ check_result_t _check_train_instructions(train_position_info_t* tpi) {
                 //TODO check if we want to find another destination
                 tpi->performing_goto = false;
 
-                send_term_debug_log_msg("[CHECK_INST] Done instruction stream!");
+                //send_term_debug_log_msg("[CHECK_INST] Done instruction stream!");
                 path_instruction_pop(&tpi->instructions);
 
                 if(tpi->is_going_to_random_destinations) {
-                    send_term_debug_log_msg("[CHECK_INST] Generating random next location!");
+                    //send_term_debug_log_msg("[CHECK_INST] Generating random next location!");
                     handle_goto_random_destinations(tpi, NULL);
                 }
 
@@ -1092,7 +1088,7 @@ check_result_t _check_stop_instruction(train_position_info_t* tpi, path_instruct
 
     if(iterator == NULL) {
         return CHECK_FAIL;
-        send_term_debug_log_msg("[INST_STOP] ERROR: %s is not in path!", front_of_train.node->name);
+       // send_term_debug_log_msg("[INST_STOP] ERROR: %s is not in path!", front_of_train.node->name);
         return CHECK_FAIL;
         ASSERT(0);
     }
@@ -1103,7 +1099,7 @@ check_result_t _check_stop_instruction(train_position_info_t* tpi, path_instruct
     distance_between_nodes +=  130; //5CM offset 
 
     if(distance_between_nodes <= tpi->current_stopping_distance) {
-        send_term_debug_log_msg("[INST_STOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
+        //send_term_debug_log_msg("[INST_STOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
 
         _train_server_send_speed(tpi->train_num, 0);
 
@@ -1127,7 +1123,7 @@ check_result_t _check_back_stop_instruction(train_position_info_t* tpi, path_ins
     if(iterator == NULL) {
         return CHECK_FAIL;
         iterator = get_path_iterator(tpi->current_path, front_of_train.node);
-        send_term_debug_log_msg("[INST_BSTOP] Using front %s instead of: %s!", front_of_train.node->name, back_of_train.node->name);
+        //send_term_debug_log_msg("[INST_BSTOP] Using front %s instead of: %s!", front_of_train.node->name, back_of_train.node->name);
 
         if(iterator == NULL) {
             Delay(100);
@@ -1149,7 +1145,7 @@ check_result_t _check_back_stop_instruction(train_position_info_t* tpi, path_ins
     //send_term_debug_log_msg("[INST_BSTOP] Iter: %s %s-%s %d Dist: %d Off: %d Stopping Distance: %d", (*iterator)->name, back_of_train.node->name, instruction_node.node->name, distance_between_nodes, distance_between_nodes + back_of_train.offset, back_of_train.offset, tpi->current_stopping_distance);
 
     if(distance_between_nodes <= tpi->current_stopping_distance) {
-        send_term_debug_log_msg("[INST_BSTOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
+       // send_term_debug_log_msg("[INST_BSTOP] Executing stop train: %d Expected error: %d Dist: %d Stop Dist: %d", tpi->train_num, tpi->current_stopping_distance - distance_between_nodes, distance_between_nodes, tpi->current_stopping_distance);
         //send_term_debug_log_msg("[INST_BSTOP] Stop %d from %s SD: %d", back_of_train.offset, back_of_train.node->name, tpi->current_stopping_distance);
 
         _train_server_send_speed(tpi->train_num, 0);
@@ -1168,7 +1164,7 @@ check_result_t _check_switch_instruction(train_position_info_t* tpi, path_instru
 
     if(switch_node->reserved_by == tpi->train_num ) {
         if(_handle_check_train_reservations_with_switch(tpi, instruction->switch_num)){
-           send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Switch: %d", tpi->train_num, instruction->switch_num);
+           //send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Switch: %d", tpi->train_num, instruction->switch_num);
             _train_server_set_switch(instruction->switch_num, instruction->direction);
             return CHECK_SUCCESS; 
         }else {
@@ -2191,7 +2187,7 @@ int train_server_set_accel(tid_t tid,int32_t accel1, int32_t accel2) {
 }
 void _handle_set_accel(train_position_info_t* tpi, int32_t accel1, int32_t accel2) {
     if(accel1 == 0 && accel2 == 0) {
-        //send_term_debug_log_msg("Set tr %d accel while acc: %d, while at max: %d", tpi->train_num,tpi->acceleration_while_accel_thousandths_mm_ticks,tpi->acceleration_at_max_thousandths_mm_ticks);
+        send_term_debug_log_msg("Set tr %d accel while acc: %d, while at max: %d", tpi->train_num,tpi->acceleration_while_accel_thousandths_mm_ticks,tpi->acceleration_at_max_thousandths_mm_ticks);
         return;
     }
 
