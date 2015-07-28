@@ -73,6 +73,7 @@ static void _handle_set_deccel(train_position_info_t* tpi, int32_t deccel);
 static void _update_track_node_data(train_position_info_t* tpi, int32_t current_acceleration, int32_t dist_travelled);
 static void _reverse_train_node_locations(train_position_info_t* tpi);
 static void _set_train_node_locations(train_position_info_t* tpi, track_node* node, int32_t offset) ;
+static bool _handle_check_train_reservations_with_switch(train_position_info_t* tpi, int switch_num);
 #define END_INSTRUCTIONS() goto end_instructions
 
 #define SET_SWITCHES(main, secondary) ((((int32_t)(main)) << 16) | (secondary))
@@ -859,7 +860,7 @@ void handle_sensor_data(int16_t train_number, int16_t slot, int8_t* sensor_data,
 
     (void)_handle_sensor_triggers;
     _handle_train_track_position_update(train_position_info);
-    _handle_train_reservations(train_position_info);
+    
 }
 int32_t dist_using_vat(int64_t v_i, int64_t a,int64_t time){
         return v_i*time + (a * time*(time))/2;
@@ -944,9 +945,21 @@ void _handle_train_track_position_update(train_position_info_t* tpi){
     send_term_update_velocity_msg(tpi->train_slot,tpi->velocity_thousandths_mm_ticks*(GRANULARITY/100));
     //send_term_debug_log_msg("trackpos sens: %s tip: %s off %d",node_at_sensor->name,tpi->leading_end_node->name,tpi->leading_end_offset_in_node);
 
-    if(tpi->performing_goto && (_check_train_instructions(tpi) == CHECK_FAIL)){
-        send_term_debug_log_msg("Path ran into problem: recalculating");
-        handle_goto_destination(tpi,tpi->train_num,tpi->destination);
+
+    /**
+     * if we are performing a goto, we will let the instruction checks handle 
+     * all of the reservations, otherwise just assuming that whoever is switching
+     * knows what the fuck they are doing.
+     */
+
+    if(tpi->performing_goto ){
+        if((_check_train_instructions(tpi) == CHECK_FAIL))
+        {
+            send_term_debug_log_msg("Path ran into problem: recalculating");
+            handle_goto_destination(tpi,tpi->train_num,tpi->destination);
+        }
+    }else {
+        _handle_train_reservations(tpi);
     }
 }
 void _set_train_node_locations(train_position_info_t* tpi, track_node* node, int32_t offset) {
@@ -1153,10 +1166,15 @@ check_result_t _check_switch_instruction(train_position_info_t* tpi, path_instru
     track_node* switch_node = instruction->instruction_node.node;
     
 
-    if(switch_node->reserved_by == tpi->train_num) {
-        send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Switch: %d", tpi->train_num, instruction->switch_num);
-        _train_server_set_switch(instruction->switch_num, instruction->direction);
-        return CHECK_SUCCESS;
+    if(switch_node->reserved_by == tpi->train_num ) {
+        if(_handle_check_train_reservations_with_switch(tpi, instruction->switch_num)){
+           send_term_debug_log_msg("[INST_SW] Executing switch for train: %d Switch: %d", tpi->train_num, instruction->switch_num);
+            _train_server_set_switch(instruction->switch_num, instruction->direction);
+            return CHECK_SUCCESS; 
+        }else {
+            return CHECK_FAIL;
+        }
+        
     }
 
     return CHECK_NEUTRAL;
@@ -1213,6 +1231,20 @@ void _handle_train_reservations(train_position_info_t* tpi) {
             _train_server_send_speed(tpi->train_num, 0);
         }
     }
+
+}
+bool _handle_check_train_reservations_with_switch(train_position_info_t* tpi, int switch_num) {
+   // send_term_debug_log_msg("_handle_train_reservations");
+
+    //return;
+    if(!tpi->jesus_take_the_wheel) return false;
+    int cur_stop_dist;
+    //bool speed_back_up = false;
+
+    cur_stop_dist = tpi->current_stopping_distance;
+   
+    return track_check_reservations_with_switch(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_sensor_location),cur_stop_dist,switch_num);
+
 
 }
 
