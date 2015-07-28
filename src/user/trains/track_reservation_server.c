@@ -17,6 +17,7 @@ void _handle_reservation_init(void);
 void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
 bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance, bool initial_reservation);
 bool _has_adjacent_reserved(track_node* node, int train_num);
+bool _check_reserve_path_from_point_with_switch(reserved_node_queue_t* res_queue, int train_num, track_node* our_node,int32_t offset_in_node,int stopping_distance, int switch_num);
 
 track_node* _next_reservation_node(track_node* node, int train_num);
 static bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node* our_node, int train_num);
@@ -55,6 +56,8 @@ void track_reservation_server(void) {
 					response_size =sizeof(bool);
 
 				break;
+			case TR_CHECK_RESERVATIONS_WITH_SWITCH:
+				*bool_response = _check_reserve_path_from_point_with_switch(message.res_queue,message.train_num,message.front_data->node,message.front_data->offset,message.stopping_distance,message.switch_num);	
 			default:
 				ASSERT(0);
 		}
@@ -132,8 +135,6 @@ void track_release_node(track_node* node,int train_num) {
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
 	track_node* flip  = track_node_flip(node);
-
-	
 
 	//I know this is redundant but I don't want to leave that gap anymore :P
 	node->reserved_by = num;
@@ -325,6 +326,59 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 	}
 	return true;
 }
+
+
+bool _check_reserve_path_from_point_with_switch(reserved_node_queue_t* res_queue, int train_num, track_node* our_node,int32_t offset_in_node,int stopping_distance, int switch_num) {
+
+	ASSERT(is_valid_switch_number(switch_num));
+	bool nodes_added = false;
+	ASSERT(our_node !=NULL);
+	ASSERT(res_queue != NULL);
+
+	if(our_node == NULL) return false;
+	track_node* iterator_node;
+	
+
+	//we add our offset into our current node so that when we subtract it in the
+		//loop that follows then then it takes into account that the have that
+		//much distance that won't contribute to the stopping distance
+	stopping_distance+= offset_in_node;
+
+	stopping_distance += 210; // TODO: When the trains actually get calibrated remove this
+
+	for(iterator_node = our_node; 
+		iterator_node != NULL && stopping_distance >= 0; 
+		iterator_node=((iterator_node->type == NODE_BRANCH && iterator_node->num == switch_num)
+		 		?  get_next_track_node_assuming_switch (iterator_node)
+		 		:  get_next_track_node (iterator_node)) ) {
+		//send_term_debug_log_msg("track try to reserve %s",iterator_node->name);
+/*		if(iterator_node->reserved_by != train_num && iterator_node->reserved_by != -1){
+			//TODO: Train panic, and say we couldn't reserve it ?? Maybe?
+			return false;
+		}*/
+		
+		//Pretend like we are going to reserve the track node, then after we find out whether we could, unreserve it
+		if(!_handle_node_reserve(res_queue, iterator_node,train_num)) {
+			_handle_node_reserve(res_queue, iterator_node,-1);
+			return false;
+		}else{
+
+            bool exists_in;
+            RESERVED_VALUE_EXISTS_IN(*res_queue,iterator_node,exists_in);
+            if(!exists_in){
+            	nodes_added = true;
+            }
+        }
+        _handle_node_reserve(res_queue, iterator_node,-1);
+
+		stopping_distance -= ((iterator_node->type == NODE_BRANCH && iterator_node->num == switch_num)
+		 		?  get_track_node_length_assuming_switch (iterator_node)
+		 		:  get_track_node_length(iterator_node));
+	}
+	
+	return true;
+}
+
 void _release_track_from_point_behind(reserved_node_queue_t* res_queue, int train_num, track_node* our_node,int32_t offset_in_node, int stopping_distance) {
 
 
@@ -381,6 +435,26 @@ bool track_intial_reservations(reserved_node_queue_t* res_queue, int train_num, 
 	return _track_handle_reservations( res_queue, train_num, front_data, back_data,  stopping_distance,true);
 }
 
+bool track_check_reservations_with_switch(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data, int stopping_distance, int switch_num) {
+	ASSERT(res_queue != NULL);
+	ASSERT(front_data->node != NULL );
+	ASSERT(is_valid_switch_number(switch_num));
+
+	track_res_msg_t message;
+
+	message.type = TR_CHECK_RESERVATIONS_WITH_SWITCH;
+	message.res_queue = res_queue;
+	message.train_num = train_num;
+	message.front_data = front_data;
+	message.stopping_distance = stopping_distance;
+	message.switch_num = switch_num;
+
+	bool bool_result;
+	Send(TRACK_RESERVATION_SERVER_ID,(char*)&message, sizeof(track_res_msg_t),(char*)&bool_result,sizeof(bool));
+	return bool_result;
+
+	
+}
 
 
 

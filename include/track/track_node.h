@@ -50,6 +50,7 @@ track_node* get_next_sensor( track_node* node);
 track_node* get_next_sensor_switch_broken( track_node* node);
 bool is_valid_switch_number(uint32_t sw_num) ;
 uint32_t get_track_node_length(track_node* node);
+uint32_t get_track_node_length_assuming_switch(track_node* node) ;
 uint32_t distance_between_track_nodes(track_node* start, track_node * end, bool switch_broken);
 uint32_t dist_between_node_and_num(track_node* start, int num);
 uint32_t dist_between_node_and_index_using_path( track_node** path_start, int num);
@@ -73,4 +74,5 @@ void track_touch_node(track_node* node, bool val);
 track_node_data_t track_get_node_location(track_node* last_sensor,int offset);
 void track_flip_node_data(track_node_data_t* node_data);
 bool _is_track_node_adacent(track_node* node1, track_node* node2);
+track_node* get_next_track_node_assuming_switch(track_node* node);
 #endif //_TRACK_NODE_H_

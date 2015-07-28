@@ -28,7 +28,6 @@ typedef struct {
     //Switches
     int16_t switch_num;
     int16_t direction;
-    
     uint32_t ticks_first_tried;
 } path_instruction_t;
 

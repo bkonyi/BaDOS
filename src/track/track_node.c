@@ -12,6 +12,13 @@ track_node* get_next_track_node(track_node* node) {
 	// if the switch is set correctly
 	return node->edge[node->state].dest;
 }
+track_node* get_next_track_node_assuming_switch(track_node* node) {
+
+	//We can add conditions for getting the next node here
+	// like if we only ever want to allow passing over a merge
+	// if the switch is set correctly
+	return node->edge[!(node->state)].dest;
+}
 
 track_node* get_next_track_node_in_path(track_node** node) {
 	return *(node + 1);
@@ -38,6 +45,13 @@ uint32_t get_track_node_length(track_node* node) {
 		return 0;
 	}else {
 		return node->edge[node->state].dist;
+	}
+}
+uint32_t get_track_node_length_assuming_switch(track_node* node) {
+	if(node == NULL || node->type == NODE_EXIT){
+		return 0;
+	}else {
+		return node->edge[!(node->state)].dist;
 	}
 }
 

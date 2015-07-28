@@ -17,7 +17,8 @@ typedef enum track_res_msg_type_t {
 	TR_RESERVE_APPROVE,
 	TR_MAKE_RESERVATIONS,
 	TR_RELEASE,
-	TR_UNSET
+	TR_UNSET,
+	TR_CHECK_RESERVATIONS_WITH_SWITCH
 }track_res_msg_type_t;
 
 typedef struct track_res_msg_t {
@@ -29,6 +30,7 @@ typedef struct track_res_msg_t {
 	track_node* our_node;
 	int stopping_distance;
 	bool initial_reservation;
+	int switch_num;
 } track_res_msg_t;
 
 void track_reservation_server(void);
@@ -38,6 +40,7 @@ void track_reservation_init(track_node* base_node);
 bool track_handle_reservations(reserved_node_queue_t* res_queue, int train_num,track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance) ;
 bool track_intial_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance);
 void track_clear_reservations(reserved_node_queue_t* res_queue, int train_num, track_node* our_node, int offset_in_node, int stopping_distance);
+bool track_check_reservations_with_switch(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data, int stopping_distance, int switch_num);
 
 #endif// _RESERVATION_SERVER_H_
 
