@@ -132,7 +132,8 @@ void track_release_node(track_node* node,int train_num) {
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
 	track_node* flip  = track_node_flip(node);
-	if(flip->type == NODE_BRANCH) 
+
+	
 
 	//I know this is redundant but I don't want to leave that gap anymore :P
 	node->reserved_by = num;
