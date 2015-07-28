@@ -16,6 +16,7 @@ void _handle_node_release(reserved_node_queue_t* res_queue,track_node* node, int
 void _handle_reservation_init(void);
 void _print_reserved_tracks(reserved_node_queue_t* res_queue,int train_num);
 bool _handle_track_handle_reservations(reserved_node_queue_t* res_queue, int train_num, track_node_data_t* front_data,track_node_data_t* back_data, int stopping_distance, bool initial_reservation);
+bool _has_adjacent_reserved(track_node* node, int train_num);
 
 track_node* _next_reservation_node(track_node* node, int train_num);
 static bool _handle_recursive_release_nodes(reserved_node_queue_t* res_queue,track_node* our_node, int train_num);
@@ -105,6 +106,14 @@ bool track_reserve_node(reserved_node_queue_t* res_queue, track_node* node,int t
 	return true;
 #endif
 }
+bool _has_adjacent_reserved(track_node* node, int train_num) {
+	if(node->reserved_by == train_num) return true;
+	if(node->reverse->reserved_by  == train_num) return true;
+	if(node->edge[DIR_AHEAD].dest->reserved_by == train_num) return true;
+	if(node->type == NODE_BRANCH && node->edge[DIR_CURVED].dest->reserved_by == train_num);
+
+	return false;
+}
 
 void track_release_node(track_node* node,int train_num) {
 #ifdef TRACK_RESERVATIONS_ENABLED
@@ -114,7 +123,11 @@ void track_release_node(track_node* node,int train_num) {
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
 	node->reserved_by = num;
-	track_node_flip(node)->reserved_by = num;
+	node->edge[DIR_AHEAD].reverse->src->reserved_by = num;
+	if(node->type == NODE_BRANCH){
+		node->edge[DIR_CURVED].reverse->src->reserved_by = num;
+	}
+
 }
 
 void _send_track_res_msg(track_res_msg_type_t type, track_node* node,reserved_node_queue_t* res_queue, int train_num, track_res_msg_t* response){
@@ -242,9 +255,17 @@ bool _reserve_tracks_from_point(reserved_node_queue_t* res_queue, int train_num,
 	//send_term_debug_log_msg("Reserve %d from %s with off %d",stopping_distance, our_node->name,offset_in_node);
 	//TODO: TRAIN_PANIC
 	if( !initial_reservation && !(our_node->reserved_by == train_num )){
-		send_term_debug_log_msg("%s(%d) Was reserved by: %d",our_node->name,train_num,our_node->reserved_by);
-		Delay(20);
-		ASSERT(0);
+		if(our_node->reserved_by == -1 && _has_adjacent_reserved(our_node,train_num)){
+			_reserve_tracks_from_point(res_queue,train_num,our_node,offset_in_node, 200,true);
+
+		}else if(!initial_reservation && our_node->reserved_by != train_num && our_node->reserved_by != -1 && _has_adjacent_reserved(our_node,train_num)){
+			return false;
+		}else{
+			send_term_debug_log_msg("%s(%d) Was reserved by: %d",our_node->name,train_num,our_node->reserved_by);
+			Delay(20);
+			ASSERT(0);
+		}
+		
 	}
 
 	//we add our offset into our current node so that when we subtract it in the
@@ -290,6 +311,7 @@ void _release_track_from_point_behind(reserved_node_queue_t* res_queue, int trai
 	track_node_data_t tip_location = track_get_node_location(our_node,offset_in_node-200);
 	 track_flip_node_data(&tip_location);
 	 track_node* first_node_to_remove = get_next_track_node(tip_location.node);
+	 if(get_next_track_node !=NULL) first_node_to_remove = get_next_track_node(first_node_to_remove);
 
 	 track_touch_node(tip_location.node,true);
 	 //send_term_debug_log_msg("Starting recursion tr %d", train_num);

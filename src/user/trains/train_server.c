@@ -364,7 +364,7 @@ void train_server(void) {
 
                     //send_term_debug_log_msg("TRAIN_SERVER_SET_REVERSING, READY TO RECALCULATE");
                 }
-                track_intial_reservations(&(train_position_info.reserved_node_queue),train_position_info.train_num,&(train_position_info.train_front_location),&(train_position_info.train_back_location),100);
+                track_intial_reservations(&(train_position_info.reserved_node_queue),train_position_info.train_num,&(train_position_info.train_sensor_location),&(train_position_info.train_sensor_location),100);
 
                 break;
             case TRAIN_SERVER_SET_LOCATION:
@@ -1131,7 +1131,7 @@ check_result_t _check_back_stop_instruction(train_position_info_t* tpi, path_ins
         distance_between_nodes -= back_of_train.offset;
     }
 
-    distance_between_nodes +=  130; //5CM offset
+    distance_between_nodes +=  180; //5CM offset
 
     //send_term_debug_log_msg("[INST_BSTOP] Iter: %s %s-%s %d Dist: %d Off: %d Stopping Distance: %d", (*iterator)->name, back_of_train.node->name, instruction_node.node->name, distance_between_nodes, distance_between_nodes + back_of_train.offset, back_of_train.offset, tpi->current_stopping_distance);
 
@@ -1206,7 +1206,7 @@ void _handle_train_reservations(train_position_info_t* tpi) {
      //   cur_stop_dist+=200;
     //}
     //send_term_debug_log_msg("Stop dist for  %d: %d OFF:%",tpi->train_num,cur_stop_dist);
-    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_front_location), &(tpi->train_back_location),cur_stop_dist );
+    result = track_handle_reservations(&(tpi->reserved_node_queue) ,tpi->train_num, &(tpi->train_sensor_location), &(tpi->train_sensor_location),cur_stop_dist );
     uint32_t time = Time();
     if(result == true ){
         if(tpi->velocity_thousandths_mm_ticks == 0 && tpi->reservation_halted  && (time - tpi->ticks_for_last_reservation_accel) > 50){
@@ -1272,7 +1272,7 @@ bool handle_find_train(int16_t train, int16_t slot, int8_t* sensors, int8_t* ini
             _print_train_node_locs(train_position_info);
 
             //Reserve this piece of track
-           ASSERT( track_intial_reservations(&(train_position_info->reserved_node_queue),train_position_info->train_num,&(train_position_info->train_front_location),&(train_position_info->train_back_location),100));
+           ASSERT( track_intial_reservations(&(train_position_info->reserved_node_queue),train_position_info->train_num,&(train_position_info->train_sensor_location),&(train_position_info->train_sensor_location),100));
 
             if(!(train_position_info->last_sensor->reserved_by == train_position_info->train_num)) {
                 send_term_debug_log_msg( "ERROR %s Was already owned by %d",train_position_info->last_sensor->name,train_position_info->last_sensor->reserved_by);
