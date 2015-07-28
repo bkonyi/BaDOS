@@ -1186,19 +1186,9 @@ void _handle_train_reservations(train_position_info_t* tpi) {
     //return;
     if(!tpi->jesus_take_the_wheel) return;
     bool result;
-    int speed,cur_stop_dist;
+    int cur_stop_dist;
     //bool speed_back_up = false;
-    if(tpi->stopping_distance == NULL){
-        return;  
-    } 
-    if(tpi->speed == 0){
-        speed = tpi->last_speed;
-        cur_stop_dist =  tpi->last_stopping_distance_in_res;
-    }else{
-        speed = tpi->speed;
-        cur_stop_dist =  tpi->stopping_distance(speed, false);
-        tpi->last_stopping_distance_in_res = cur_stop_dist;
-    }
+
     cur_stop_dist = tpi->current_stopping_distance;
    
 
