@@ -107,10 +107,19 @@ bool track_reserve_node(reserved_node_queue_t* res_queue, track_node* node,int t
 #endif
 }
 bool _has_adjacent_reserved(track_node* node, int train_num) {
+	track_node* flip = track_node_flip(node);
+
+	//Also redundant but I want to be sure
+
 	if(node->reserved_by == train_num) return true;
 	if(node->reverse->reserved_by  == train_num) return true;
 	if(node->edge[DIR_AHEAD].dest->reserved_by == train_num) return true;
-	if(node->type == NODE_BRANCH && node->edge[DIR_CURVED].dest->reserved_by == train_num);
+	if(node->type == NODE_BRANCH && node->edge[DIR_CURVED].dest->reserved_by == train_num) return true;
+
+	if(flip->reserved_by == train_num) return true;
+	if(flip->reverse->reserved_by  == train_num) return true;
+	if(flip->edge[DIR_AHEAD].dest->reserved_by == train_num) return true;
+	if(flip->type == NODE_BRANCH && flip->edge[DIR_CURVED].dest->reserved_by == train_num) return true;
 
 	return false;
 }
@@ -122,10 +131,20 @@ void track_release_node(track_node* node,int train_num) {
 }
 void _set_track_node_reservation(track_node* node, int num){
 	ASSERT(node != NULL);
+	track_node* flip  = track_node_flip(node);
+	if(flip->type == NODE_BRANCH) 
+
+	//I know this is redundant but I don't want to leave that gap anymore :P
 	node->reserved_by = num;
 	node->edge[DIR_AHEAD].reverse->src->reserved_by = num;
 	if(node->type == NODE_BRANCH){
 		node->edge[DIR_CURVED].reverse->src->reserved_by = num;
+	}
+
+	flip->reserved_by = num;
+	flip->edge[DIR_AHEAD].reverse->src->reserved_by = num;
+	if(flip->type == NODE_BRANCH){
+		flip->edge[DIR_CURVED].reverse->src->reserved_by = num;
 	}
 
 }
