@@ -363,9 +363,11 @@ void clear_terminal_train_slot(int8_t slot) {
 
     Send(TERMINAL_SERVER_ID, (char*)&request, sizeof(terminal_data_t), (char*)NULL, 0);
 }
+
 void send_term_update_velocity_msg (uint32_t slot, uint32_t v) {
     handle_terminal_send_2_ints(TERMINAL_UPDATE_TRAIN_VELO, slot, v);
 }
+
 void send_term_update_dist_msg (uint32_t slot, int32_t dist)  {
     handle_terminal_send_2_ints(TERMINAL_UPDATE_TRAIN_DIST, slot, dist);
 }
@@ -379,14 +381,7 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     int msg_len = strlen(msg);
     int i;
     term_hide_cursor();
-    //term_save_cursor();
-
-    /*
-            printf(COM2,"\e[s\e[%d;%dH%d: %s\e[u",TERM_DEBUG_LOG_COL,TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1, count ,debug_log->entries[dbl_iterator]);
-        dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
-        if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
-        count++;*/
-
+ 
     if(debug_log->size < DEBUG_LOG_MAX_DEPTH) debug_log->size++;
 
     for(i = 0; i < DEBUG_LOG_MAX_LEN; i ++){
@@ -405,17 +400,18 @@ void _handle_debug_log_entry(debug_log_t * debug_log, char* msg) {
     if(debug_log->border_switch == 1){
         border_char = '|';
     }
-    debug_log->border_switch = !(debug_log->border_switch);
-    do{
+ 
+   debug_log->border_switch = !(debug_log->border_switch);
+
+    do {
         printf(COM2,"\033[s \e[%d;%dH%c%d: %s%c \033[u",TERM_DEBUG_LOG_ROW + DEBUG_LOG_MAX_DEPTH-count-1, TERM_DEBUG_LOG_COL, border_char,count ,debug_log->entries[dbl_iterator],border_char);
         dbl_iterator  = (dbl_iterator - 1) % DEBUG_LOG_MAX_DEPTH;
         if(dbl_iterator <0) dbl_iterator+= DEBUG_LOG_MAX_DEPTH;
         count++;
-    }while(count < debug_log->size);
-    //term_restore_cursor();
+    } while(count < debug_log->size);
+    
     term_show_cursor();
     debug_log->iterator = (debug_log->iterator + 1) % DEBUG_LOG_MAX_DEPTH;
-
 }
 
 void handle_update_train_slot_distance(int8_t slot, int32_t dist) {
@@ -592,6 +588,7 @@ void _status_message(bool clr_usr_in,char* fmt, ...){
         _clear_user_input();
     }
 }
+
 void handle_command_success_message(char *cmd) {
     term_hide_cursor();
 
@@ -602,6 +599,7 @@ void handle_command_success_message(char *cmd) {
     printf(COM2,"┃");
     _clear_user_input();
 }
+
 void _clear_user_input(void) {
 
     //Clear the line
@@ -614,9 +612,11 @@ void _clear_user_input(void) {
     term_move_cursor(TERM_INPUT_COORDS);
     term_show_cursor();
 }
+
 void handle_train_command(int32_t num,int32_t speed){
     _status_message(true,"tr %d %d",num,speed);
 }
+
 void send_term_train_msg(int32_t num,int32_t speed) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_TRAIN_COMMAND;
@@ -624,9 +624,11 @@ void send_term_train_msg(int32_t num,int32_t speed) {
     terminal_data.num2 = speed;
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
+
 void handle_reverse_command(int32_t num){
    _status_message(true, "rv %d",num);
 }
+
 void send_term_heavy_msg(bool clr_user_input,char*message,...) {
     char err_msg[128];
 
@@ -645,8 +647,8 @@ void send_term_heavy_msg(bool clr_user_input,char*message,...) {
     strcpy(msg_to_send + sizeof(terminal_data_t),err_msg);
     Send(TERMINAL_SERVER_ID,msg_to_send,msg_len, NULL,0);
 }
-void send_term_cmd_success_msg(char*cmd) {
-    
+
+void send_term_cmd_success_msg(char*cmd) {    
     int input_len = strlen(cmd)+1; // include nullus terminus (rRoman for null terminator....)
     int msg_len = sizeof(terminal_data_t) + input_len*sizeof(char);
     char msg_to_send[msg_len];
@@ -656,12 +658,14 @@ void send_term_cmd_success_msg(char*cmd) {
     strcpy(msg_to_send + sizeof(terminal_data_t),cmd);
     Send(TERMINAL_SERVER_ID,msg_to_send,msg_len, NULL,0);
 }
+
 void send_term_reverse_msg(uint32_t train_num) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_REVERSE_COMMAND;
     terminal_data.num1 = train_num;
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
+
 void handle_switch_command(int32_t num,char state){
     term_hide_cursor();
     term_save_cursor();
@@ -682,6 +686,7 @@ void handle_switch_command(int32_t num,char state){
     term_restore_cursor();
     term_show_cursor();
 }
+
 void send_term_switch_msg(int32_t train_num,char state) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_SWITCH_COMMAND;
@@ -689,12 +694,14 @@ void send_term_switch_msg(int32_t train_num,char state) {
     terminal_data.byte1 = state;
     ASSERT(Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0) == 0);
 }
+
 void send_term_initialize_track_switches(void) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_INIT_ALL_SWITCHES;
 
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
+
 void handle_initialize_track_switches(void) {
     int i;
     for(i = 0; i < 200; i ++) {
@@ -703,10 +710,12 @@ void handle_initialize_track_switches(void) {
         }
     }
 }
+
 void handle_quit_command(void){
     _status_message(true,"Quitting");
     Terminate();
 }
+
 void send_term_quit_msg (void) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_QUIT;
@@ -716,6 +725,7 @@ void send_term_quit_msg (void) {
 void handle_start_command(void) {
     _status_message(true,"Enabling the train controller");
 }
+
 void send_term_start_msg(void) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_START_CTRL;
@@ -725,14 +735,17 @@ void send_term_start_msg(void) {
 void handle_stop_command(void) {
     _status_message(true,"Disabling the train controller");
 }
+
 void send_term_stop_msg(void) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_STOP_CTRL;
     Send(TERMINAL_SERVER_ID,(char*)&terminal_data,sizeof(terminal_data_t),(char*)NULL,0);
 }
+
 void handle_find_command(void) {
     _status_message(true,"Finding registered trains...");
 }
+
 void send_term_find_msg(void) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_FIND_TRAIN;
@@ -779,6 +792,7 @@ void send_term_set_track_msg(char track) {
 void handle_register_train(int8_t train, int8_t slot) {
     _status_message(true,"Train %d is registered to slot %d", train, slot);
 }
+
 void send_term_register_train_msg(int8_t train, int8_t slot) {
     terminal_data_t terminal_data;
     terminal_data.command = TERMINAL_REGISTER_TRAIN;
@@ -804,14 +818,12 @@ void handle_init_train_slot(int8_t train, int8_t slot) {
     term_restore_cursor();
 }
 
-
 void handle_update_train_slot_speed(int8_t slot, int8_t speed) {
     term_save_cursor();
     term_move_cursor(TERM_TRAIN_STATE_START_COL + TERM_TRAIN_STATE_SPEED_OFF, TERM_TRAIN_STATE_START_ROW + (2 * (slot - 1)));
     printf(COM2, "%d ", speed);
     term_restore_cursor();
 }
-
 
 void handle_update_train_slot_current_location(int8_t slot, int16_t sensor_position) {
     term_save_cursor();
@@ -948,5 +960,4 @@ void handle_display_average_velocity_information(int16_t train, avg_velocity_t**
     term_restore_cursor();
     term_show_cursor();
 }
-
 

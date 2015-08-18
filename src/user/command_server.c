@@ -55,8 +55,6 @@ void process_input(char* input) {
 	//if(argc < 0); TODO: INPUT TOO LARGE
 	char* first = NULL, *second = NULL, *third = NULL, *fourth = NULL;
 	
-	
-	//inst->type = NONE;
 	if(argc > 4) {
 		send_term_heavy_msg(true,"Too many args");
 	} else if(argc == 4) {
@@ -102,7 +100,6 @@ void process_input(char* input) {
 				}
 			} else {
 				send_term_heavy_msg(true,"CMD 'TR': invalid args");
-				//term_set_status(t,"ERROR: TR Args invalid");
 			}
 		} else if(strcmp(argv[0],"sw")==0) {
 			if(target_train_number >= 0 ) { //TODO: max train number?
@@ -119,8 +116,6 @@ void process_input(char* input) {
 		} else if(strcmp(argv[0], "register") == 0 || strcmp(argv[0], "reg") == 0) {
 			target_train_number = strtoi(argv[1]);
 			int8_t slot = strtoi(argv[2]);
-
-			//send_term_register_train_msg(target_train_number,slot);
 			result = register_train(target_train_number, slot);
 			
 			if(result != 0) {
@@ -229,7 +224,6 @@ void process_input(char* input) {
 				}
 			} else {
 				send_term_heavy_msg(true,"RV, invalid train number");
-				//term_set_status(t,"ERROR: RV, INVALID train number");
 			}
 		} else if(strcmp(first, "track") == 0) {
 			char track = char_to_upper(argv[1][0]);

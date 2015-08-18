@@ -32,7 +32,6 @@ int create_task(global_data_t* global_data, priority_t priority, void (*code) ()
     }
 
     task_descriptor_t* active_task = get_active_task(global_data);
-
     task_descriptor_t* next_descriptor;
 
     if(task_handler_data->next_tid == MAX_NUMBER_OF_TASKS) {
@@ -94,13 +93,7 @@ int destroy_task(global_data_t* global_data, int tid) {
     } 
 
     task_descriptor_t* destroyed_task = &task_handler_data->tasks[tid_index];
-    //task_descriptor_t* active_task = get_active_task(global_data);
-
-    //Check to see if a task is trying to destroy itself.
-    //This might cause problems when we try to reschedule so we'll error out.
-    /*if(destroyed_task == active_task) {
-        return -2;
-    } else */if(TASK_GENERATION(destroyed_task->generational_tid) != TASK_GENERATION(tid)) {
+    if(TASK_GENERATION(destroyed_task->generational_tid) != TASK_GENERATION(tid)) {
         //Check to see if the task was destroyed in a previous generation
         //or doesn't exist yet
         return -3;

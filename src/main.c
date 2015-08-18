@@ -75,16 +75,6 @@ int main(void) {
      */
     //For information on the bits being set here see the  ep93xx documentation
     //page 43
-    /*__asm__("MOV r10, #0");
-    __asm__("MCR p15, 0, r10, c7, c5, 0");
-    __asm__("MRC p15, 0, r10, c1, c0, 0");
-    __asm__("MOV r9, #1");
-    __asm__("MOV r9, r9, LSL#30"); //bits for fast clock
-    __asm__("ORR r10, r10, #4096"); //instruction cache
-    __asm__("ORR r10, r10, r9"); //fast clock
-    __asm__("ORR r10, r10, #2"); //data cache
-    __asm__("MCR p15, 0, r10, c1, c0, 0");*/
-
     //We use this cache code so we don't kill our debug output when we
     //Thanks Osman <3 
     int val;
@@ -174,6 +164,7 @@ int main(void) {
     setfifo(COM2, OFF);
     bwprintf(COM2,"\033[90;0H");
     bwprintf(COM2, "\e[2B\r\033[2KUser Task Total Time: %u\r\n", user_task_run_time / 2);
+    
     int i;
     for(i = 0; i < next_tid; ++i) {
         task_descriptor_t* task = get_task(&global_data, i);

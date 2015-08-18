@@ -234,8 +234,6 @@ void strformat ( char* dest, char *fmt, va_list va ) {
 
 	char* msg_buffer = dest;
 	char* in_buff;
-	
-
 
 	while ( ( ch = *(fmt++) ) ) {
 		if ( ch != '%' ) {
@@ -273,55 +271,22 @@ void strformat ( char* dest, char *fmt, va_list va ) {
 				in_buff = va_arg(va, char*);
 				strcpy(msg_buffer,in_buff);
 				msg_buffer+=strlen(in_buff);
-				/*do {
-					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, 0, va_arg(va, char*));
-					if(result == -1) {
-						SEND_TRANSMIT_BUFFER();
-					} else {
-						msg_buffer_index += result;
-					}
-				} while(result == -1);*/
-
 				break;
 			case 'u':
 				ui2a( va_arg( va, unsigned int ), 10, bf );
 				strcpy(msg_buffer,bf);
 				msg_buffer+=strlen(bf);
-				/* do {
-					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
-					if(result == -1) {
-						SEND_TRANSMIT_BUFFER();
-					} else {
-						msg_buffer_index += result;
-					}
-				} while(result == -1); */
-				break;
+    			break;
 			case 'd':
 				i2a( va_arg( va, int ), bf );
 				strcpy(msg_buffer,bf);
 				msg_buffer+=strlen(bf);
-				/*do {
-					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
-					if(result == -1) {
-						SEND_TRANSMIT_BUFFER();
-					} else {
-						msg_buffer_index += result;
-					}
-				} while(result == -1);*/
-				break;
+	    		break;
 			case 'x':
 				ui2a( va_arg( va, unsigned int ), 16, bf );
 				strcpy(msg_buffer,bf);
 				msg_buffer+=strlen(bf);
-				/*do {
-					result = buffer_putw(&msg_buffer[msg_buffer_index], TRANSMIT_BUFFER_SIZE - msg_buffer_index, w, lz, bf);
-					if(result == -1) {
-						SEND_TRANSMIT_BUFFER();
-					} else {
-						msg_buffer_index += result;
-					}
-				} while(result == -1);*/
-				break;
+		    	break;
 			case '%':
 				*msg_buffer = ch;
 				msg_buffer++;
@@ -340,17 +305,18 @@ void printf( int channel, char *fmt, ... ) {
         format( channel, fmt, va );
         va_end(va);
 }
+
 void vprintf(int channel, char* fmt, va_list va){
     format( channel, fmt, va );
 }
 
 void sprintf( char* dest, char *fmt, ... ) {
         va_list va;
-
         va_start(va,fmt);
         strformat( dest, fmt, va );
         va_end(va);
 }
+
 void vsprintf(char* dest, char* fmt, va_list va){
     strformat( dest, fmt, va );
 }

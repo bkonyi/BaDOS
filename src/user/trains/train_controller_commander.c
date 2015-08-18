@@ -112,6 +112,7 @@ static void _handle_train_set_acceleration(train_data_t* trains, int8_t train_nu
 static void _handle_train_set_decceleration(train_data_t* trains, int8_t train_num,int32_t deccel);
 static void handle_goto_random_destinations(train_data_t* trains, int32_t train_num);
 static void handle_all_goto_random_destinations(train_data_t* trains, int16_t registered_trains[MAX_REGISTERED_TRAINS]);
+
 void train_controller_commander_server(void) {
     int sending_tid;
     train_controller_data_t data;
@@ -250,6 +251,7 @@ int tcs_train_set_speed(int8_t train, int8_t speed) {
 
     return 0;
 }
+
 int tcs_speed_all_train(int8_t speed) {
     if(speed > MAX_SPEED) {
         return -2;
@@ -263,6 +265,7 @@ int tcs_speed_all_train(int8_t speed) {
 
     return 0;
 }
+
 void handle_set_all_speeds(train_data_t* trains,int8_t speed){
     int i;
     for(i = 0; i <= MAX_TRAIN_NUM; ++i) {
@@ -285,6 +288,7 @@ int train_reverse(int8_t train) {
 
     return 0;
 }
+
 int train_reverse_immediately(int8_t train){
     if(train > MAX_TRAIN_NUM) {
         return -1;
@@ -316,11 +320,13 @@ int tcs_switch_set_direction(int16_t switch_num, char direction) {
 
     return 0;
 }
+
 void tcs_initialize_track_switches(void) {
     train_controller_data_t data;
     data.command = SWITCH_INITIALIZE_DIRECTIONS;
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
 }
+
 void handle_initialize_track_switches(void) {
     int i;
     for( i = 1; i < 19; i++ ) {
@@ -335,7 +341,6 @@ void handle_initialize_track_switches(void) {
         }
     }
 }
-
 
 void start_controller(void) {
     train_controller_data_t data;
@@ -361,7 +366,6 @@ int register_train(int8_t train, int8_t slot) {
     data.var1 = train;
     data.var2 = slot;
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
-   // ASSERT(0);
 
     return 0;
 }
@@ -390,6 +394,7 @@ int trigger_train_stop_on_sensor(int8_t train, int8_t sensor_num) {
 
     return 0;
 }
+
 int tcs_send_stop_around_sensor_msg(int16_t train,int8_t sensor_num, int32_t mm_diff) {
     if(train > MAX_TRAIN_NUM) {
         return -1;
@@ -557,12 +562,10 @@ void handle_train_set_speed(train_data_t* trains, int8_t train, int8_t speed) {
         trains[(uint16_t)train].is_reversing = false;
         train_server_set_reversing(trains[(uint16_t)train].server_tid);
     }
-
 }
 
 void handle_train_reverse_begin(train_data_t* trains, int8_t train) {
     trains[(uint16_t)train].is_reversing = true;
-
     handle_train_set_speed(trains, train, 0);
 }
 
@@ -573,8 +576,6 @@ void handle_train_reverse_end(train_data_t* trains, int8_t train, int8_t speed) 
     }else{
         send_term_debug_log_msg("YUP");
     }
-    
-
 }
 
 void handle_switch_set_direction(int16_t switch_num, char direction) {
@@ -694,6 +695,7 @@ int tcs_set_train_accel(int32_t train_num,int32_t accel1,int32_t accel2) {
     Send(TRAIN_CONTROLLER_SERVER_ID, (char*)&data, sizeof(train_controller_data_t), (char*)NULL, 0);
     return 0;
 }
+
 void _handle_train_set_acceleration(train_data_t* trains, int8_t train_num,int32_t accel1,int32_t accel2){
     train_server_set_accel(trains[(int16_t)train_num].server_tid,accel1,accel2);
 }

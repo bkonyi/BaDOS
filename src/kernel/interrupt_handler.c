@@ -59,21 +59,16 @@ void handle_interrupt(global_data_t* global_data) {
 
     //acquire the statuses here so that we don't look at interrupts
     //that show up as we handle the current status
-    //bwprintf(COM2, "Handling interrupt!\r\n");
-
     uint32_t vic1_status = *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus);
     uint32_t vic2_status = *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus);
 
     // left uninitialized so we have the chance of a compiler warning
-    	//If the cases below don't set the value
+  	//If the cases below don't set the value
 
     int32_t interrupt_index = -1; 
     int return_code = 0;
     if(vic1_status & VIC1_TC1UI_MASK) {
-        //bwprintf(COM2, "Interrupt before: 0x%x 0x%x\r\n", *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus), *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus));
     	timer1_handle();
-        //bwprintf(COM2, "Timer cleared\r\n");
-        //bwprintf(COM2, "Interrupt: 0x%x 0x%x\r\n", *(volatile uint32_t*)(VIC1_BASE + VICxIRQStatus), *(volatile uint32_t*)(VIC2_BASE + VICxIRQStatus));
     	interrupt_index = 	TIMER1_EVENT;
 
         //Increment the counter for calculating average idle time
@@ -86,8 +81,6 @@ void handle_interrupt(global_data_t* global_data) {
         uart2_receive_handle();
         return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
         interrupt_index =   UART2_RECEIVE_EVENT;
-
-        
     } else if(vic1_status & VIC1_UART1_TRANSMIT_MASK) {
         uart1_transmit_handle();
         interrupt_index =   UART1_TRANSMIT_EVENT;
@@ -95,7 +88,7 @@ void handle_interrupt(global_data_t* global_data) {
         if(global_data->uart1_modem_state.clear_to_send == true) {
             global_data->uart1_modem_state.events_waiting = false;
             global_data->uart1_modem_state.clear_to_send = false;
-        }else {
+        } else {
             global_data->uart1_modem_state.events_waiting = true;
             return;
         }
@@ -111,18 +104,17 @@ void handle_interrupt(global_data_t* global_data) {
             if(global_data->uart1_modem_state.events_waiting == false) {
                 global_data->uart1_modem_state.clear_to_send = true;
                 return;
-            }else {
+            } else {
                 global_data->uart1_modem_state.clear_to_send = false;
                 global_data->uart1_modem_state.events_waiting = false;
                 interrupt_index = UART1_TRANSMIT_EVENT;
                 //fall through to release events
             }
-        }else{
+        } else{
             return;
         }
         //We actually want to do nothing here. We don't want to check the modem until
-            //we get a transmit
-
+        //we get a transmit
     } else if(vic2_status & VIC2_UART2_STATUS_MASK) {
         uart2_status_handle();
         return_code = *(volatile int *)( UART2_BASE + UART_DATA_OFFSET );
@@ -138,14 +130,9 @@ void handle_interrupt(global_data_t* global_data) {
    	interrupt_waiting_tasks_queue_t *waiting_tasks_queue;
    	waiting_tasks_queue = &(global_data->syscall_handler_data.interrupt_waiting_tasks[interrupt_index]);
 
-    //bwprintf(COM2, "Event ID: %d Are tasks waiting: %d\r\n", interrupt_index, ARE_TASKS_WAITING((*waiting_tasks_queue)));
     //Schedule all tasks that were waiting for this event
-
-    //KASSERT(interrupt_index != TIMER1_EVENT);
-
    	while(ARE_TASKS_WAITING((*waiting_tasks_queue))) {
    		GET_NEXT_WAITING_TASK((*waiting_tasks_queue),td);
-        //bwprintf(COM2, "Waking up task: %d\r\n", td->tid);
         td->return_code = return_code; //Clear the return code since AwaitEvent was successful
         td->state = TASK_RUNNING_STATE_READY;
    		schedule(global_data, td);
@@ -185,13 +172,12 @@ void uart2_transmit_handle(void){
     *(volatile uint32_t*)(UART2_BASE + UART_CTLR_OFFSET) &= ~TIEN_MASK;
 }
 void uart1_status_handle(void){
-    //*(volatile uint32_t*)(VIC2_BASE + VICxIntEnClear) = VIC2_UART1_STATUS_MASK;
     //Turn off the modem interrupt
     *(volatile uint32_t*)(UART1_BASE + UART_INTR_OFFSET) = MIS_MASK;
 
 } 
 void uart2_status_handle(void){
    //We don't need to turn off the interrupt for TIMEOUT.
-        //It will happen on it's own when the buffer is empty.
+   //It will happen on it's own when the buffer is empty.
 } 
 

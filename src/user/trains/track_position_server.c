@@ -7,13 +7,14 @@
 #include <terminal/terminal.h>
 #include <terminal/terminal_debug_log.h>
 #include <trains/track_reservation_server.h>
+
 #define TPS_SENSOR_MESSAGE_SIZE SENSOR_MESSAGE_SIZE
 #define TPS_COVERSHEET_MESSAGE_SIZE (sizeof (tps_cover_sheet_t)) 
-
 #define NUM_SWITCHES_TO_STORE (32+4+4)
 #define NUM_MESSAGE_BUFFER_ITEMS 5
 #define MESSAGE_BUFFER_SIZE (sizeof(uint32_t)*NUM_MESSAGE_BUFFER_ITEMS)  
 #define MAX_NUM_TRAINS 10
+
 static void fill_track_branch_data(track_node* track_nodes, track_node* sensor_track_nodes[]);
 static void tpi_init(train_information_t* train_info, tps_tpi_queue_t* tpi_queue_free, tps_tpi_queue_t* tpi_queue_filled);
 
@@ -37,7 +38,6 @@ void track_position_server(void) {
 	bool found_stuck_sensors = true;
 
 	//Set up our pointers so we can be sneaky
-	//int8_t* signal_message = (int8_t*)message;
 	tps_cover_sheet_t* tps_message = (tps_cover_sheet_t*)message;
 	train_information_t* tpip;
 	uint32_t state = 0;
@@ -110,8 +110,6 @@ void track_position_server(void) {
 						fill_track_branch_data(track_nodes, track_branch_nodes);
 						break;
 					case TPS_ADD_TRAIN:
-						//num1 = train number
-						//num2 = switch number
 						QUEUE_POP_FRONT(tpi_queue_free,tpip);
 						QUEUE_PUSH_BACK(tpi_queue_filled,tpip);
 						tpip->train_num = tps_message->num1;
@@ -122,30 +120,25 @@ void track_position_server(void) {
 
 						//We want to send back their starting position so they can navigate from there.
 						literal_addr = track_get_sensor(track_nodes,tps_message->num2);
-							//send_term_error_msg("track Type: %d Num: %d Name: %s", ((track_node*)literal_addr)->type, ((track_node*)literal_addr)->num, ((track_node*)literal_addr)->name);
-			//ASSERT(0);
 						ASSERT(literal_addr != NULL);
 						Reply(requester,(char*)&literal_addr, sizeof(track_node*));
 						break;
 					case TPS_SWITCH_SET:
-						//num1 = switch number
-						//num2 = switch state (char)
 						character = (char)tps_message->num2 ;
-						//bwprintf(COM2,"\r\nTPS Set a switch %d %c\r\n",tps_message->num1,character);
-						if (character == 'S' || character == 's') {
+						
+                        if (character == 'S' || character == 's') {
 							state = DIR_STRAIGHT;
-						}else if (character == 'C' || character == 'c') {
+						} else if (character == 'C' || character == 'c') {
 							state = DIR_CURVED;
-						}else {
+						} else {
 							KASSERT(0);
 						}
 
 						//If that switch exists then change it and notify the trains that the
-							//track has changed
+						//track has changed
 						if(track_nodes_set_switch(track_branch_nodes,tps_message->num1,state) == true){
 							notify_trains_switch_changed(&tpi_queue_filled);
 						}
-						
 						break;
 					default:
 						break;
@@ -178,14 +171,12 @@ track_node* tps_set_train_sensor(uint32_t train_num, uint32_t sensor) {
 	
 	ASSERT(track_node_pointer != NULL);
 
-	//send_term_error_msg("track Type: %d Num: %d Name: %s", track_node_pointer->type, track_node_pointer->num, track_node_pointer->name);
-
 	return track_node_pointer;
 }
 
 void tps_send_sensor_data(int8_t* sensors) {
 	//Sensor data has a timestamp tacked on to the end of it so that we can have more 
-		//consistent time measurements between trains
+	//consistent time measurements between trains
 	Send(TRAIN_POSITION_SERVER_ID,(char*)sensors, TPS_SENSOR_MESSAGE_SIZE, NULL, 0);
 }
 
@@ -225,7 +216,7 @@ void fill_track_branch_data(track_node* track_nodes, track_node* track_branch_no
 
 			track_nodes[i].edge[DIR_STRAIGHT].touched = false;
 			track_nodes[i].edge[DIR_CURVED].touched = false;
-		}else{
+		} else{
 			track_nodes[i].edge[DIR_AHEAD].touched = false;
 		}
 	}
@@ -279,15 +270,10 @@ void send_sensor_data_to_trains(tps_tpi_queue_t* train_queue, int8_t* sensors) {
 }
 
 void notify_trains_switch_changed(tps_tpi_queue_t* train_queue) {
-//	train_information_t* iterator; 
-	//if(IS_QUEUE_EMPTY(*train_queue)) return;
-	//for( iterator = train_queue->head; iterator != NULL; iterator = /iterator->next) {
-	//	Send(iterator->server_tid,NULL,0,NULL,0);
-	//}
+    (void)train_queue;
 }
 
 uint32_t switch_num_to_index(uint32_t switch_num) {
-	
 	if(!is_valid_switch_number(switch_num)) {
 		send_term_debug_log_msg("Invalid switch num: %d", switch_num);
 		Delay(200);
@@ -296,7 +282,7 @@ uint32_t switch_num_to_index(uint32_t switch_num) {
 	ASSERT(is_valid_switch_number(switch_num));
 	if(switch_num >= 153) {
 		//assume we aren't using indices 28,29,30,31
-			//put switches 153,154,155,156 in those spots
+		//put switches 153,154,155,156 in those spots
 		switch_num -= (153-31); 
 	}else if (switch_num >= 0x99) {
 		switch_num -=(0x99-31+4);

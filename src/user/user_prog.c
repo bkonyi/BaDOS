@@ -67,8 +67,6 @@ void first_user_task(void) {
     /*******************************************************************/
     /*        NOTE: CODE BELOW THIS POINT IS SAFE TO BE REORDERED      */
     /*******************************************************************/
-    //tid = Create(5 , test_task);
-
 
     Exit();
 }

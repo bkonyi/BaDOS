@@ -2,6 +2,7 @@
 #include <bwio.h>
 #include <queue.h>
 #include <task_priorities.h>
+
 void init_scheduler(global_data_t* global_data) {
     scheduler_data_t* scheduler_data = &global_data->scheduler_data;
 
@@ -32,7 +33,6 @@ int schedule(global_data_t* global_data, task_descriptor_t* task) {
     //Add the task to the queue with defined priority
     QUEUE_PUSH_BACK((scheduler_data->queues[task->priority]), task);
 
-
     scheduler_data->occupied_queues |= (0x1 << task->priority);
 
     return 0;
@@ -43,7 +43,6 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
     task_descriptor_t* previous_active_task = scheduler_data->active_task;
 
     do {
-
         //Finds the log2 of the occupied queues
         //Don't ask me how this works, I found it online
         const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
@@ -54,10 +53,8 @@ task_descriptor_t* schedule_next_task(global_data_t* global_data) {
         int i;
 
         register unsigned int r = 0; // result
-        for (i = 4; i >= 0; i--)
-        {
-          if (v & b[i])
-          {
+        for (i = 4; i >= 0; i--) {
+          if (v & b[i]) {
             v >>= S[i];
             r |= S[i];
           }

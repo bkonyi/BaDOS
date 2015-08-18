@@ -6,23 +6,7 @@
 kerexit:
 	@ args = 0, pretend = 0, frame = 4
 	@ frame_needed = 1, uses_anonymous_args = 0
-
-	/*
-	typedef struct {
-	    //Registers
-	    uint32_t sp;   //Stack pointer
-	    uint32_t spsr; //Program status register
-	    uint32_t pc;
-	    uint32_t return_code;
-	    task_running_state_t state;
-	    tid_t parent;
-
-	    void* stack;
-
-
-	} task_descriptor_t;
-	*/
-	
+		
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 	@   SUPER MODE (r0-r12, r15, r13_svc, r14_svc, cpsr, sprs_svc)
 	@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

@@ -23,9 +23,7 @@ CREATE_QUEUE_TYPE(delay_queue_t, delayed_task_t);
 CREATE_QUEUE_TYPE(available_delayed_tasks_t, delayed_task_t);
 
 void delay_queue_insert(delay_queue_t * queue,available_delayed_tasks_t* available_delayed_tasks_queue,tid_t tid, uint32_t ticks);
-
 delayed_task_t * delay_queue_pop(delay_queue_t * queue,available_delayed_tasks_t* available_delayed_tasks);
-
 
 void clock_server_task(void) {
     int32_t ticks = 0;
@@ -133,5 +131,4 @@ delayed_task_t * delay_queue_pop(delay_queue_t * queue,available_delayed_tasks_t
     delayed_task_t *next_task;
     DELAY_QUEUE_POP_FRONT(*queue,next_task);
     return next_task;
-
 }
